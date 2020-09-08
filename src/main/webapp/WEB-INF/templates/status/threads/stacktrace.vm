@@ -1,0 +1,18 @@
+#macroPageHead("Threads")
+
+<div style="text-align:left">
+    <h3>$Thread.ThreadName ($Thread.ThreadId) [$Thread.ThreadState]</h1>
+
+    #if ($Thread.StackTrace.size() > 0)
+        <table style="margin-top:10px">
+        #foreach($Entry in $Thread.StackTrace)
+            <tr>
+                <td style="padding:1px;font-family:monospace">$Entry</td>
+            </tr>
+            #set($tmp = $list.add())
+        #end
+        </table>
+    #end
+</div>
+
+#macroFooter()

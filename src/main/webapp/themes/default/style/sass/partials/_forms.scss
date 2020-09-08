@@ -1,0 +1,330 @@
+form .dist-settings,form .task-settings,fieldset .form-subtitle {
+  display:none;
+}
+
+form {
+  overflow-y: hidden;
+  padding: 10px;
+
+  div.form-content {
+    overflow: hidden;
+    width: 100%;
+    height: 300px;
+    visibility: hidden;
+  }
+  div.form-toolbar {
+    margin:0;
+    padding:7px;
+    position: absolute;
+    bottom: 0;
+    left:0;
+    width: 100%;
+    visibility: hidden;
+    background-color: #e3e3e3;
+    border-top:1px solid #C5C5C5;
+  }
+  div.form-toolbar table {
+    width: 100%;
+    td {
+      padding-right: 10px;
+      padding-left: 10px;
+      button {
+        margin-right: 7px;
+      }
+    }
+  }
+  #pinned {
+    margin-left:6px;
+  }
+}
+
+fieldset {
+  border: 1px solid lightgrey;
+  background-color: white;
+  padding: 20px;
+  margin: 20px 0;
+  margin-top: 0;
+}
+
+fieldset .form-subtitle {
+  border: 1px solid #EAF0F4;
+  font-size: 0.95em;
+  padding: 6px;
+  font-style: italic;
+  background-color: #EAF0F4;
+  color: #606060;
+  border-radius: .3em;
+  margin-top: 6px;
+}
+
+fieldset .legendContent {
+  display: block;
+  color: grey;
+  font-size: 0.75em;
+}
+
+fieldset .legendContent button {
+  font-size: 1.5em;
+}
+
+fieldset > div {
+  clear: both;
+}
+
+fieldset br {
+  clear: left;
+}
+
+fieldset legend {
+  font-size: 1.2em;
+  color: #333;
+  padding: 0 0 10px 0;
+  float: left;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.2);
+}
+
+fieldset .input-line {
+  display: table-row;
+}
+
+fieldset .view-line {
+  height: 35px;
+}
+
+fieldset .view-line span.input-description {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+fieldset .input-line label {
+  width: 200px;
+  display: table-cell;
+  vertical-align: middle;
+  font-weight: normal;
+  padding-right: 4px;
+}
+
+fieldset .input-line .fieldnote {
+  padding: 0 5px 5px 5px;
+  color: $brand-primary;
+  font-style: italic;
+  font-size: 90%;
+  vertical-align: top;
+}
+
+fieldset .input-line span.input-group-btn.search-btn {
+  vertical-align: top;
+}
+fieldset .input-line span.input-group-btn.search-btn button {
+  color: $brand-primary;
+}
+
+fieldset .k-textbox {
+  background-color: transparent;
+}
+
+fieldset .input-line.textarea label {
+  vertical-align: top;
+  padding-top: 8px;
+}
+
+fieldset .input-line .value-label {
+  width: 80%;
+}
+
+fieldset .input-line .k-widget, fieldset .input-line .k-textbox, fieldset .input-line .k-multiselect, fieldset .input-line .km-widget, fieldset .input-line textarea, fieldset .input-line img {
+  margin-top: 0px;
+  margin-bottom: 4px;
+}
+
+fieldset .input-line .k-textbox, fieldset .input-line .k-multiselect, fieldset .input-line textarea, fieldset .input-line .k-combobox, fieldset .input-line .k-dropdown {
+  width: 454px;
+}
+
+fieldset .input-line .k-multiselect {
+  min-width: 450px;
+  display:inline-block;
+}
+
+fieldset .input-line .view-elem {
+  border: none;
+}
+
+fieldset .input-line .k-multiselect input {
+/*  display: none; */
+}
+
+fieldset .input-line .input-description {
+  color: #808080;
+  padding-left: 10px;
+}
+
+fieldset tr.item .input-line {
+  display: inline;
+}
+
+fieldset tr.item .input-line .k-multiselect,
+fieldset tr.item .input-line .view-elem {
+  width: 140px;
+}
+
+input::-webkit-input-placeholder, textarea::-webkit-input-placeholder, ::-webkit-input-placeholder {
+  color: #c0c0c0;
+  font-style: italic;
+}
+
+input:-moz-placeholder, textarea:-moz-placeholder { /* Firefox 18- */
+  color: #c0c0c0;
+  font-style: italic;
+}
+
+input::-moz-placeholder, textarea::-moz-placeholder, ::-moz-placeholder {  /* Firefox 19+ */
+  color: #c0c0c0;
+  font-style: italic;
+}
+
+input:-ms-input-placeholder, textarea:-ms-input-placeholder, :-ms-input-placeholder {
+  color: #c0c0c0;
+  font-style: italic;
+}
+
+table.multi-parameter-definition {
+  background-color: #e0e0e0;
+  margin-bottom: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: .3em;
+  border-collapse: separate;
+  width: 700px;
+}
+table.multi-parameter-definition tr th {
+  padding: 3px 4px 4px;
+}
+table.multi-parameter-definition tr th button.table-action-add,
+table.multi-parameter-definition tr td button.table-action-remove {
+  margin-right: 5px;
+}
+table.multi-parameter-definition tr td button.handler {
+  margin-left: 5px;
+}
+table.multi-parameter-definition tr td {
+  padding: 0 4px 2px;
+  white-space: nowrap;
+  label, input {
+    display: inline;
+  }
+  label {
+    margin: 0 2px 0 5px;
+  }
+}
+
+button:hover {
+  color: #fff;
+  background: $brand-primary;
+}
+
+button:active {
+  outline: none;
+  background: $brand-primary;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+}
+
+button:disabled {
+  background: $grey;
+}
+
+textarea.k-textbox, textarea, input[type="text"], input[type="tel"], input[type="password"],
+input[type="email"], input[type="file"], input[type="number"], input[type="url"] {
+  border: 1px solid #c5c5c5;
+
+}
+
+div.k-dropzone {
+    border: 1px solid #c5c5c5;
+    height: 100px;
+}
+div.k-dropzone em {
+    visibility: visible;
+    display:inline-block;
+}
+div.k-dropzone-active {
+    border: 1px solid green;
+}
+div.k-dropzone-active.k-dropzone-hovered {
+    border: 1px solid green;
+    background-color: rgba(0, 128, 0, 0.3);
+}
+
+$error-colour: #8b0000;
+
+form div.error-msg {
+  color: $error-colour;
+  background-color: lightgoldenrodyellow;
+  font-size: 1.1em;
+  padding: 2px;
+  border-radius: .3em;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+span.error-msg {
+  color: $error-colour;
+  font-size: 0.9em;
+  display: inline-block;
+  margin-bottom: 5px;
+}
+
+input.error-input, textarea.error-input, select.error-input {
+  border: 1px solid $error-colour
+}
+
+label.error-label {
+  color: $error-colour;
+  font-weight: bold;
+}
+
+label.empty-label {
+  color: $grey;
+}
+
+.k-list-container .k-list .k-item {
+  padding-right: 25px;
+  white-space: nowrap;
+}
+
+#readings .k-grid td {
+  padding:0;
+  padding-right:4px;
+  padding-left:4px;
+}
+
+#readings .k-grid td.spark-line {
+  width: 100px;
+  padding:0;
+}
+
+#readings .k-grid .simulator-input {
+  width: 60px;
+}
+
+.add-new {
+  vertical-align: top;
+  margin-left: 5px;
+  padding: 2.5px 10px;
+}
+
+div [hasplaceholder=true]:empty:not(:focus):before{
+  color: #c0c0c0;
+  font-style: italic;
+  content:attr(placeholder);
+  padding-left:2px;
+  line-height: 2.04em
+}
+
+.entity-value {
+  margin-right: 7px;
+}
+
+fieldset .input-line .k-widget.k-slider {
+  margin-bottom: 14px;
+}

@@ -1,0 +1,33 @@
+#parse("includes/initialise.inc")
+
+<div style="padding:10px;">
+    #if ($SubPageName=="recipients")
+        <table class="popupTable">
+        <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Email Address</th>
+        </tr>
+        #foreach($Recip in $Info.split(" *; *"))
+            <tr>
+                <td style="padding-right:10px">$velocityCount</td>
+                #if ($Recip.contains("<"))
+                    <td>$utils.encodeHTML($Recip.split("<").get(0))</td>
+                    <td>$utils.encodeHTML($Recip.split("[<>]").get(1))</td>
+                #else
+                    <td style="color:#808080">Not Known</td>
+                    <td>$utils.encodeHTML($Recip)</td>
+                #end
+            </tr>
+        #end
+        </table>
+    #end
+
+    #if ($SubPageName=="message")
+        #foreach($Recip in $Info.split(" *; *"))
+            <div>
+                $utils.encodeHTML($Recip)
+            </div>
+        #end
+    #end
+</div>

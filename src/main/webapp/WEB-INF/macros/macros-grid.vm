@@ -1,0 +1,654 @@
+#*
+ ***************************************************************************
+ *
+ * Copyright (c) Greater London Authority, 2020. This source code is licensed under the Open Government Licence 3.0.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM.
+ *
+ ****************************************************************************
+
+*#
+
+#*
+@function			Render Kendo UI grid (http://demos.kendoui.com/web/grid)
+
+@params	(required)	$GridName (string) - Id for the grid
+					$Config (array) - Column and paging information (see GridResults)
+
+@params (optional)	$Properties (converted to object map)
+                    - hideactions (bool - default=false) - Disable actions column
+                    - hideedit (bool - default=false) - Disable editing of rows
+                    - hidedelete (bool - default=false) - Disable row deletes
+                    - hidecopy (bool - default=false) - Disable copying of rows
+                    - hidecreate (bool - default=false) - Disable creating new rows
+                    - hidehistory (bool - default=false) - Disable history check of rows
+                    - readonly (bool - default=false) - Disable edit,copy,delete,history & create
+                    - source (string - default=${DOLLAR}AppPath/${DOLLAR}PageName/${DOLLAR}SubPageName/grid) - Alternative data source URL
+                    - editCallback (string - link) - Name of javascript function to use instead of link
+                    - deleteCallback (string - link) - Name of javascript function to use instead of link
+                    - copyCallback (string - link) - Name of javascript function to use instead of link
+                    - createCallback (string - link) - Name of javascript function to use instead of link
+                    - viewCallback (string - link) - Name of javascript function to use instead of link
+                    - buttons (List of button) - List of objects that describe additional buttons
+                        - button.tooltip (String) - Tootltip to use for the button
+                        - button.condition (String) - A javascript condition that produces a boolean
+                        - button.className (String) - Class(es) to add to the button
+                        - button.noInternal (bool - default=false) -Disable to the rows who are internal
+                        - button.imageClassName (String) - Class(es) to add to the button image span
+                        - button.callback (String) - Name of javascript function to use instead of link
+                    - toolbarButtons (List of button) - List of objects that describe additional buttons for the toolbar at the top
+                        - button.name (String) - Unique identifier for the button
+                        - button.text (String) - Text to use for the button
+                        - button.imageClassName (String) - Class(es) to add to the button image span
+                        - button.url (String) - Url to show in modal window
+                        - button.javascript (String) - Javascript function to be called when button is clicked
+                    - initScriptOnly (bool - default=false) - Only apply the javascript. No div will be created
+                    - sizeElement - Selector for element to size grid to, if not specified then window is used
+                    - selectable - if true then the rows in the grid are selectable
+                    - extraFilter - filter to apply to the grid
+*#
+#macro(macroGrid
+    $GridName
+    $Config
+    $Properties
+    )
+    #set($IsReadOnly = $ReadOnlyMode)
+    #if(!$Utils.isBlank($Properties.readonly))
+        #set($IsReadOnly = $Properties.readonly)
+    #end
+    #if ("$!Properties.PopupWidth" == "")
+		#set ($AdminPopupWidth = "800px")
+    #else
+    	#set ($AdminPopupWidth = $Properties.PopupWidth)
+    #end
+    #set ($AdminPopupHeight = "80%")
+
+    #if($Utils.isBlank("$!Properties.initScriptOnly") || !$Properties.initScriptOnly )
+        <div id="$GridName"></div>
+    #end
+    #set($GridElement = "#$GridName")
+
+    ## Get the configuration details
+    #set ($FieldList = $Config.FieldList)
+    #set ($Filters = $Config.FilterClause)
+    #set ($Sort = $Config.SortClause)
+    #set ($PageSize = $Config.PageSize)
+    #set ($PageNumber = $Config.Page)
+
+    ## Work out what inline actions are allowed
+    #set ($Actions = [])
+    #if (!$Properties.hidecopy && !$IsReadOnly)
+        #set ($tmp = $Actions.add("<a class='k-button k-button-icontext action-button' title='#I18N('system.grid.command.copy')' action='copy' callback='$!Properties.copyCallback' entity-id='#: id #'><span class=' fa fa-copy'></span></a>"))
+    #end
+    #if (!$Properties.hideedit && !$IsReadOnly)
+        #set ($tmp = $Actions.add("# if (!internal) { #<a class='k-button k-button-icontext action-button' title='#I18N('system.grid.command.edit')' action='edit' callback='$!Properties.editCallback' entity-id='#: id #'><span class=' fa fa-pencil'></span></a>#} #"))
+    #end
+    #if (!$Properties.hidedelete && !$IsReadOnly)
+        #set ($tmp = $Actions.add("# if (!internal) { #<a class='k-button k-button-icontext action-button' title='#I18N('system.grid.command.delete')' action='delete' callback='$!Properties.deleteCallback' entity-id='#: id #'><span class='fa fa-trash-o'></span></a>#} #"))
+    #end
+    #if (!$Properties.hidehistory && !$IsReadOnly)
+        #set ($tmp = $Actions.add("# if (!internal) { #<a class='k-button k-button-icontext action-button' title='#I18N('system.grid.command.history')' action='history' callback='$!Properties.historyCallback' entity-id='#: id #'><span class=' fa fa-history'></span></a>#} #"))
+    #end
+    #if ($Properties.buttons)
+        #foreach($button in $Properties.buttons)
+            #set ($ToolTip = "#I18N($button.tooltip)")
+            #if ("$!button.condition"!="")
+                #set ($tmp = $Actions.add("# if ($button.condition) { #<a class='k-button k-button-icontext action-button $!button.className' title='$ToolTip' callback='$button.callback' entity-id='#: id #'><span class=' fa $!button.imageClassName'></span></a>#} #"))
+            #else
+                #if (!$button.noInternal)
+                   #set ($tmp = $Actions.add("<a class='k-button k-button-icontext action-button $!button.className' title='$ToolTip' callback='$button.callback' entity-id='#: id #'><span class=' fa $!button.imageClassName'></span></a>"))
+                #else
+                   #set ($tmp = $Actions.add("# if (!internal) {#<a class='k-button k-button-icontext action-button $!button.className' title='$ToolTip' callback='$button.callback' entity-id='#: id #'><span class=' fa $!button.imageClassName'></span></a>#} #"))
+                #end
+            #end
+        #end
+    #end
+
+    #set ($ActionWidth = ($Actions.size() * 50) + 25)
+    #set ($Actions = $Utils.join($Actions, " "))
+    #set ($Actions = "$DQUOTE<div style='white-space:nowrap'>$Actions</div>$DQUOTE")
+
+#if($Utils.isBlank("$!Properties.initScriptOnly") || !$Properties.initScriptOnly )
+<script>
+#end
+
+$(document).ready(function () {
+    // Disable the mouse leave on the menu so the user has click away rather than leave it
+    // Was causing issues in the filter NRMM-570
+    kendo.ui.Menu.fn._mouseleave = function() {};
+    $("$GridElement").kendoGrid({
+        columns: [
+            #foreach ($Column in $FieldList.Columns)
+                {
+                    field: "$Column.KendoName",
+                    hidden: $Column.Hidden,
+                    width: $Column.Width,
+                    name: "$Column.KendoName",
+                    extra: "$!Column.Extra",
+                    sortable: $Utils.isYes($!Column.isSortable()),
+                    #if ($Column.Type == "date")
+                        format: "{0:dd MMM yyyy HH:mm}",
+                        filterable: {
+                            ui: "datetimepicker"
+                        },
+                    #elseif ($Column.Type == "currency")
+                        format: "{0:c}",
+                    #elseif ($Column.Type == "boolean")
+                        template: function(dataItem) {
+                            var returnVal = "";
+                            if (dataItem.$Column.KendoName !== "undefined") {
+                                var checkVal = dataItem.$Column.KendoName;
+                                if (checkVal)
+                                    returnVal = "#I18N("system.forms.switch.yes.label")";
+                                else if (checkVal === undefined)
+                                    returnVal = "";
+                                else if (!checkVal)
+                                    returnVal = "#I18N("system.forms.switch.no.label")";
+                                else
+                                    returnVal = checkVal;
+                            }
+                            return returnVal;
+                        },
+
+                    #elseif ($Column.Type == "media")
+                        template:
+                                "# if ($Column.KendoName) { #" +
+                                    "<a href='javascript:void(0)' onclick=\"return PivotalUtils.openURL(event, '$AppPath/media/stream/#= $Column.KendoName #', true)\" title='#I18N("system.grid.media.open.title")'>" +
+                                    "<span class='fa fa-external-link'></span>" +
+                                    "</a>" +
+                                "#} #",
+                        sortable: false,
+                        filterable: false,
+                    #elseif($Column.KendoName)
+                        template: function(dataItem) {
+                                    var returnVal = "";
+
+                                    if (typeof dataItem.$Column.KendoName != "undefined") {
+                                        var checkVal = dataItem.$Column.KendoName.toLowerCase();
+                                        if (checkVal == "boolean")
+                                            returnVal = "#I18N("system.forms.switch.yes_no.label")";
+                                        else if (checkVal  == "true")
+                                            returnVal = "#I18N("system.forms.switch.yes.label")";
+                                        else if (checkVal == "false")
+                                            returnVal = "#I18N("system.forms.switch.no.label")";
+                                        else
+                                            returnVal = dataItem.$Column.KendoName;
+                                    }
+
+                                    return returnVal;
+                                },
+                    #end
+                    title: "$Column.Title"
+                    #if($Properties.columnSettings && $Properties.columnSettings.containsKey("$Column.Title"))
+                        #if ($Properties.columnSettings.get("$Column.Title").containsKey("filterableUI"))
+                            ,filterable: {
+                                ui: $Properties.columnSettings.get("$Column.Title").get("filterableUI")
+                            }
+                        #end
+                    #end
+                },
+            #end
+
+            #if (!$Properties.hideactions)
+                {
+                width: $ActionWidth,
+                menu: false,
+                sortable: false,
+                filterable: false,
+                name: "edit-actions",
+                template: $Actions,
+                title: "#I18N("system.grid.column.actions")"
+                }
+            #end
+        ],
+        dataSource: {
+            schema: {
+                data:'data',
+                total: function (data) {
+                    return data.totalNumberOfRows;
+                },
+                model: {
+                    fields: {
+                        #foreach ($Column in $FieldList.Columns)
+                            $Column.KendoName: {type: "$Column.Type"}
+                            #if ($foreach.hasNext),#end
+                        #end
+                    }
+                },
+            },
+            filter: {
+                logic: "$Filters.Connector",
+                filters: [
+                    #foreach ($Field in $Filters.FieldCriteria)
+                        {field: "$Field.Field", operator: "$Field.Operator", value: "$Field.Criteria"}
+                        #if ($foreach.hasNext),#end
+                    #end
+                ]
+            },
+            sort: [
+                #foreach ($Field in $Sort.FieldSort)
+                    {field: "$Field.Field", dir: "$Field.Direction"}
+                    #if ($foreach.hasNext),#end
+                #end
+            ],
+            transport: {
+                read: {
+                    #if ("$!Properties.source"=="")
+                        url: '$AppPath/$PageName/$SubPageName/grid?extrafilter=$!Properties.extraFilter',
+                    #else
+                        url: '$Properties.source',
+                    #end
+                    dataType: 'json',
+                    contentType: 'application/json',
+                    cache: false
+                }
+            },
+            serverFiltering: true,
+            serverPaging: true,
+            serverSorting: true
+        },
+        autoBind: false,
+        reorderable: true,
+        resizable: true,
+        scrollable: true,
+        #if($Properties.selectable)
+            selectable: "multiple, row",
+        #end
+
+        toolbar: [
+            #if (!$Properties.hidecreate && !$IsReadOnly)
+                {
+                    name: "newRecord",
+                    text: "<span class='fa fa-plus'></span> #I18N("system.grid.toolbar.create")"
+                },
+            #end
+            #foreach($button in $Properties.toolbarButtons)
+                {
+                    name: "$button.name",
+                    text: "<span class='$button.imageClassName'></span> #I18N($button.text) $!button.extra"
+                },
+            #end
+            #if (!$Properties.hidedownload)
+                {
+                    name: "download",
+                    text: "<span class='fa fa-download'></span> #I18N("system.grid.toolbar.download")"
+                },
+            #end
+            {
+                name: "clearFilters",
+                text: "<span class='fa fa-ban'></span> #I18N("system.grid.toolbar.clear.filters")"
+            },
+            {
+                name: "clearSort",
+                text: "<span class='fa fa-ban'></span> #I18N("system.grid.toolbar.clear.sort")"
+            }
+        ],
+        filterable: {
+            messages: {
+                cancel: "#I18N("system.grid.filter.cancel")",
+                operator: "#I18N("system.grid.filter.operator")",
+                value: "#I18N("system.grid.filter.value")",
+                selectValue: "#I18N("system.grid.filter.select.value")",
+                isFalse: "#I18N("system.grid.filter.false")",
+                isTrue: "#I18N("system.grid.filter.true")",
+                info: "#I18N("system.grid.filter.info")",
+                and: "#I18N("system.grid.filter.and")",
+                or: "#I18N("system.grid.filter.or")",
+                filter: "#I18N("system.grid.filter.apply.filter")",
+                clear: "#I18N("system.grid.filter.clear.filter")"
+            },
+            operators: {
+                string: {
+                    startswith: "#I18N("system.grid.filter.string.starts.with")",
+                    endswith: "#I18N("system.grid.filter.string.starts.ends.with")",
+                    contains: "#I18N("system.grid.filter.string.contains")",
+                    doesnotcontain: "#I18N("system.grid.filter.string.does.not.contain")",
+                    eq: "#I18N("system.grid.filter.string.equal.to")",
+                    neq: "#I18N("system.grid.filter.string.not.equal.to")"
+                },
+                number: {
+                    lt: "#I18N("system.grid.filter.number.lt")",
+                    lte: "#I18N("system.grid.filter.number.lte")",
+                    gte: "#I18N("system.grid.filter.number.gte")",
+                    gt: "#I18N("system.grid.filter.number.gt")",
+                    eq: "#I18N("system.grid.filter.number.equal.to")",
+                    neq: "#I18N("system.grid.filter.number.not.equal.to")"
+                },
+                currency: {
+                    lt: "#I18N("system.grid.filter.number.lt")",
+                    lte: "#I18N("system.grid.filter.number.lte")",
+                    gte: "#I18N("system.grid.filter.number.gte")",
+                    gt: "#I18N("system.grid.filter.number.gt")",
+                    eq: "#I18N("system.grid.filter.number.equal.to")",
+                    neq: "#I18N("system.grid.filter.number.not.equal.to")"
+                },
+                date: {
+                    lt: "#I18N("system.grid.filter.date.lt")",
+                    lte: "#I18N("system.grid.filter.date.lte")",
+                    gte: "#I18N("system.grid.filter.date.gte")",
+                    gt: "#I18N("system.grid.filter.date.gt")",
+                    eq: "#I18N("system.grid.filter.date.equal.to")",
+                    neq: "#I18N("system.grid.filter.date.not.equal.to")"
+                },
+                enums: {
+                    eq: "#I18N("system.grid.filter.enums.equal.to")",
+                    neq: "#I18N("system.grid.filter.enums.not.equal.to")"
+                }
+            }
+        },
+        columnMenu: {
+            messages: {
+                done: "#I18N("system.grid.done")",
+                settings: "#I18N("system.grid.settings")",
+                columns: "#I18N("system.grid.choose.columns")",
+                filter: "#I18N("system.grid.apply.filter")",
+                sortAscending: "#I18N("system.grid.sort.asc")",
+                sortDescending: "#I18N("system.grid.sort.desc")"
+            }
+        },
+        sortable: {
+            mode:'multiple',
+            allowUnsort: false
+        },
+        pageable: {
+            refresh: true,
+            #if ($!PageSize)
+                    pageSize:$PageSize,
+            #else
+                    pageSize:10,
+            #end
+            pageSizes: [10, 50, 100],
+            buttonCount: 5,
+            input: true,
+            messages: {
+                itemsPerPage: "#I18N("system.grid.page.items.per.page")",
+                next: "#I18N("system.grid.page.next")",
+                refresh: "#I18N("system.grid.page.refresh")",
+                morePages: "#I18N("system.grid.page.more.pages")",
+                previous: "#I18N("system.grid.page.previous")",
+                first: "#I18N("system.grid.page.first")",
+                last: "#I18N("system.grid.page.last")",
+                of: "#I18N("system.grid.page.of")",
+                display: "#I18N("system.grid.page.display")",
+                empty: "#I18N("system.grid.page.empty")",
+                page: "#I18N("system.grid.page.page")"
+            }
+        },
+        dataBound: function(e) {
+            // Show/hide the sort and filter clear buttons
+            $("$GridElement").data("showSortFilters")();
+
+            // Add delete action to each row - the other buttons are links
+            $("$GridElement").find(".action-button").click(function() {
+                var action=$(this).attr("action");
+                var callback=$(this).attr("callback");
+                var id=$(this).attr("entity-id");
+
+                if (callback!="") {
+                    var handler = eval(callback);
+                    handler.call(this, id);
+                }
+                else if (action=="copy") {
+                    psApp.windowManager.open({title:"$Utils.formatString("#I18N('system.grid.command.copy.title')", $!SubPageName.replaceAll("_"," "))", width:"$AdminPopupWidth", height:"$AdminPopupHeight", content:"$AppPath/$PageName/$SubPageName/edit?copy&id=" + id, useIFrame:true, closeFunction:$("$GridElement").data("editViewCallback")});
+                }
+                else if (action=="edit") {
+                    psApp.windowManager.open({title:"$Utils.formatString("#I18N('system.grid.command.edit.title')", $!SubPageName.replaceAll("_"," "))", width:"$AdminPopupWidth", height:"$AdminPopupHeight", content:"$AppPath/$PageName/$SubPageName/edit?id=" + id, useIFrame:true, closeFunction:$("$GridElement").data("editViewCallback")});
+                }
+                else if (action=="delete") {
+                    if (confirm("#I18N("system.grid.command.delete.confirm")")) {
+                        var result = PivotalUtils.getJsonContent('$AppPath/$PageName/$SubPageName/delete?id=' + id);
+                        if (result && result.inError)
+                            alert(result.error);
+
+                        $("$GridElement").data("editViewCallback")();
+                    }
+                }
+                else if (action=="history") {
+                    psApp.windowManager.open({title:"#I18N('system.grid.command.history.title')", width:"$AdminPopupWidth", height:"$AdminPopupHeight", content:"$AppPath/admin/history/list?entity=$!EntityTableName&id=" + id, useIFrame:true, closeFunction:$("$GridElement").data("editViewCallback")});
+                }
+                return false;
+            });
+        },
+        columnReorder: function(e) {$("$GridElement").data("saveColumnInfoToServer")(this, false);},
+        columnResize: function(e) {$("$GridElement").data("saveColumnInfoToServer")(this, false);},
+        columnShow: function(e) {$("$GridElement").data("saveColumnInfoToServer")(this, true);},
+        columnHide: function(e) {$("$GridElement").data("saveColumnInfoToServer")(this, true);}
+    });
+
+    // Add event handlers for the custom toolbar commands
+    // Go to the edit page
+    #if (!$Properties.hidecreate && !$IsReadOnly)
+        $("$GridElement").find(".k-grid-newRecord").click(function() {
+            #if ("$!Properties.createCallback"=="")
+                psApp.windowManager.open({title:"#I18N('system.grid.command.create.title')", width:"$AdminPopupWidth", height:"$AdminPopupHeight", content:"$AppPath/$PageName/$SubPageName/edit", useIFrame:true, closeFunction:function() {
+                    PivotalUtils.heartbeat("$AppPath");
+                    $("$GridElement").data("kendoGrid").dataSource.read();
+                }});
+            #else
+                ${Properties.createCallback}();
+            #end
+        });
+    #end
+
+    #if (!$Properties.hidedownload)
+        $("$GridElement").find(".k-grid-download").click(function() {
+            #if ("$!Properties.downloadCallback"=="")
+                $("#extraFilter").val("$!Properties.extraFilter");
+                $("#downloadForm").submit();
+            #else
+                ${Properties.downloadCallback}();
+            #end
+        });
+    #end
+
+    #foreach($button in $Properties.toolbarButtons)
+        #if($button.url)
+            #if($button.width)
+                #set($tmpWidth = $button.width)
+            #else
+                #set($tmpWidth = $AdminPopupWidth)
+            #end
+            #if($button.height)
+                #set($tmpHeight = $button.height)
+            #else
+                #set($tmpHeight = $AdminPopupHeight)
+            #end
+            $("$GridElement").find(".k-grid-${button.name}").click(function() {
+                psApp.windowManager.open({title:"#I18N('system.grid.command.create.title')", width:"$tmpWidth", height:"$tmpHeight", content:"$button.url", useIFrame:true, closeFunction:function () {
+                    PivotalUtils.heartbeat("$AppPath");
+                    $("$GridElement").data("kendoGrid").dataSource.read();
+                }});
+            });
+        #end
+        #if($button.javascript)
+            $("$GridElement").find(".k-grid-${button.name}").bind("click", $button.javascript);
+        #end
+    #end
+
+    // Show the filter/sort clear buttons
+    $("$GridElement").data("showSortFilters", function() {
+        var dataSource = $("$GridElement").data("kendoGrid").dataSource;
+        if (dataSource._filter && dataSource._filter.filters.length>0)
+            $("$GridElement").find(".k-grid-clearFilters").show();
+        else
+            $("$GridElement").find(".k-grid-clearFilters").hide();
+        if (dataSource._sort && dataSource._sort.length>0)
+            $("$GridElement").find(".k-grid-clearSort").show();
+        else
+            $("$GridElement").find(".k-grid-clearSort").hide();
+    });
+    $("$GridElement").data("showSortFilters")();
+
+    // Clear the filter in the control and force it to refresh
+    $("$GridElement").find(".k-grid-clearFilters").click(function() {
+        $(this).hide();
+        var grid = $("$GridElement").data("kendoGrid");
+        var tmp = grid.dataSource.transport.options.read.url;
+        grid.dataSource.transport.options.read.url = tmp + (tmp.indexOf("?")>-1?"&":"?") + "clearsearch";
+        grid.dataSource.query({
+            page: 1,
+            group: grid.dataSource.group(),
+            filters: [],
+            sort: grid.dataSource.sort(),
+            pageSize: grid.dataSource.pageSize()
+        });
+        grid.dataSource.transport.options.read.url = tmp;
+        return false;
+    });
+
+    // Clear the sort in the control and force it to refresh
+    $("$GridElement").find(".k-grid-clearSort").click(function() {
+        $(this).hide();
+        var grid = $("$GridElement").data("kendoGrid");
+        var tmp = grid.dataSource.transport.options.read.url;
+        grid.dataSource.transport.options.read.url = tmp + (tmp.indexOf("?")>-1?"&":"?") + "clearsort";
+        grid.dataSource.query({
+            page: 1,
+            group: grid.dataSource.group(),
+            filter: grid.dataSource.filter(),
+            sort: [],
+            pageSize: grid.dataSource.pageSize()
+        });
+        grid.dataSource.transport.options.read.url = tmp;
+        return false;
+    });
+
+    // Show the view popup
+    #if(!$Properties.selectable)
+    $("$GridElement").on("click", "tbody tr", function (e) {
+        var di = $("$GridElement").data("kendoGrid").dataItem(this);
+        if(di && di.id) {
+            var callback = '$!Properties.viewCallback';
+            if (callback!="") {
+                var handler = eval(callback);
+                handler.call(this, di.id);
+            }
+            else {
+                psApp.windowManager.open({title:"$Utils.formatString("#I18N('system.grid.command.view.title')", $!SubPageName.replaceAll("_"," "))", width:"$AdminPopupWidth", height:"$AdminPopupHeight", content:"$AppPath/$PageName/$SubPageName/edit?view&id=" + di.id, useIFrame:true, closeFunction:$("$GridElement").data("editViewCallback")});
+            }
+        }
+    });
+    #end
+
+    // Size the grid to match the browser
+    $("$GridElement").data("resizer", {
+        doResize: function() {
+            var grid = $("$GridElement");
+            var padding = parseInt($(".body").css("padding-bottom"));
+            padding = padding ? padding : 0;
+            if (grid.parent().hasClass("tab-pane")) {
+                padding+=parseInt(grid.parent().css("padding-top")) + parseInt(grid.parent().css("padding-bottom"));
+                padding+=parseInt($(".nav").css("padding-top")) + parseInt($(".nav").css("padding-bottom"));
+
+            }
+            if (grid.parent().prop("tagName")==="FIELDSET") {
+                padding+=parseInt(grid.parent().css("padding-top")) + parseInt(grid.parent().css("padding-bottom"));
+            }
+
+            #if ($Properties.sizeElement)
+                #set($SizeElement = "$DQUOTE$Properties.sizeElement$DQUOTE")
+                grid.height($($SizeElement).height() - padding - 1);
+            #else
+                grid.height($(window).height() - grid.offset().top - padding - 1);
+            #end
+            var widthOffset = 0;
+            try {
+                widthOffset = grid.offset().left;
+            }
+            catch(X){}
+
+            #if ($Properties.sizeElement)
+                grid.width($($SizeElement).width() - widthOffset);
+            #else
+                grid.width($(window).width()-widthOffset);
+            #end
+
+            var dataArea = grid.find(".k-grid-content");
+            var gridHeight = grid.innerHeight();
+            var otherElements = grid.children().not(".k-grid-content");
+            var otherElementsHeight = 0;
+            otherElements.each(function() {
+                otherElementsHeight += $(this).outerHeight();
+            });
+            dataArea.height(gridHeight - otherElementsHeight);
+            return this;
+        },
+        resizerTimer: false,
+        setTimer: function(delayLength) {
+            delayLength = isNaN(delayLength)?100:delayLength;
+            var grid = $("$GridElement").data("resizer");
+            clearTimeout(grid.resizerTimer);
+            grid.resizerTimer = setTimeout(grid.doResize,delayLength);
+        }
+    });
+    document.body.style.overflowX = "hidden";
+    $(window).bind('resize', $("$GridElement").data("resizer").doResize().setTimer);
+
+    // Called after an edit/delete/copy/view action has happened
+    $("$GridElement").data("editViewCallback", function(cancelled) {
+        PivotalUtils.heartbeat("$AppPath");
+        if (!cancelled) {
+            $("$GridElement").data("kendoGrid").dataSource.read();
+        }
+    });
+
+    // Saves the columns and sizes to the server and will optionally refresh the data
+    $("$GridElement").data("saveColumnInfoToServer", function(grid, refresh) {
+        setTimeout(function() {
+            var columns="fields=";
+            var first=true;
+            for (var i = 0; i < grid.columns.length; i++) {
+                if (!grid.columns[i].hidden && grid.columns[i].field) {
+                    columns+=(!first?",":"") + grid.columns[i].field+":"+grid.columns[i].width;
+                    first=false;
+                }
+            }
+
+            // Refresh the grid using a URL that contains the column list
+            if (refresh) {
+                var tmp = grid.dataSource.transport.options.read.url;
+                grid.dataSource.transport.options.read.url += (tmp.indexOf("?")>-1?"&":"?") + columns;
+                grid.dataSource.read();
+                grid.dataSource.transport.options.read.url = tmp;
+            }
+            else {
+                #if($Properties.saveSettingsURL)
+                    PivotalUtils.getContentAsync("$Properties.saveSettingsURL", columns);
+                #else
+                    PivotalUtils.getContentAsync("$AppPath/$PageName/$SubPageName/settings", columns);
+                #end
+            }
+            #if($Properties.refreshCallback)
+                try {
+                    ${Properties.refreshCallback}();
+                }
+                catch(X){
+                    console.log(X);
+                }
+            #end
+        }, 100);
+    });
+
+    // We are not auto bound so we need to tell the grid to go and get data
+    // for the current page
+    (function(dataSource) {
+        dataSource.query({
+            page: #if ($!PageNumber)$PageNumber#{else}1#end,
+            group: dataSource.group(),
+            filter: dataSource.filter(),
+            sort: dataSource.sort(),
+            pageSize: dataSource.pageSize()
+        })
+    })($("$GridElement").data("kendoGrid").dataSource);
+});
+#if($Utils.isBlank("$!Properties.initScriptOnly") || !$Properties.initScriptOnly )
+</script>
+#end
+<div id="download" style="display: none">
+    <form id="downloadForm" action="$AppPath/$PageName/$SubPageName/download" method="post" target="_blank">
+        <input type="hidden" id="name" name="name" value="$!SubPageName">
+        <input type="hidden" id="pageSize" name="pageSize" value="10000">
+        <input type="hidden" id="extraFilter" name="extraFilter" value="">
+    </form>
+</div>
+
+#end

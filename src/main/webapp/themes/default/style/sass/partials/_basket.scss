@@ -1,0 +1,26 @@
+.basket, .basketCount {
+  background-color: orange;
+  color: steelblue;
+}
+.basketList {
+  padding:5px;
+  display: table;
+  width:90%;
+  .basketHead {
+    display: table-row;
+  }
+
+  .basketItemRow {
+    display: table-row;
+  }
+  .basketActions {}
+  .basketActionItem {
+    margin:5px;
+  }
+  .basketItem {
+    display: table-cell;
+    padding-top:5px;
+    padding-right:5px;
+    padding-left:5px;
+  }
+}

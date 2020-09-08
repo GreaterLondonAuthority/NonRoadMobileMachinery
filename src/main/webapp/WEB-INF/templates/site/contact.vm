@@ -1,0 +1,67 @@
+#set($LastBreadCrumb = "Site Contact - $!SiteEntity.name")
+#parse("external/header.inc")
+
+#macroStartForm("siteSaveForm" "$AppPath/$PageName/$SubPageName" {"noResize":true,"onValidationSuccessful":"siteUserUtils.validationOk","onValidationFailed":"siteUserUtils.validationFailed","onSubmit":"siteUserUtils.checkData"})
+
+    #macroStartFieldset("site.register.section.contact")
+        #macroInputHidden("siteentity.id" "$!SiteEntity.id")
+        #macroInputText("siteentity.contactFirstName" $NULL $NULL {"Autocomplete":"given-name","IsRequired":true,"ExtraInputAtt":"$!ExtraInputAtt"})
+        #macroInputText("siteentity.contactLastName" $NULL $NULL {"Autocomplete":"family-name","IsRequired":true,"ExtraInputAtt":"$!ExtraInputAtt"})
+        #macroInputEmail("siteentity.contactEmail" $NULL $NULL {"Autocomplete":"email","IsRequired":true,"ExtraInputAtt":"$!ExtraInputAtt"})
+        #if ($CurrentUser.hasAccess($SiteEntity, $PRIVILEGES_EDIT_SITE_ADMIN_MA, $PRIVILEGES_EDIT_SITE_ADMIN_SC, $PRIVILEGES_EDIT_SITE_ADMIN_SA))
+            ## Build options according to access
+            #set($Options = [])
+            #if ($CurrentUser.hasAccess($SiteEntity, $PRIVILEGES_EDIT_SITE_ADMIN_MA))
+                #set($tmp=$Options.add("Machinery Administrator"))
+            #end
+            #if ($CurrentUser.hasAccess($SiteEntity, $PRIVILEGES_EDIT_SITE_ADMIN_SA))
+                #set($tmp=$Options.add("Site Administrator"))
+            #end
+            #if ($CurrentUser.hasAccess($SiteEntity, $PRIVILEGES_EDIT_SITE_ADMIN_SC))
+                #set($tmp=$Options.add("Sub-contractor"))
+            #end
+            #macroInputSelect("roleName" "Role at the site" $NULL $Options {"IsRequired":true})
+        #end
+
+    #macroEndFieldset()
+
+    #set($EndFormProperties = {"hideCreateAnother":true,"saveButton":{"ariaLabel":"Send Invitation Button","label":"Send Invitation"},"cancelButton":{"hide":"true"}})
+
+    #set($RightButtons = [])
+    #set($tmp = $RightButtons.add({"id":"gotoView", "label":"default.close","icon":"fa-times","ariaLabel":"Close Invitation Button","onClick":"siteUserUtils.gotoSiteView"}))
+    #set($tmp = $EndFormProperties.put("rightButtons",$RightButtons))
+
+#macroEndForm($EndFormProperties)
+
+
+<script>
+#if ($Saved)
+    $(document).ready(function () {
+        #if($WorkflowResult && $WorkflowResult.getDataItem("Message"))
+            alert("$WorkflowResult.getDataItem('Message')");
+        #end
+        siteUserUtils.gotoSiteView();
+     });
+#end
+    var siteUserUtils = {
+
+        checkData: function () {
+
+            return true;
+        },
+
+        validationOk: function () {
+        },
+
+        validationFailed: function () {
+            PivotalUtils.showNotification("#I18N("site.edit.error.validationfailed")", "error");
+            $(".k-invalid:first").focus();
+        },
+
+        gotoSiteView : function() {
+            location.href = "$AppPath/site/view/$!SiteEntity.id"
+        }
+    };
+</script>
+
+#parse("external/footer.inc")

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache>
+    <!--These are the defaults that are used for all caches - we have set it so that
+        each entity has it's own cache
+        The key here is the setting of the memory and in this case, each entity has
+        approx 2Mb available to it -->
+    <defaultCache
+                eternal="false"
+                timeToIdleSeconds="120"
+                timeToLiveSeconds="3600"
+                overflowToDisk="false"
+                diskPersistent="false"
+                memoryStoreEvictionPolicy="LRU"
+                maxBytesLocalHeap="2000000"
+                statistics="true"
+                />
+
+    <!--This overrides the default settings for a particular entity
+        In this case, it's the reports which may be quite large so we're
+        setting it to a bigger cache - approx 20Mb and 100Mb-->
+</ehcache>

@@ -1,0 +1,196 @@
+#macroPageHead("#I18N('admin.system.text.editor.title')")
+#parse("includes/initialise.inc")
+
+<textarea id="editor" style="visibility:hidden"></textarea>
+<div id="editorContent" style="display:none">$StringEscapeUtils.escapeHtml($!Content)</div>
+<script>
+
+    ## If the query string is overriding the model then the source of the data
+    ## isn't the model but is another input box somewhere
+    #if ($REQ_type)
+        #set ($ContentType = $REQ_type)
+    #end
+    var MediaEditorHelper = {
+        editor: false,
+        editorResizeTimer: false,
+        editorElement: false,
+        content: false,
+        contentId: "$!ContentId",
+        sourceElement: false,
+
+        ## Keep the editor filling the page
+        resizeEditor: function() {
+            console.log($(document).width()+'x'+$(document).height())
+            MediaEditorHelper.editor.setSize($(document).width(),$(document).height());
+        },
+
+        ## Function called from outside this object to get the text content
+        getContent: function() {
+            MediaEditorHelper.editor.save();
+            return MediaEditorHelper.editor.getValue();
+        },
+
+        htmlDecode: function(input) {
+          var e = document.createElement('div');
+          e.innerHTML = input;
+          return e.childNodes[0].nodeValue;
+        }
+    }
+
+    ## If this is an XML definition editor
+    #if ($Utils.doStringsMatch($ContentType,"definition"))
+        MediaEditorHelper.definition = {
+            valueAttrs: {
+                name: [""],
+                label: [""],
+                description: [""],
+                "type": ["any",
+                    "string",
+                    "text",
+                    "numeric",
+                    "boolean",
+                    "date",
+                    "time",
+                    "datetime",
+                    "system"
+                ],
+                subtype: [""],
+                required: ["true", "false"],
+                multiple: ["true", "false"],
+                "default": [""],
+                maxlength: [""],
+                minlength: [""],
+                maxvalue: [""],
+                minvalue: [""],
+                pattern: [""]
+            },
+        };
+
+        MediaEditorHelper.completeAfter = function(cm, pred) {
+            var cur = cm.getCursor();
+            if (!pred || pred()) setTimeout(function () {
+                if (!cm.state.completionActive)
+                    CodeMirror.showHint(cm, CodeMirror.hint.xml, {schemaInfo: MediaEditorHelper.definition.tags, completeSingle: false});
+            }, 100);
+            return CodeMirror.Pass;
+        };
+
+        MediaEditorHelper.completeIfAfterLt = function(cm) {
+            return MediaEditorHelper.completeAfter(cm, function () {
+                var cur = cm.getCursor();
+                return cm.getRange(CodeMirror.Pos(cur.line, cur.ch - 1), cur) == "<";
+            });
+        };
+
+        MediaEditorHelper.completeIfInTag = function(cm) {
+            return MediaEditorHelper.completeAfter(cm, function () {
+                var tok = cm.getTokenAt(cm.getCursor());
+                if (tok.type == "string" && (!/['"]/.test(tok.string.charAt(tok.string.length - 1)) || tok.string.length == 1)) return false;
+                var inner = CodeMirror.innerMode(cm.getMode(), tok.state).state;
+                return inner.tagName;
+            });
+        };
+
+        MediaEditorHelper.definition.tags = {
+            "!top": ["parameters"],
+            parameters: {
+                children: ["parameter"]
+            },
+            parameter: {
+                attrs: MediaEditorHelper.definition.valueAttrs,
+                children: ["subparameters", "choices"]
+            },
+            subparameters: {
+                children: ["subparameter"]
+            },
+            subparameter: {
+                attrs: MediaEditorHelper.definition.valueAttrs,
+                children: ["choices"]
+            },
+            choices: {
+                children: ["choice"]
+            },
+            choice: {
+                attrs: {
+                    name: [""],
+                    "value": [""],
+                    description: [""]
+                },
+                children: []
+            }
+        }
+    #end
+
+    ## Create the CodeMirror instance to shadow the textarea
+    $(document).ready(function () {
+        MediaEditorHelper.editorElement = $("#editor");
+
+        // Copy in from div.  This is to sort out textarea tags in the content causing issues
+        MediaEditorHelper.editorElement.val(MediaEditorHelper.htmlDecode($("#editorContent").html()));
+
+        ## If the query string is overriding the model then the source of the data
+        ## isn't the model but is another input box somewhere
+        #if ($REQ_type)
+            #set ($JQInputName = $Utils.getJQuerySelector($REQ_id))
+            top.$(".k-content-frame").each(function(index) {
+                var inputElement = this.contentWindow.$("#$JQInputName");
+                if (inputElement.length > 0) {
+                    MediaEditorHelper.sourceElement = inputElement;
+                    return false;
+                }
+            });
+            ## Not found in a frame then look at our parent
+            if (!MediaEditorHelper.sourceElement) {
+                MediaEditorHelper.sourceElement = window.parent.$("#$JQInputName");
+            }
+            MediaEditorHelper.editorElement.text(MediaEditorHelper.sourceElement.text());
+        #end
+        MediaEditorHelper.content = MediaEditorHelper.editorElement.text();
+
+
+        ## Initialise the CodeMirror
+        MediaEditorHelper.editor = CodeMirror.fromTextArea(MediaEditorHelper.editorElement.get(0), {
+            theme: "ambiance",
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            autofocus: true,
+            #if ($REQ_read_only == true)
+            readOnly: true,
+            #end
+            #if ($Utils.doStringsMatch($ContentType,"definition"))
+                mode: "xml",
+                autoCloseTags: true,
+                alignWithWord: true,
+                completeSingle: true,
+                extraKeys: {
+                    "'<'": MediaEditorHelper.completeAfter,
+                    "'/'": MediaEditorHelper.completeIfAfterLt,
+                    "' '": MediaEditorHelper.completeIfInTag,
+                    "'='": MediaEditorHelper.completeIfInTag,
+                    "Ctrl-Space": function (cm) {
+                        CodeMirror.showHint(cm, CodeMirror.hint.xml, {schemaInfo: MediaEditorHelper.definition.tags});
+                    }
+                }
+            #elseif ("$!ContentType" != "")
+                mode: "$ContentType"
+            #else
+                mode: "velocity"
+            #end
+        });
+
+        ## Resize the editor to fill the screen
+        $(window).resize(function() {
+            clearTimeout(MediaEditorHelper.editorResizeTimer);
+            MediaEditorHelper.editorResizeTimer = setTimeout(MediaEditorHelper.resizeEditor,300)
+        });
+        MediaEditorHelper.resizeEditor();
+        setTimeout(function() {
+            MediaEditorHelper.editor.setCursor(0,0);
+            MediaEditorHelper.editor.focus();
+        }, 500);
+    });
+
+</script>
+
+#parse("includes/page-end.inc")

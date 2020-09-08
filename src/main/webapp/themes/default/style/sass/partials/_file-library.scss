@@ -1,0 +1,52 @@
+/*
+File upload UI
+------------------------------*/
+.file-upload-wrap {
+  h2 {
+    font-size:1.4em;
+    padding-bottom:.5em;
+  }
+  .library-items-wrap,
+  .library-items,
+  .k-pager-wrap {
+    border:0;
+  }
+  .library-items-wrap {
+    float:left;
+    width:100%;
+    .library-item {
+      display:inline;
+    }
+    label {
+      border:3px solid transparent;
+      cursor:pointer;
+      display:inline-block;
+      outline:0;
+      padding:5px 5px 1px 5px;
+      position:relative;
+      &:hover,
+      &:focus,
+      &.current {
+        border-color:$palette_primary_green;
+      }
+      .current-indicator {
+        @include borderRadius(10px, 10px, 10px, 10px);
+        @include boxShadow(0, 0, 3px, #888);
+        background:url(../imgs/icon-tick-14.png) 0 0 no-repeat transparent;
+        border:3px solid #fff;
+        height:14px;
+        position:absolute;
+        right:0;
+        top:0;
+        width:14px;
+      }
+    }
+    input[type=radio] {
+      @include hidden;
+    }
+  }
+  .loading {
+    display:block;
+    margin:0 auto;
+  }
+}

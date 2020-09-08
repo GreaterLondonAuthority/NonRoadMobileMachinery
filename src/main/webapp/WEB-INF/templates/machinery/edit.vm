@@ -1,0 +1,299 @@
+#set($LastBreadCrumb = "Machinery")
+#parse("external/header.inc")
+
+#macroStartForm("machinerySaveForm" "$AppPath/$PageName/$SubPageName" {"noResize":true,"onValidationSuccessful":"machineryAdminUtils.validationOk","onValidationFailed":"machineryAdminUtils.validationFailed","onSubmit":"machineryAdminUtils.checkData"})
+
+    #if($EditState.is("ADDING"))
+        #set($SaveButtonText = "machinery.register.save_button")
+    #else
+        #set($SaveButtonText = "machinery.edit.save_button")
+    #end
+
+    #macroStartFieldset("machinery.register.section.detail" $NULL $NULL $NULL $NULL "<button id='addMachineryButton' class='smallButton' type='button'><i class='fa fa-plus'></i>&nbsp;Add Machine</button>&nbsp;<button id='viewSiteButton' class='smallButton' type='button'><i class='fa fa-building-o'></i>&nbsp;View Site</button>")
+
+        #macroInputHidden("siteId" "$!siteentity.id")
+        #macroInputHidden("siteZone" "$!siteentity.zone")
+        #macroInputHidden("machineryId" "$!machineryentity.id")
+        #if($!machineryentity.id)
+            #macroInputText("machineryentity.exemptionStatus" $NULL $NULL {"IsReadOnly":true, "hideOptional":true,"ExtraHTML":"<br><br>"})
+        #end
+        #macroInputText("machineryentity.contractor" $NULL $NULL {"Autocomplete":"name", "focus":"true"})
+        #macroInputLookupSelect("machineryentity.type" $NULL $!machineryentity.type.id "machinerytype" {"AddDisabledFilter":true,"ShowEmptyItem":"true","note":"machinery.machine_type_other.description"})
+        #macroInputText("machineryentity.typeOther")
+
+        #if(!$Utils.isBlank($machineryentity) && !$Utils.isBlank($machineryentity.startDate))
+            #set($StartDate = $machineryentity.startDate)
+        #else
+            #set($StartDate = $siteentity.startDate)
+            #if($StartDate.before($Utils.getDate()))
+                #set($StartDate = $Utils.getDate())
+            #end
+        #end
+
+        #macroInputDate("machineryentity.startDate" $NULL $Utils.dateFormat($StartDate, "yyyy-MM-dd") {"Format":"$DEFAULT_DATE_FORMAT"})
+        #macroInputDate("machineryentity.endDate" $NULL $Utils.dateFormat($machineryentity.endDate, "yyyy-MM-dd") {"Format":"$DEFAULT_DATE_FORMAT"})
+        #macroInputText("machineryentity.machineId")
+        #macroInputText("machineryentity.supplier" $NULL $NULL {"Autocomplete":"organization"})
+        #macroInputLookupCombo("machineryentity.engineManufacturer" $NULL $machineryentity.engineManufacturer "enginemanufacturer" {"Autocomplete":"organization","ExtraFilter":"disabled=false","hidePlaceholder":"true"})
+        #macroInputLookupCombo("machineryentity.machineryManufacturer" $NULL $machineryentity.machineryManufacturer "machinerymanufacturer" {"Autocomplete":"organization","ExtraFilter":"disabled=false","hidePlaceholder":"true"})
+        #macroInputText("machineryentity.powerRating" $NULL $NULL {"ExtraInputAtt":"data-role=${DQUOTE}DECIMAL_1${DQUOTE}"})
+        #macroInputLookupSelect("machineryentity.euStage" $NULL $!machineryentity.euStage.id "eustage" {"AddDisabledFilter":true,"ShowEmptyItem":"true","IsRequired":"true"})
+        #macroInputHidden("euStageName")
+        #set($TANGuideLink = $Context.get($SETTING_APP_GENERAL_TAN_GUIDE_LINK))
+
+        #macroInputText("machineryentity.typeApprovalNumber" $NULL $NULL {"note":"","HelpHTML":$!TANGuideLink, "ExtraHTML":"<br/><span id='matchIndicator'></span>","LabelClass":"label-top"})
+        #macroInputHidden("tanMatch")
+        #macroInputHidden("machineryentity.exemptionStatus")
+    #macroEndFieldset()
+
+    #macroStartFieldset("machinery.register.section.exemption" $NULL $NULL $NULL "exemptionSection")
+        #macroInputLookupSelect("machineryentity.exemptionReason" $NULL $!machineryentity.exemptionReason.id "exemptionreason" {"AddDisabledFilter":true,"showRequiredLabel":true,"ShowEmptyItem":"true","LabelClass":"nowrap-label"})
+        #macroInputHidden("exemptionReasonName")
+        #macroInputTextArea("machineryentity.exemptionReasonText" $NULL $NULL {"showRequiredLabel":true,"LabelClass":"label-top"})
+        #macroInputLookupSelect("machineryentity.retrofitModel" $NULL $!machineryentity.retrofitModel.id "retrofitmodel" {"AddDisabledFilter":true, "showRequiredLabel":true,"ShowEmptyItem":"true","note":"Select 'other' to enter an unlisted retrofit model"})
+        #macroInputText("machineryentity.retrofitModelOther" $NULL $NULL {"showRequiredLabel":true})
+        #macroInputText("machineryentity.retrofitId" $NULL $NULL {"showRequiredLabel":true})
+        #macroInputText("machineryentity.exemptionId" $NULL $NULL {"showRequiredLabel":true,"note":"machineryentity.exemptionId.description"})
+    #macroEndFieldset()
+
+    #macroStartFieldset("machinery.register.section.files" $NULL $NULL $NULL "exemptionFilesSection")
+
+        #if($CurrentUser.hasAccess($PRIVILEGES_VIEW_MACHINERY_FILES))
+            #set($MachineryMediaList = $HibernateUtils.selectEntities("From MachineryMediaEntity where machinery = ?", $machineryentity))
+            #if($MachineryMediaList && $MachineryMediaList.size() > 0)
+                <table>
+                    #foreach($MachineryMediaEntity in $MachineryMediaList)
+                        <tr><td>
+                            <a href="$AppPath/media/download/$MachineryMediaEntity.media.id">$MachineryMediaEntity.media.name</a>
+                        </td></tr>
+                    #end
+                </table>
+            #end
+        #end
+
+        <label for="machineryfiles">#I18N("machinery.files")</label>
+        #macroFileUpload("machineryfiles", "#I18N('machinery.files.description')")
+        #macroInputHidden("UseFiles")
+    #macroEndFieldset()
+
+    #macro(macroFileUpload $Name $Label)
+
+        #set($FileProps = {})
+        #set($tmp=$FileProps.put("dragDrop", true))
+        #set($tmp=$FileProps.put("NoRemove", true))
+        #set($tmp=$FileProps.put("showImage", true))
+        #set($tmp=$FileProps.put("download", true))
+        #set($tmp=$FileProps.put("Multiple", true))
+        #set($tmp=$FileProps.put("dropHereText", $Label))
+
+        #macroInputFile($Name, "", $FileProps)
+    #end
+
+
+    #set($EndFormProperties={"hideCreateAnother":true,"cancelButton":{"hide":true}})
+    #if($CurrentUser.hasAccess($siteentity, $PRIVILEGES_EDIT_MACHINERY))
+        #set($tmp = $EndFormProperties.put("saveButton",{"label":"$SaveButtonText"}))
+    #else
+        #set($tmp = $EndFormProperties.put("saveButton",{"hide":true,"disable":true}))
+    #end
+    #if(($EditState.is("EDITING") && $machineryentity && $machineryentity.id))
+        ## get Buttons from workflow
+        #set($wfSettings = {})
+        #set($tmp=$wfSettings.put("machineryentity", $machineryentity))
+        #set($tmp=$wfSettings.put("siteentity", $siteentity))
+        #set($wfResult = $WorkflowHelper.executeWorkflow("MACHINERY_EDIT_FORM", $wfSettings, true))
+        #if($wfResult.data && $wfResult.data.get("LeftButtons"))
+            #set($tmp = $EndFormProperties.put("leftButtons",$wfResult.data.get("LeftButtons")))
+        #end
+        #if($wfResult.data && $wfResult.data.get("RightButtons"))
+            #set($RightButtons = $wfResult.data.get("RightButtons"))
+        #else
+            #set($RightButtons = [])
+        #end
+        #if($CurrentUser.hasAccess($PRIVILEGES_DELETE_MACHINERY))
+            #set($tmp = $RightButtons.add({"id":"deleteButton", "type":"button", "label":"machinery.edit.delete_button","icon":"fa-times","onClick":"machineryAdminUtils.deleteMachinery"}))
+        #end
+
+        #set($tmp = $EndFormProperties.put("rightButtons",$RightButtons))
+    #end
+#macroEndForm($EndFormProperties)
+
+<script>
+
+    $(document).ready(function () {
+
+        $("#exemptionSection").hide();
+        $("#exemptionFilesSection").hide();
+
+        $("#machineryentity\\.type").bind("change", machineryAdminUtils.checkForOtherType);
+        $("#machineryentity\\.retrofitModel").bind("change", machineryAdminUtils.checkForOtherRetrofitModel);
+        $("#machineryentity\\.euStage").bind("change", machineryAdminUtils.checkEuStage);
+        $("#machineryentity\\.typeApprovalNumber").bind("input", machineryAdminUtils.checkEuStageFormat);
+        $("#machineryentity\\.exemptionReason").bind("change", machineryAdminUtils.checkExemptionReason);
+
+        $("#addMachineryButton").on("click", machineryAdminUtils.addMachinery);
+        $("#viewSiteButton").on("click", machineryAdminUtils.viewSite);
+
+        machineryAdminUtils.checkForOtherType();
+        machineryAdminUtils.checkForOtherRetrofitModel();
+        machineryAdminUtils.checkEuStage();
+        machineryAdminUtils.checkExemptionReason();
+
+        $("#machineryentity\\.exemptionReasonText").attr("maxlength",25);
+
+        $("textarea[maxlength]").bind('input propertychange', function() {
+            var maxLength = $(this).attr('maxlength');
+            if ($(this).val().length > maxLength) {
+                $(this).val($(this).val().substring(0, maxLength));
+            }
+        })
+
+    });
+
+    var machineryAdminUtils = {
+
+        currentEuStageFormat:"",
+
+        checkData: function () {
+
+           // Make sure start date <= end date
+
+            var returnValue = false;
+            if (psApp.dateUtils.compareStartEndDates("#machineryentity\\.startDate", "#machineryentity\\.endDate", "$DEFAULT_DATE_FORMAT") &&
+                machineryAdminUtils.checkExemptionStatus()) {
+                PivotalUtils.getJsonContentAsync("$AppPath/$PageName/$SubPageName", $("#machinerySaveForm").serialize(), function(response) {
+                    if (response.inError)
+                        alert(response.error);
+                    else
+                        if (response.data.MachineryId)
+                            location.href = "$AppPath/$PageName/edit/$!siteentity.id/" + response.data.MachineryId;
+                        else
+                            alert("#I18N("site.edit.error.registrationfailed")");
+                }, true);
+            }
+
+           return returnValue;
+       },
+
+       validationOk: function () {
+           ## PivotalUtils.showNotification("#I18N("machinery.edit.save_ok_message")");
+       },
+
+        validationFailed: function () {
+            PivotalUtils.showNotification("#I18N("site.edit.error.validationfailed")", "error");
+            $(".k-invalid:first").focus();
+        },
+
+        checkForOtherType: function() {
+            machineryAdminUtils.checkForOther("type");
+        },
+
+        checkForOtherRetrofitModel: function() {
+            machineryAdminUtils.checkForOther("retrofitModel");
+        },
+
+        checkForOther: function(fieldName) {
+
+            try {
+                if ($("#machineryentity\\." + fieldName).data('kendoDropDownList').text().toLowerCase().trim() === "other") {
+                    $("#machineryentity\\." + fieldName + "Other").closest(".input-line").show("slow");
+                    $("#machineryentity\\." + fieldName + "Other").attr("required", "required");
+                    $("#machineryentity\\." + fieldName + "Other").attr("validationmessage", "#I18N("forms.generic.required.message")");
+                }
+                else {
+                    $("#machineryentity\\." + fieldName + "Other").closest(".input-line").hide();
+                    $("#machineryentity\\." + fieldName + "Other").attr("required", false);
+                    $("#machineryentity\\." + fieldName + "Other").attr("validationmessage", "");
+                    $("#machineryentity\\." + fieldName + "Other").val("");
+                }
+            }
+            catch(e) {
+                alert(e);
+            }
+        },
+
+        checkEuStage: function() {
+            var stageId = $("#machineryentity\\.euStage").val();
+            if (stageId) {
+                //Set euStage note and format
+                PivotalUtils.getJsonContentAsync("$AppPath/admin/lookups/get/" + stageId, "", function(stageRecord) {
+                    if (stageRecord && stageRecord.tag && stageRecord.description) {
+                        $("#machineryentity\\.typeApprovalNumber_fieldnote").html(stageRecord.description ? stageRecord.description : "");
+                         machineryAdminUtils.currentEuStageFormat = stageRecord.tag;
+                         machineryAdminUtils.checkEuStageFormat();
+                    }
+                }, false);
+
+                $("#euStageName").val($("#machineryentity\\.euStage").data('kendoDropDownList').text().toLowerCase());
+                // Now check workflow to see what we need to do
+                psApp.workflow.execute("$!AppPath", "MACHINERY_REGISTER_FORM", $("#machinerySaveForm").serialize() + "&PROCESS_FIELD=EUSTAGE", function (response) {
+                    psApp.workflow.evalResponse(response);
+                });
+            }
+        },
+
+        checkEuStageFormat: function() {
+            if (machineryAdminUtils.currentEuStageFormat !== "") {
+                if (psApp.pattern.matchPattern($("#machineryentity\\.typeApprovalNumber").val(), machineryAdminUtils.currentEuStageFormat)) {
+                    $("#matchIndicator").removeClass("matchIndicatorBad");
+                    $("#matchIndicator").addClass("matchIndicatorGood");
+                    $("#matchIndicator").html("<i class='fa fa-thumbs-o-up'></i>&nbsp;The TAN matches the required format");
+                    $("#tanMatch").val(true);
+                }
+                else {
+                    $("#matchIndicator").addClass("matchIndicatorBad");
+                    $("#matchIndicator").removeClass("matchIndicatorGood");
+                    $("#matchIndicator").html("<i class='fa fa-thumbs-o-down'></i>&nbsp;The TAN does not match the required format");
+                    $("#tanMatch").val(false);
+                }
+           }
+        },
+
+        checkExemptionReason: function() {
+            // Set name into field
+            $("#exemptionReasonName").val($("#machineryentity\\.exemptionReason").data('kendoDropDownList').text().toLowerCase());
+
+            // Now check workflow to see what we need to do
+            psApp.workflow.execute("$!AppPath","MACHINERY_REGISTER_FORM", $("#machinerySaveForm").serialize() + "&PROCESS_FIELD=EXEMPTIONREASON", function(response) {
+                psApp.workflow.evalResponse(response);
+            });
+        },
+
+        checkExemptionStatus: function() {
+            var response = psApp.workflow.executeWait("$!AppPath","MACHINERY_REGISTER_FORM", $("#machinerySaveForm").serialize() + "&PROCESS_FIELD=SUBMIT");
+            return (psApp.workflow.evalResponse(response));
+        },
+
+        acceptExemption: function() {
+            #if($CurrentUser.hasAccess($PRIVILEGES_ACCEPT_PENDING_MACHINERY))
+                location.href = "$AppPath/machinery/exemption/${machineryentity.id}/accept";
+            #end
+        },
+
+        rejectExemption: function() {
+            #if($CurrentUser.hasAccess($PRIVILEGES_REJECT_PENDING_MACHINERY))
+                location.href = "$AppPath/machinery/exemption/${machineryentity.id}/reject";
+            #end
+        },
+
+        deleteMachinery: function () {
+            if (confirm("Are you sure you want to delete this machinery record?"))
+                PivotalUtils.getJsonContentAsync("$AppPath/machinery/delete/$machineryentity.id", "", function(response) {
+                    if (response.inError)
+                        alert(response.error);
+                    else
+                        location.href = "$AppPath/dashboard";
+                },true);
+        },
+
+        addMachinery: function() {
+            location.href = '$AppPath/machinery/edit/$!siteentity.id';
+        },
+
+        viewSite: function() {
+            location.href = '$AppPath/site/view/$!siteentity.id';
+        }
+    };
+</script>
+
+#parse("external/footer.inc")

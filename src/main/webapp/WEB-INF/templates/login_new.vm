@@ -1,0 +1,109 @@
+#set($LastBreadCrumb = "Login")
+#parse("external/header.inc")
+
+#set ($nextPageName = "dashboard")
+#if ($UserManager.UserLoggedIn)
+    $Response.sendRedirect("$nextPageName")
+#else
+
+
+<div id="content-wrap">
+    <div class="section main">
+
+        <h1 class="l-content--title">User account</h1>
+        <h2 class="element-invisible">Primary tabs</h2>
+        <ul class="tabs tabs--primary  links--inline">
+            <li class="active"><a href="$!AppPath/login" class="active">Log in<span class="element-invisible">(active tab)</span></a></li>
+            <li><a href="$!AppPath/login/resetrequest">Request new password</a></li>
+            <li><a href="$!AppPath/login/register">#I18N("loginview.register.text")</a></li>
+        </ul>
+        <form class="user-login" action="/user" method="post" id="user-login" accept-charset="UTF-8">
+            <div>
+                <div id="login-error-pod" class="form-group feedback-msg error">
+                    <i class="fa fa-ban"></i> <span class="feedback-msg-title" id="error-msg"></span>
+                </div>
+                <div class="form-item form-type-textfield form-item-name">
+                    <label for="username">Email Address <span class="form-required" title="This field is required.">*</span></label>
+                    <input type="text" id="username" name="name" value="" size="60" maxlength="60" class="form-text required" autocomplete="username"/>
+                </div>
+                <div class="form-item form-type-password form-item-pass">
+                    <label for="password">Password <span class="form-required" title="This field is required.">*</span></label>
+                    <input type="password" id="password" name="pass" size="60" maxlength="128" class="form-text required" autocomplete="current-password"/>
+                </div>
+                <input type="hidden" name="form_build_id" value="form-QpLVax5Qe1mCUBKxlMyHmDzluVQ3BoDZukrD2hN4DOM"/>
+                <input type="hidden" name="form_id" value="user_login"/>
+                <div class="form-actions form-wrapper" id="edit-actions"><input type="submit" id="login-submit" name="op" value="Log in" class="form-submit"/></div>
+            </div>
+        </form>
+        <div class="form-group version">
+            Ver: $APPLICATION_VERSION ($AppDate)
+        </div>
+    </div>
+</div>
+
+    <script>
+
+        $(document).ready(function () {
+            $('#login-error-pod').css("display", "none");
+            $('#user-login').submit(function (event) {
+                var usernameInput = $('#username');
+                var passwordInput = $('#password');
+                $('#login-error-pod').css("display", "none");
+
+                // Don't submit if no username.
+                if (!$.trim(usernameInput.val()).length) {
+                    showLoginError('#I18N("loginview.error.emptyvalue")');
+                    usernameInput.focus();
+                    return false;
+                }
+
+                // Create xor_encrypted password:
+                try {
+                    var sessionId = PivotalUtils.getCookie("JSESSIONID");
+                    var passwordEncryptedEncoded = psApp.login.encryptPassword(passwordInput.val());
+
+                    // Create array of parameters to send to login URL.
+                    var params = jQuery.param({
+                        username: usernameInput.val(),
+                        password: passwordEncryptedEncoded,
+                        color: screen.colorDepth,
+                        resolution: screen.width + "x" + screen.height
+                    });
+
+                    var status = PivotalUtils.getJsonContent('$AppPath/login', params, true);
+                    if (status.inError) {
+                        showLoginError(status.error);
+                    } else {
+                        #if ("$!SESS_target" == "")
+                            #set ($SESS_target = "/$nextPageName")
+                        #end
+                        document.location.href = '$AppPath$!SESS_target';
+                    }
+                    return false;
+                }
+                catch (e) {
+                    alert("Error logging in: " + e);
+                    return false;
+                }
+
+                event.preventDefault();
+            });
+        });
+
+        /**
+         * Shows the specified error message.
+         *
+         * @param text Error Message.
+         */
+        function showLoginError(text) {
+            $('#error-msg').html(text);
+            $('#login-error-pod').css("display", "block");
+            $('#login-error-pod').animate({opacity: 1}, 300);
+
+            $('.login').css('height', 'auto');
+        }
+
+    </script>
+#end
+
+#parse("external/footer.inc")

@@ -1,0 +1,10 @@
+$errorPrimary: #ef0000;
+$successPrimary: #28d300;
+
+#connection-test-results.success {
+  color: $successPrimary;
+}
+
+#connection-test-results.failure {
+  color: $errorPrimary;
+}

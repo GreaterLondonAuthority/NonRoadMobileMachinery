@@ -1,0 +1,190 @@
+## Dashboard macros
+#macro(macroDashboardHeader $DashboardTitle)
+    <h2>
+        #if($DashboardTitle)
+            $DashboardTitle
+        #else
+            #I18N("dashboard.default.title")
+        #end
+    </h2>
+#end
+
+#macro(macroAddSiteWidget $Title $Query $Where $Order)
+
+    #if(!$Query)
+        #set($Query = "From SiteEntity")
+    #end
+
+    #set($WhereClause = "")
+    #if($Where)
+        #set($WhereClause = "(" + $Where + ")")
+    #end
+    #if($CurrentUser.borough)
+        ## Restrict by borough
+        #if($WhereClause != "")
+            #set($WhereClause = $WhereClause + " and ")
+        #end
+        #set($WhereClause = $WhereClause + "(borough.id=$CurrentUser.borough.id)")
+        #set($ExtraTitle = " in $CurrentUser.borough.name")
+    #end
+
+    #if($WhereClause != "")
+        #set($Query = $Query + " where " + $WhereClause)
+    #end
+    #if($Order)
+        #set($Query = $Query + " order by $Order")
+    #end
+    #set($SiteList = $HibernateUtils.selectEntities($Query))
+
+    <h3>$Title $!ExtraTitle</h3>
+
+    <table class="table table-striped table-condensed table-hover">
+        #if($SiteList && $SiteList.size() > 0)
+            <tr>
+                <th>Site</th>
+                <th>Postcode</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Role at Site</th>
+                <th></th>
+            </tr>
+            #foreach($Site in $SiteList)
+                <tr siteId="$Site.id" class="siteRow">
+                    <td>
+                        $!Site.name
+                    </td>
+                    <td>
+                        $Site.postcode
+                    </td>
+                    <td nowrap>$Utils.dateFormat($Site.startDate, "dd MMM yyyy")</td>
+                    <td nowrap>$Utils.dateFormat($Site.endDate, "dd MMM yyyy")</td>
+                    <td>
+                        #set($Role = $HibernateUtils.selectFirstEntity("Select su.role from SiteUsersEntity su where su.primaryKey.site.id = $Site.id and su.primaryKey.user.id = $CurrentUser.id"))
+                        $!Role.name
+                    </td>
+                    <td><button class="smallButton removeSiteUser" siteId="$Site.id" roleId="$!Role.id"><i class="fa fa-times"></i>&nbsp;Remove</button></td>
+                </tr>
+            #end
+        #else
+            <tr><td colspan="6">
+                #I18N("dashboard.sites.empty.message")
+            </td></tr>
+        #end
+    </table>
+#end
+
+#macro(macroAddMachineryWidget $Title $Where)
+
+    ## Fields have to be in the format <db.name> as <name to use>,
+    #set($FieldList = "machinery.site.id as siteId, machinery.typeApprovalNumber as typeApprovalNumber, machinery.id as machineryId, machinery.site.name as siteName, machinery.type.name as machineryTypeName, machinery.euStage.name as machineryEuStageName, machinery.startDate as machineryStartDate, machinery.endDate as machineryEndDate")
+
+    ## create lookup array
+    #set($FieldArray=$FieldList.split(","))
+    #set($FieldLookup={})
+    #foreach($Field in $FieldArray)
+        #set($FieldName = $Field.split(" as ")[1])
+        #set($thisIndex = $velocityCount - 1)
+        #set($tmp = $FieldLookup.put($FieldName, $thisIndex))
+    #end
+
+    #set($Query = "Select $FieldList From MachineryEntity machinery ")
+
+    #set($WhereClause = "")
+    #if($Where)
+        #set($WhereClause = "(" + $Where + ")")
+    #end
+
+    #if($CurrentUser.borough)
+        ## Restrict by borough
+        #if($WhereClause != "")
+            #set($WhereClause = $WhereClause + " and ")
+        #end
+        #set($WhereClause = $WhereClause + "(site.borough.id=$CurrentUser.borough.id)")
+        #set($ExtraTitle = " in $CurrentUser.borough.name")
+    #end
+
+    #if($WhereClause != "")
+        #set($Query = $Query + " where " + $WhereClause)
+    #end
+    #set($Query = $Query + " order by machinery.timeModified, lower(site.name)")
+
+
+    #if($CurrentUser.hasAccess($PRIVILEGES_EDIT_MACHINERY, $PRIVILEGES_ACCEPT_PENDING_MACHINERY, $PRIVILEGES_REJECT_PENDING_MACHINERY))
+        #set($AllowEdit=true)
+    #end
+
+    #set($MachineryList = $HibernateUtils.selectEntities($Query))
+
+    <h3>$!Title</h3>
+    <table class="table table-striped table-condensed table-hover">
+        #if($MachineryList && $MachineryList.size() > 0)
+            <tr>
+                <th>Site</th>
+                <th>Machine Type</th>
+                <th>Eu stage</th>
+                <th>TAN</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+            </tr>
+            #foreach($Machinery in $MachineryList)
+                #set($MachineryId = $Machinery[$FieldLookup.get("machineryId")])
+                #set($SiteId = $Machinery[$FieldLookup.get("siteId")])
+
+                <tr class="machineryRow" #if($AllowEdit) machineryId="$!MachineryId"#end siteId="$!SiteId">
+                    <td>
+                        $!Machinery[$FieldLookup.get("siteName")]
+                    </td>
+                    <td>
+                        $!Machinery[$FieldLookup.get("machineryTypeName")]
+                    </td>
+                    <td>
+                        $!Machinery[$FieldLookup.get("machineryEuStageName")]
+                    </td>
+                    <td>
+                        $!Machinery[$FieldLookup.get("typeApprovalNumber")]
+                    </td>
+                    <td nowrap>$Utils.dateFormat($Machinery[$FieldLookup.get("machineryStartDate")], "dd MMM yyyy")</td>
+                    <td nowrap>$Utils.dateFormat($Machinery[$FieldLookup.get("machineryEndDate")], "dd MMM yyyy")</td>
+                </tr>
+            #end
+        #else
+            <tr><td colspan="6">
+                #I18N("dashboard.machinery.empty.message")
+            </td></tr>
+        #end
+    </table>
+#end
+
+#macro(macroAddInvitationsWidget $Title)
+
+    #set($Query = "From ActionEntity where lower(settings) like '%${DQUOTE}email${DQUOTE}:${DQUOTE}$CurrentUser.getEmail().toLowerCase()${DQUOTE}%' and used = false and expiry >= NOW()")
+
+    <h3>$Title</h3>
+    <table class="table table-striped table-condensed table-hover">
+        #set($InviteList = $HibernateUtils.selectEntities($Query))
+        #if($InviteList && $InviteList.size() > 0)
+            <tr>
+            <th>Site</th>
+            <th>Invitation Expires</th>
+            </tr>
+            #foreach($Action in $InviteList)
+                #set($Site = $HibernateUtils.selectFirstEntity("From SiteEntity where id = $Action.tag"))
+                #if($Site)
+                    <tr class="inviteRow" guid="$!Action.guid">
+                        <td>
+                            $!Site.name
+                        </td>
+                        <td>
+                            $Utils.dateFormat($Action.expiry, "dd MMM yyyy")
+                        </td>
+                    </tr>
+                #end
+            #end
+        #else
+            <tr><td colspan="2">
+                #I18N("dashboard.invite.empty.message")
+            </td></tr>
+        #end
+    </table>
+#end
+

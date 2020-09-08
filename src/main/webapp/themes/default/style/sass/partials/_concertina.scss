@@ -1,0 +1,38 @@
+/*
+Global concertina
+------------------------------*/
+$defaultConcertinaPadding: 10px;
+.concertina-wrap {
+  clear:left;
+}
+.concertina-toggle {
+  font-size:1em;
+  padding:$defaultConcertinaPadding;
+}
+.concertina-wrap.js-on {
+  .concertina-toggle {
+    padding:0;
+    a {
+      color:$palette_bodyText;
+      display:block;
+      padding:$defaultConcertinaPadding;
+      text-decoration:none;
+      &:hover,
+      &:focus {
+        text-decoration:underline;
+      }
+    }
+    .toggle-icon {
+      @include arrowDown;
+      margin-right:5px;
+    }
+    &.active {
+      .toggle-icon {
+        @include arrowUp;
+      }
+    }
+  }
+}
+.concertina-content {
+  padding:$defaultConcertinaPadding;
+}

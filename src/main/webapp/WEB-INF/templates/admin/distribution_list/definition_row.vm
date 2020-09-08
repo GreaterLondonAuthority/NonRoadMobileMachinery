@@ -1,0 +1,38 @@
+#parse("includes/initialise.inc")
+#set ($Parameter = $Definition.getParameter($REQ_parameter))
+
+## If the parameter has sub parameters then we will display them in a grid
+
+#if ($Parameter.SubParameters)
+    #set ($ParamsToUse = $Parameter.SubParameters)
+#else
+    #set ($ParamsToUse = [$Parameter])
+#end
+
+## Ouput one row of the parameter values
+
+<tr>
+    <td>
+        <button class="k-button handler"><i class="fa fa-arrows-v"></i></button>
+    </td>
+
+    ## Loop through each sub parameter or main parameter if it doesn't have any
+
+    #set ($Row = $Utils.getNow().Time)
+    #foreach($ParamToUse in $ParamsToUse)
+        #if ($Parameter.SubParameters)
+            #set ($ParamName = "settings-values.${Parameter.name}.$ParamToUse.name")
+        #else
+            #set ($ParamName = "settings-values.${Parameter.name}")
+        #end
+        <td>
+            #macroDefinitionEditParameter($ParamToUse $ParamName $ParamToUse.DefaultValue $NULL $Row)
+        </td>
+    #end
+
+    ## Show the remove button
+
+    <td>
+        <button class="k-button table-action-remove"><i class="fa fa-minus-square"></i></button>
+    </td>
+</tr>

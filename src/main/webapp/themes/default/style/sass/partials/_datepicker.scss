@@ -1,0 +1,27 @@
+/*
+Kendo Date Picker
+Need to override default Kendo styles. Might get a bit ugly...
+------------------------------*/
+.k-datepicker {
+  .k-picker-wrap {
+    padding:0;
+    .ui-datepicker {
+      padding:0;
+    }
+    .k-select {
+      @include fauxButton;
+      border:0;
+      border-left:1px solid #d6d7dc;
+      border-radius:0;
+      padding:0 5px;
+    }
+    .k-i-calendar {
+      vertical-align:0;
+    }
+  }
+}
+.k-calendar-container {
+  a {
+    color:$palette_bodyText;
+  }
+}

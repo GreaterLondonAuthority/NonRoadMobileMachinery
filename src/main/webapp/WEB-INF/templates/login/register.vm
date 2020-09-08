@@ -1,0 +1,136 @@
+#set($LastBreadCrumb = "Register")
+#set($PageTitle = "Register")
+#parse("external/header.inc")
+<h2 class="l-content--title">Register a new user account</h2>
+<h2 class="element-invisible">Primary tabs</h2>
+<ul class="tabs tabs--primary list-unstyled links--inline">
+    <li><a href="$!AppPath/login">Log in<span class="element-invisible">(active tab)</span></a></li>
+    <li><a href="$!AppPath/login/resetrequest">Request new password</a></li>
+    <li class="active"><a href="$!AppPath/login/register" class="active">#I18N("loginview.register.text")</a></li>
+</ul>
+#macroStartForm("registerForm" "$AppPath/$PageName/$SubPageName" {"onValidationFailed":"registerUtils.validationFailed"})
+#macroStartFieldset()
+<div class="registerMessage topMessage">
+    #I18N("login.register.top_detail")
+</div>
+<div class="form-group">
+    #macroInputEmail("email" "login.register.email" $NULL {"focus":true,"IsRequired":true,"Autocomplete":"email","ExtraInputAtt":"data-email-msg=${DQUOTE}#I18N('login.register.bad.email.format')${DQUOTE}"})
+</div>
+
+<div class="form-group">
+    #macroInputPassword("input_password" "login.register.password" $NULL {"Autocomplete":"new-password","showRequiredLabel":true,"ExtraInputAtt":"data-role=${DQUOTE}USER_PASSWORD${DQUOTE} ignore=${DQUOTE}true${DQUOTE}"})
+    #macroInputHidden("input_password_encrypt")
+</div>
+
+<div class="form-group">
+    #macroInputPassword("input_password_confirm" "login.register.password_confirm" $NULL {"Autocomplete":"new-password","showRequiredLabel":true,"ExtraInputAtt":"ignore=${DQUOTE}true${DQUOTE}","ExtraHTML":"<div id='passwordMatch'></div>"})
+    #macroInputHidden("input_password_confirm_encrypt")
+</div>
+
+<div class="form-group">
+    #macroInputText("firstname" "login.register.firstname" $NULL {"Autocomplete":"given-name","hideOptional":true,"ExtraInputAtt":"data-role=${DQUOTE}PERSON_FIRSTNAME${DQUOTE}"})
+</div>
+
+<div class="form-group">
+    #macroInputText("lastname" "login.register.lastname" $NULL {"Autocomplete":"family-name","hideOptional":true, "ExtraInputAtt":"data-role=${DQUOTE}PERSON_LASTNAME${DQUOTE}"})
+</div>
+
+<div class="form-group">
+    #macroInputText("phonenumber" "login.register.phoneNumber" $NULL {"Autocomplete":"tel-national","ExtraInputAtt":"data-role=${DQUOTE}PHONE_NUMBER${DQUOTE}"})
+</div>
+
+<div class="form-group">
+    <div id="passwordRules">
+        $!WorkflowHelper.executeWorkflow("PASSWORD_RULES", $NULL, true).information
+    </div>
+</div>
+<div class="form-group">
+    $!WorkflowHelper.executeWorkflow("CAPTCHA", $NULL, true).information
+</div>
+
+<div class="form-group">
+    <div class="form-actions form-wrapper" id="edit-actions">
+        <input type="submit" id="editform-submit" name="op" value="#I18N("login.registerview.submit.text")" class="form-submit"/>
+    </div>
+</div>
+
+<div class="registerMessage bottomMessage">
+    #I18N("login.register.bottom_detail")
+</div>
+
+#macroEndFieldset()
+</form>
+
+<script>
+
+    $(document).ready(function () {
+       $('#registerForm').submit(function (e) {
+           return registerUtils.saveform(e);
+       });
+
+        registerUtils.showPasswordMatch();
+
+        $('#input_password').on("input", function() {
+           registerUtils.showPasswordMatch();
+        });
+        $('#input_password_confirm').on("input", function() {
+           registerUtils.showPasswordMatch();
+        });
+    });
+
+    var registerUtils = {
+
+        validationFailed: function () {
+
+            ## PivotalUtils.showNotification("#I18N("site.edit.error.validationfailed")", "error");
+            $(".k-invalid:first").focus();
+            $('#input_password').val("");
+            $('#input_password_confirm').val("");
+            registerUtils.showPasswordMatch();
+        },
+
+        showPasswordMatch: function() {
+            if ($('#input_password_confirm').val() === "")
+                $("#passwordMatch").html("");
+            else {
+                if (psApp.login.passwordsMatch())
+                    $("#passwordMatch").html("#I18N('global.error.password.match_yes')");
+                else
+                    $("#passwordMatch").html("#I18N('global.error.password.match_no')");
+            }
+        },
+
+        saveform: function(event) {
+
+            if (!psApp.login.passwordsMatch()) {
+                alert("#I18N('global.error.password.missmatch')");
+                $('#input_password').val("");
+                $('#input_password_confirm').val("");
+                $('#input_password').focus();
+            }
+            else {
+                try {
+
+                    // Create array of parameters to send to login URL.
+                    psApp.login.encryptAllPasswords("_encrypt");
+                    var status = PivotalUtils.getJsonContent('$AppPath/login/register', $('#registerForm').serialize(), true);
+                    if (status.inError) {
+                        alert(status.error);
+                        $('#input_password').val("");
+                        $('#input_password_confirm').val("");
+                    } else {
+                        alert("#I18N("login.register.success.message")");
+                        document.location.href = '$!{AppPath}/login';
+                    }
+                }
+                catch (e) {
+                    alert("Error registering new user in: " + e);
+                }
+            }
+            return false;
+        }
+    };
+
+</script>
+
+#parse("external/footer.inc")

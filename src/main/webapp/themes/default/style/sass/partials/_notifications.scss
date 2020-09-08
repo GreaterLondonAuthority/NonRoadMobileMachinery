@@ -1,0 +1,26 @@
+// Our top-right alerts.
+.nrmmNotification {
+  width: 330px;
+  margin: 5px;
+  td {
+    vertical-align: middle;
+    text-align: left;
+
+    i {
+      font-size: 2em;
+      margin-right: 10px;
+      margin-left: 5px;
+    }
+  }
+  td.message {
+    width: 100%;
+  }
+}
+
+.k-animation-container{
+    z-index: 10000002 !important;
+}
+
+.bold {
+  font-weight: bold !important;
+}

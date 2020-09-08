@@ -1,0 +1,24 @@
+div.control-log {
+  border: 1px solid #CCCCCC;
+  border-radius: 4px;
+
+  p {
+    margin: 8px;
+    padding: 2px;
+    border-radius: 4px;
+    border: 1px solid #B7E1F0;
+    background-color: #E5F5FA;
+    color: #0487C4;
+  }
+
+  p.error {
+    border-color: #FFB7A8;
+    background-color: #FFE0D9;
+    color: #EF470A;
+  }
+
+  p.condition {
+    border-color: #FFF0C8;
+    background-color: #FFF4D9;
+  }
+}

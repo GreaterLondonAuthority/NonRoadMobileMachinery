@@ -1,0 +1,39 @@
+/*
+Global typography
+------------------------------*/
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family:'SourceSansLight', arial, helvetica, sans-serif;
+  color:$palette_primary_midgrey;
+  font-weight:normal;
+}
+h1 {
+  font-size:2.4em;
+  padding-bottom:.7em;
+}
+h2 {
+  font-size:2em;
+}
+h3 {
+  font-size:1.6em;
+}
+h4 {
+  font-size:1.2em;
+}
+h5 {
+  font-size:1.2em;
+}
+h6 {
+  font-size:1em;
+}
+p {
+  line-height:1.6em;
+  padding-bottom:1.4em;
+}
+p:last-of-type {
+  padding:0;
+}

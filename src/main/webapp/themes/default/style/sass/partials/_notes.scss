@@ -1,0 +1,53 @@
+/*
+Monitor view
+------------------------------*/
+.notes-wrap {
+  font-family:'SourceSansLight', arial, helvetica, sans-serif;
+  border-top:2px solid #eee;
+  padding:10px 20px;
+  position:relative;
+  .icon {
+    @include sprite;
+    background-position:-167px -25px;
+    height:28px;
+    position:absolute;
+    right:6px;
+    top:8px;
+    width:33px;
+  }
+  h2 {
+    font-size:1.2em;
+    font-weight:normal;
+    padding-bottom:5px;
+  }
+  .note {
+    background:#fbfbfb;
+    border:1px solid #eaeaea;
+    margin-bottom:10px;
+    padding:10px;
+  }
+  .notes-meta {
+    padding:0;
+    text-align:right;
+    span {
+      display:block;
+    }
+  }
+}
+.notes-wrap.js-on {
+  background:#fff;
+  h2 {
+    a {
+      color:$palette_primary_darkgrey;
+      .toggle {
+        @include arrowDown;
+        margin-right:5px;
+      }
+    }
+    &.active {
+      .toggle {
+        @include arrowUp;
+      }
+    }
+  }
+}

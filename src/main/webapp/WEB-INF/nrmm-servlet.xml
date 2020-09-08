@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	    http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-3.2.xsd
+		http://www.springframework.org/schema/mvc
+		http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd">
+
+
+    <!-- Scans the classpath of this application for @Components to deploy as beans -->
+    <context:component-scan base-package="com.pivotal.web"/>
+
+    <!-- Configures the @Controller programming model -->
+    <mvc:annotation-driven conversion-service="conversionService"/>
+
+    <!--
+      This bean sets up the Velocity environment for us based on a root path for templates.
+      Optionally, a properties file can be specified for more control over the Velocity
+      environment, but the defaults are pretty sane for file based template loading.
+    -->
+    <bean id="velocityConfig" class="org.springframework.web.servlet.view.velocity.VelocityConfigurer">
+        <property name="resourceLoaderPath" value="/WEB-INF/templates/"/>
+        <property name="configLocation" value="/WEB-INF/classes/velocity.properties"/>
+    </bean>
+
+    <!-- Configure the multipart resolver -->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <!-- one of the properties available; the maximum file size in bytes -->
+        <property name="maxUploadSize" value="10000000000"/>
+    </bean>
+
+    <!--Register a custom property editor to make life easier converting Strings into complex types-->
+    <bean id="conversionService" class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+        <property name="converters">
+            <bean class="com.pivotal.system.hibernate.utils.CustomConverter" />
+        </property>
+    </bean>
+
+    <!--
+      View resolvers can also be configured with ResourceBundles or XML files. If you need
+      different view resolving based on Locale, you have to use the resource bundle resolver.
+      NOTE:- We must make sure that cacheUnresolved is set to false otherwise the view resolver
+             will give up after the first attempt to get a failed template
+    -->
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.velocity.VelocityViewResolver">
+        <property name="cache"                    value="true" />
+        <property name="cacheUnresolved"          value="false" />
+        <property name="prefix"                   value="" />
+        <property name="suffix"                   value=".vm" />
+        <property name="numberToolAttribute"      value="numbertool" />
+        <property name="dateToolAttribute"        value="datetool" />
+        <property name="requestContextAttribute"  value="request" />
+        <property name="exposeSpringMacroHelpers" value="false" />
+        <property name="exposeRequestAttributes"  value="false" />
+        <property name="exposeSessionAttributes"  value="false" />
+        <property name="allowSessionOverride"     value="true" />
+    </bean>
+
+    <!--
+      Interceptors for all requests
+    -->
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <mvc:mapping path="/**"/>
+            <mvc:exclude-mapping path="/restpublic/**"/>
+            <bean class="com.pivotal.web.servlet.ServletHelper"/>
+        </mvc:interceptor>
+        <!--<mvc:interceptor>-->
+            <!--<mvc:mapping path="/restpublic/**"/>-->
+            <!--<bean class="com.pivotal.web.servlet.ServletHelperStateless"/>-->
+        <!--</mvc:interceptor>-->
+    </mvc:interceptors>
+
+</beans>

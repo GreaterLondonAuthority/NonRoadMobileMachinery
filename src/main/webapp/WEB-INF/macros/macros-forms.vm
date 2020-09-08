@@ -1,0 +1,4368 @@
+#*
+# ***************************************************************************
+# *
+# * Copyright (c) Greater London Authority, 2020. This source code is licensed under the Open Government Licence 3.0.
+# * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM.
+# *
+# ****************************************************************************
+*#
+
+#*
+@function   Global declarations
+            This section will be exercised only once
+*#
+#set ($ClearButtonCreated = false)
+#set ($ReadOnlyMode = false)
+
+#*
+@function	Open <form> element
+@params		$FormId (string) - Form ID
+            $Action (string) - Form action
+			$Properties (map) - map of settings for the form
+                        FormClass (string) - Form class
+                        Method (string) - Form method (if none passed, defaults to 'post')
+                        EncType (string) - Encoding type (if none passed, defaults to 'application/x-www-form-urlencoded')
+                        onSubmit (string) - Javascript function to call when form is submitted
+                        onValidationSuccessful (string) - Javascript function to call when form has been successfully validated)
+                        noDirtyFlag (boolean) - True if the dirty flag should not be checked on close
+                        noAutoComplete (boolean) - True if the autocomplete should be turned of for the form
+                        noResize - If true then form resizer is disabled
+*#
+#macro(macroStartForm
+	$FormId
+	$Action
+    $Properties
+	)
+
+    <form
+		#if ("$!Action" != "")
+			action="$Action"
+		#end
+		#if ("$!Properties.FormClass" != "")
+			class="$Properties.FormClass"
+		#end
+		#if ("$!Properties.EncType" != "")
+			enctype="$Properties.EncType"
+		#end
+		id="$FormId"
+		#if ("$!Properties.Method" != "")
+			method="$Properties.Method"
+		#else
+			method="post"
+		#end
+        #if ($Properties.noAutoComplete)
+            autocomplete="off"
+        #end
+	>
+    #if ($EditState)
+        <div id="wrapper-$FormId" class="form-content">
+	#end
+
+    #set ($JQInputName = $Utils.getJQuerySelector($FormId))
+    <script>
+        var autoSaveObject;
+        #if (!$Properties.noDirtyFlag)
+            $(window).on('beforeunload', function () {
+                if (PivotalUtils.isFormDirty) {
+                    return '#I18N("global.error.unsaved.changes")';
+                }
+            });
+        #end
+
+        $(document).ready(function() {
+            PivotalUtils.showFormTooltips("#$JQInputName");
+
+	        // Mark the form as dirty if we have validation errors originating from the server:
+	        #if ($springMacroRequestContext.hasErrors($FormId))
+	        	PivotalUtils.isFormDirty = true;
+	        #end
+
+            #if (!$Properties.noDirtyFlag)
+                // Add change handler to warn the user if they navigate away without saving.
+                $("#$JQInputName").on('change keyup keydown', 'input, textarea, select', function (e) {
+
+                    // Do not fire on ENTER (13) keypress or submitting the form marks it as dirty again.
+                    if ( e.which != 13 ) {
+                        PivotalUtils.isFormDirty = true;
+                        $(this).addClass('changed-input');
+                    }
+                });
+            #end
+
+            // Add auto save for admin pages
+            #if ("admin" == "$!PageName" && !$EditState.is("VIEWING"))
+                autoSaveObject = psApp.autosave("$!AppPath", "$!SubPageName", $("#$!FormId"), "$!Entity.id", true);
+            #end
+
+        });
+
+        #if ($EditState && !$Properties.noResize)
+            #*
+             * Create a timed resizer to
+            *#
+            $("#$JQInputName").data("resize", {
+                timer: false,
+                form: $("#$JQInputName"),
+                resizer: function() {
+                    clearTimeout(this.timer);
+                    this.timer = setTimeout(function() {
+                        var wrapper = $("#wrapper-$JQInputName");
+                        var toolbar =$(".form-toolbar");
+                        var height = $("body").height() - (toolbar.outerHeight() + (wrapper.offset().top * 2));
+                        wrapper.height(height + 20);
+                        wrapper.css("visibility", "visible");
+                        toolbar.css("visibility", "visible");
+
+                        // Resize froala editor if present
+
+                        var froalaEditorTop = $(".fr-top");
+                        if (froalaEditorTop && froalaEditorTop.length > 0) {
+                            try {
+                                var currentHeight = $(froalaEditorTop[0]).find(".fr-wrapper").height();
+                                var wrapperHeight = $(froalaEditorTop[0]).parent().height();
+                            }
+                            catch (X) {
+                            }
+                        }
+
+                    }, 100);
+                }
+            });
+            $(window).on('resize load', function() {
+                $("#$JQInputName").data("resize").resizer();
+                $("body").css("overflow-y", "hidden");
+            });
+        #end
+
+        #*
+         * Wrap the form in a kendo validator to align validation messages
+         * with the kendo input proxies, not the original, hidden inputs.
+         *
+         * more details here: http://khaidoan.wikidot.com/kendo-ui-validation
+         *#
+        $("#$JQInputName").kendoValidator( {
+            validateOnBlur: false,
+            validate: function(e) {
+				if (e.valid) {
+					$('.changed-input').removeClass('changed-input');
+					PivotalUtils.isFormDirty = false;
+
+                    ## Call the validation handler if it exists
+                    #if ($Properties.onValidationSuccessful)
+                        ${Properties.onValidationSuccessful}($("#$JQInputName"));
+                    #end
+				}
+                else {
+                    PivotalUtils.showErrorTab(e.sender.element, e.sender._errors);
+                    ## Call the failed validation handler if it exists
+                    #if ($Properties.onValidationFailed)
+                        ${Properties.onValidationFailed}($("#$JQInputName"));
+                    #end
+                }
+			},
+            messages: {
+                // defines a message for the 'custom' validation rule
+                passwordMatch: "#I18N("global.error.password.missmatch")",
+                dateValidation: "#I18N("global.error.datetime.validation.error")",
+                upload: "upload"
+                #foreach($Lookup in $LookupHelper.getLookupByType("INPUTPATTERNS"))
+                    ,${Lookup.name}:"$Lookup.description"
+                #end
+            },
+            rules: {
+                // custom rule for a password.
+                passwordMatch: function(input) {
+                    var valid = true;
+                    if (input.is("[type=password][ignore!=true]")) {
+                        var tmp = $("#$JQInputName").find("[type=password][ignore!=true]");
+                        if(tmp && tmp.length > 1) {
+                            /*
+                            Kendo validates each input in the form. If the type=password it calls this function
+                            to check its value. Here we loop through all inputs of type=password. If there is one
+                            and it has a different value we return false, otherwise it's all good and we return true.
+                            */
+                            tmp.each(function( index ) {
+                                if (input.val() != $(this).val()) {
+                                    valid = false;
+                                }
+                            });
+                        }
+                    }
+                    return valid;
+                },
+                // custom rule for Date time Formate validation .
+                dateValidation: function(input) {
+                    if (input.is("[data-role=datetimepicker]")) {
+                        var valid = true;
+                        var val = $(input).val();
+                        if(val != "") {
+                            var currentDate = Date.parse($(input).val());
+                            //Check if Date parse is successful
+                            if (!currentDate) {
+                                valid= false;
+                            }
+                        }
+                        return valid;
+                    }
+                    return true;
+                },
+                // custom rule for validating a file input
+                upload: function(input) {
+                    var returnValue = true;
+                    try {
+                        if (input[0].type == "file" && input.attr("required") == "required") {
+                            returnValue = true;// input.closest(".k-upload").find(".k-file").length==0;
+                        }
+                    }
+                    catch(X) {
+                        alert("Error");
+                    }
+                    return returnValue;
+                }
+
+                #foreach($Lookup in $LookupHelper.getLookupByType("INPUTPATTERNS"))
+                    ,${Lookup.name}: function(input) {
+                        var returnValue = true;
+                        if (input.is("[data-role=${Lookup.name}]") && (input.is("[blank-ok!=true]") || input.val() !== "")) {
+                            returnValue = psApp.pattern.matchPattern(input.val(), "$!Lookup.tag", "");
+                        }
+                        return returnValue;
+                    }
+                #end
+            }
+        });
+
+    </script>
+
+    #set($SubmitVar = "formSubmitted_" + $JQInputName.replaceAll("-","_"))
+    #if($Properties.onSubmit)
+        <input type="submit" style="position:absolute;visibility:hidden;width:1px;height:1px;border:0;margin:0;padding:0">
+        <script>
+            var $SubmitVar = false;
+            $(document).ready(function () {
+                $('#$JQInputName').submit(function(e) {
+                    if (!$SubmitVar) {
+                        if (autoSaveObject) autoSaveObject.pause();
+                        // Validate the form
+                        var validator = $("#$JQInputName").kendoValidator().data();
+                        if (validator.validate && !validator.validate()) {
+
+                            // Then prevent from being submitted
+                            e.preventDefault();
+                        }
+                        var result = ${Properties.onSubmit}($('#$JQInputName'));
+                        if (!result && autoSaveObject) autoSaveObject.resume();
+                        $SubmitVar = result;
+                        return result;
+                    }
+                    else
+                        return false;
+                });
+            });
+        </script>
+    #else
+        <script>
+            var $SubmitVar = false;
+            $(document).ready(function () {
+                $('#$JQInputName').submit(function (e) {
+                    if (!$SubmitVar) {
+                        $SubmitVar = true;
+                        return true;
+                    }
+                    else
+                        return false;
+                });
+            });
+        </script>
+    #end
+
+    #macroGeneralErrors($FormId)
+#end
+
+#*
+@function	Close <form> element
+@params		$Properties (map) - map of settings for the form buttons
+*#
+#macro(macroEndForm $Properties)
+    #if ($EditState)
+        </div>
+        ##macroUnattachedErrors()
+        #macroStandardFormButtons($Properties)
+    #else
+        ##macroUnattachedErrors()
+    #end
+	</form>
+
+    <script>
+        ##This is here to make sure that select tag always submit a value on the post.
+        ##If this wasn't here, clearing a multiple select box would never work because the post does not send the parameter through when nothing is selected
+        $(document).ready(function() {
+
+            $("form").submit(function () {
+                if(autoSaveObject) autoSaveObject.pause();
+                var form = this;
+
+            ##Let's find all the select inputs from the form
+                $(this).find("select").each(function () {
+                ##if the value is null, which happens when there's nothing selected
+                    if ($(this).val() == null) {
+                        if ($('input[name="' + this.name.replace(".", "\\.") + '"]').length == 0) {
+                        ##Add a hidden input with the same name and the set an empty value to it
+                            $('<input />').attr('type', 'hidden')
+                                    .attr('name', this.name)
+                                    .attr('value', '')
+                                    .appendTo(form);
+                        }
+                    }
+                });
+
+                if (autoSaveObject)autoSaveObject.resume();
+
+                ## Keep the normal behaviour
+                return true;
+            });
+        });
+    </script>
+#end
+
+#macro(macroStartTabs)
+    <div class="tab-content">
+#end
+
+#macro(macroEndTabs)
+    </div>
+    <script>
+        ## Resize the scrollable area to fit the contents
+        $(window).resize(function() {
+            $(".tab-content").each(function () {
+
+                var dThis = $(this);
+                dThis.css("overflow-x", "hidden");
+                var newHeight = 0;
+                var newWidth = 0;
+                var gotHeight = false;
+                var source = "";
+
+                if ($(".form-toolbar").length>0) {
+                    gotHeight = true;
+                    source = "form-toolbar";
+                    newHeight = $(".form-toolbar").offset().top - dThis.offset().top;
+                    newWidth = $(window).width() - $(this).position().left;
+                }
+                else if ($(".body-padding").length>0) {
+                    gotHeight = true;
+                    source = "body-padding";
+                    newHeight = $(".body-padding").height() - dThis.offset().top;
+                    newWidth = $(window).width() - $(this).position().left;
+                }
+                else if ($(".form-content").length>0) {
+                    gotHeight = true;
+                    source = "form-content";
+                    newHeight = $(".form-content").height() - dThis.offset().top;
+                    newWidth = $(window).width() - $(this).position().left;
+                }
+
+                if (gotHeight) {
+//                    console.log("resizing [" + source + "] " + newHeight + " " + newWidth);
+
+                    dThis.height(newHeight);
+
+                    // size any panes that have been set as fixed
+                    $(".tab-pane[sizing='fixed']").each(function () {
+                        var dThis = $(this);
+                        dThis.css("overflow", "hidden");
+                        dThis.height(newHeight);
+                        dThis.width(newWidth);
+                    });
+                }
+                else
+                    console.log("NOT resizing [" + source + "] " + newHeight + " " + newWidth);
+            });
+        });
+        $(document).ready(function() {
+            console.log("Ready");
+            setTimeout(function() {
+            $(window).resize();
+            }, 100);
+        });
+    </script>
+#end
+
+#macro(macroStartTab $title $active $extras)
+    #macroStringToId($title)
+    <div class="tab-pane #if ($active)active#end" id="$string" #if ($extras)$extras#end>
+#end
+
+#macro(macroEndTab)
+</div>
+#end
+
+#macro(macroStringToId $string)
+    ##set ($string = "#I18N($string)")
+    #set ($string = $string.toLowerCase())
+    #set ($string = $string.replaceAll("(?i)[^0-9a-z]+", "_"))
+#end
+
+#macro(macroTabButtons $Tabs $SelectedIndex)
+    <ul class="nav nav-pills pill-bar" role="tablist">
+    #if("$!SelectedIndex" != "" && $SelectedIndex > 0)
+        #set($IndexToUse = $SelectedIndex)
+    #else
+        #set($IndexToUse = 1)
+    #end
+
+    #foreach($Tab in $Tabs)
+        #macroStringToId($Tab)
+        <li class="#if ($foreach.count == $IndexToUse)active#end"><a href="#$string" role="tab" data-toggle="tab">#I18N($Tab)</a></li>
+    #end
+    </ul>
+#end
+
+#*
+@function	Open <fieldset> element
+@params		$LegendText (string) - Legend text
+			$LegendClass (string) - Legend class. To hide legend, include 'hidden' in this param
+			$FieldsetClass (string) - Fieldset class
+			$Id (string) - Id to give this element.
+			$LegendRight - Stuff to appear on the right hand side
+*#
+#macro(macroStartFieldset
+	$LegendText
+	$LegendClass
+	$FieldsetClass
+    $LegendContent
+    $Id
+    $LegendRight
+    $LegendTitleTag
+	)
+	<fieldset
+		#if("$!FieldsetClass" != "")
+			class="$!FieldsetClass"
+		#end
+
+		#if("$!Id" != "")
+			id="$!Id"
+		#end
+		>
+
+        #if("$!LegendText" != "")
+            #if("$!LegendTitleTag" == "")
+                #set($LegendTitleTag = "h3")
+            #end
+            <div class="legend"
+                #if("$!LegendClass" != "")
+                    class="$!LegendClass"
+                #end>
+                ## is the legend text dynamic?
+                #if($LegendText.contains('.') && ($LegendText == $LegendText.toLowerCase()))
+	                <${LegendTitleTag}>#I18N($!LegendText)</${LegendTitleTag}>
+                    #set($isDynamic=true)
+                #else
+                	<${LegendTitleTag}>$!LegendText</${LegendTitleTag}>
+                    #set($isDynamic=false)
+                #end
+
+                #if($LegendRight)
+                    <span class="legendRight">$!LegendRight</span>
+                #end
+
+                #if($isDynamic)
+                    #if("$!LegendContent" != "")
+                        <span class="legendContent">#I18N($LegendContent)</span>
+                    #else
+                        <span class="legendContent">#I18N("${LegendText}.description")</span>
+                    #end
+                #elseif("$!LegendContent" != "")
+                    <span class="legendContent">#I18N($LegendContent)</span>
+                #else
+
+                #end
+                <div style="clear:both;"></div>
+            </div>
+        #end
+#end
+
+#*
+@function	Close <fieldset> element
+@params		none
+*#
+#macro(macroEndFieldset)
+	</fieldset>
+#end
+
+#*
+@function	Shows a label for an input element
+@params		$InputId ID of the input element
+            $LabelText The translation token to use (if starts with # then it isn't translated)
+			$LabelClass (string) - Label class. To hide label, include 'hidden' in this param
+			$IsRequired (boolean) - True if the label should be shown as required
+			$IsDisabled (boolean) - True if the label should be shown as disabled
+            $Index (int) - An optional index to add to the ID to make it unique
+            $Properties (map) - An optional map of extra parameters)
+*#
+#macro(macroShowLabel
+	$InputName
+	$LabelText
+	$LabelClass
+    $IsRequired
+    $IsDisabled
+    $Index
+    $Properties
+	)
+
+    #if(!$LabelText || $LabelText != "")
+        #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+
+        #set ($InputId = "$InputName$!Index")
+        #set ($LocalLabelClass = "$!LabelClass")
+        #set ($LocalIsRequired = $Utils.isYes($IsRequired))
+        #set ($LocalIsDisabled = $Utils.isYes($IsDisabled))
+        #set ($LocalHideOptional = $Utils.isYes($LocalProperties.hideOptional))
+
+        ## If there is a binding available for this object
+        #if ($springMacroRequestContext.isBound($InputName))
+            #springBind($InputName)
+            #if ($status.Error)
+                #set ($LocalLabelClass = "$!LocalLabelClass error-label")
+            #end
+            #set ($LocalIsRequired = $Utils.isYes($status.Required) || $LocalIsRequired)
+
+        #elseif ($SettingsErrors.containsKey($InputName))
+            #set ($LocalLabelClass = "$!LocalLabelClass error-label")
+        #end
+        #if ("$!LocalProperties.ForceIsRequired"!="")
+            #set ($LocalIsRequired = $Utils.isYes($LocalProperties.ForceIsRequired))
+        #end
+        ## Is it required
+        #if ($LocalIsRequired)
+            #set ($LocalLabelClass = "$!LocalLabelClass required-label")
+        #end
+
+        ## Is it disabled
+        #if ($LocalIsDisabled)
+            #set ($LocalLabelClass = "$!LocalLabelClass disabled-label")
+        #end
+
+        ## If there is a binding available for this object
+        <label
+            #if("$!LocalLabelClass" != "")
+                class="$!LocalLabelClass"
+            #end
+            for="$InputId"
+##            #if ($Properties.Tooltip)
+##                tooltip="#I18N($Properties.Tooltip)"
+##            #elseif (!$LabelText)
+##                tooltip="#I18N("${InputName}.description")"
+##            #end
+            >
+            #if ($LabelText)
+                #I18N($LabelText)
+            #else
+                #I18N($InputName)
+            #end
+            #if (!$LocalIsRequired && !$LocalHideOptional)
+                <span class="form-label-required">(optional)</span>
+            #end
+            $!LocalProperties.ExtraLabelAtt
+        </label>
+    #end
+#end
+
+#*
+@function			Render input description for form elements
+
+@params	(required)	$DescriptionText (string) - Description of the input's purpose
+*#
+#macro(macroInputDescription
+	$DescriptionText
+)
+    #if ("$!DescriptionText" != "")
+        <span class="input-description">#I18N("$DescriptionText")</span>
+    #end
+#end
+
+#*
+@function	Renders any global errors (those associated with the bean, not the fields))
+@params		$EntityName (String) - name of the entity being edited)
+*#
+#macro(macroGeneralErrors $FormId)
+    #if ($springMacroRequestContext.isBound($FormId) && $SettingsErrors)
+        #if ($springMacroRequestContext.hasErrors($FormId) || $SettingsErrors.size()>0)
+            #if ($springMacroRequestContext.hasErrors($FormId))
+                #foreach ($GlobalError in $springMacroRequestContext.getGlobalErrors($FormId))
+##                    <div class="error-msg">
+##                        $GlobalError
+##                    </div>
+                #end
+            #end
+        #end
+        #set ($FieldErrorsDisplayed = {})
+        #set ($FieldErrorsForm = $FormId)
+    #end
+    #macroUnattachedErrors()
+#end
+
+#*
+@function	Renders any unattached field errors - these are errors associated with fields
+            that are not actually on the form
+@params		$EntityName (String) - name of the entity being edited)
+*#
+#macro(macroUnattachedErrors)
+    #if ($springMacroRequestContext.isBound($FieldErrorsForm) && $springMacroRequestContext.hasErrors($FieldErrorsForm))
+        #set ($FieldErrors = {})
+        #foreach($Error in $springMacroRequestContext.getErrors($FieldErrorsForm).AllErrors)
+            #if (!$FieldErrorsDisplayed.containsKey($Error.Field))
+                <div class="error-msg">
+                    #if($Error.Field)($Error.Field) #end$Error.DefaultMessage
+                </div>
+            #else
+                #set ($FieldErrors[$Error.Field] = true)
+            #end
+        #end
+        #if (!$FieldErrors.Empty)
+            <script>
+                PivotalUtils.showErrorTab("$FieldErrorsForm", $Utils.getMapAsString($FieldErrors));
+            </script>
+        #end
+    #end
+#end
+
+#*
+@function	Renders any bound field level errors
+@params		none
+*#
+#macro(macroShowErrorMessages)
+
+    ## Check to see if this is the special case of a bind error
+    ## for a settings block
+    #if ($SettingsErrors.containsKey($InputName))
+        <span class="error-msg">#I18N("$SettingsErrors.get($InputName)")</span>
+    #elseif ($status.Error)
+        <span class="error-msg">$Utils.join($status.ErrorMessages)</span>
+        #set($tmp = $FieldErrorsDisplayed.put($status.expression,"error"))
+    #end
+#end
+
+#*
+@function	Outputs an appropriate header for adding/editing
+@params		$InputId (string) - Id of the entity
+			$AddTitle (string) - Title token to use for adding
+			$EditTitle (string) - Title token to use for editing
+*#
+#macro(macroEditHeading
+    $InputId
+    $AddTitle
+    $EditTitle
+    )
+    <h1>
+        #springBind($InputId)
+        #if ("$!status.value"=="")
+            #I18N($AddTitle)
+        #else
+            #I18N($EditTitle)
+        #end
+    </h1>
+#end
+
+#*
+@function	Show all the boilerplate stuff for every input
+@params		$InputName (string) - Name of input
+			$Placeholder (string) - Placeholder text
+			$IsRequired (bool)
+			$IsDisabled (bool)
+			$InputClass (string) - Input class
+            $Tooltip (string) - An optional tooltip to use
+            $Index (int) - An optional index to add to the ID to make it unique
+            $InputType - Type of input
+            $Properties - Map of additioanl properties
+*#
+#macro(macroRenderInputAttributes
+    $InputName
+    $Placeholder
+    $IsRequired
+    $IsDisabled
+    $InputClass
+    $Tooltip
+    $Index
+    $InputType
+    $Properties
+    )
+
+    #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+
+    #set ($InputId = "$InputName$!Index")
+    #set ($LocalInputName = $InputName)
+    #set ($LocalIsRequired = $Utils.isYes($IsRequired))
+    #set ($LocalInputClass = "$!InputClass")
+    #set ($LocalTooltip = "$!Tooltip")
+    #set ($LocalPlaceholder = "$!Placeholder")
+    #set ($status = "")
+
+    #if ($springMacroRequestContext.isBound($InputName))
+        #springBind($InputName)
+        #set ($LocalInputName = $status.expression)
+
+        ## doesn't make sense to have a hidden 'required' field
+        #set ($LocalIsRequired = ("$!InputType" != "hidden") && ($Utils.isYes($status.Required) || $LocalIsRequired))
+
+        ## Adjust the values of the parameters to indicate errors etc.
+        #if ($status.Error)
+            #set ($LocalInputClass = "$!LocalInputClass error-input")
+        #end
+
+    ## Check to see if this is the special case of a bind error
+    ## for a settings block
+    #elseif ($SettingsErrors.containsKey($InputName))
+        #set ($LocalInputClass = "$!LocalInputClass error-input")
+    #end
+
+    #if ("$!LocalProperties.ForceIsRequired" != "")
+        #set ($LocalIsRequired = $Utils.isYes($LocalProperties.ForceIsRequired))
+    #end
+
+    #if ("$!LocalPlaceholder"!="")
+        placeholder="#I18N($LocalPlaceholder)"
+    #end
+    #if ("$!LocalInputClass" != "")
+        class="$!LocalInputClass"
+    #end
+    #if($utils.isYes($IsDisabled))
+        disabled="disabled"
+    #end
+    #if ($LocalIsRequired)
+         required="required"
+        validationMessage="#I18N('forms.generic.required.message')"
+    #end
+
+    #if ("$!LocalTooltip" != "")
+        tooltip="#I18N($LocalTooltip)"
+    #end
+    id="$InputId"
+    name="$LocalInputName"
+
+    #set($ThisAriaLabel = "")
+    #if($LocalProperties.ariaLabel)
+        #set($ThisAriaLabel = $LocalProperties.ariaLabel)
+    #elseif ("$!LocalTooltip" != "")
+        #set($ThisAriaLabel = "#I18N($LocalTooltip)")
+    #end
+    #if(!$Utils.isBlank($ThisAriaLabel))
+        aria-label="$ThisAriaLabel"
+    #end
+#end
+
+#*
+@function	Render the value attribute for input elements
+@params		$InputName (string) - Name of input
+            $InputValue (string) - Value of input if we want to populate it on load
+            $IsChecked (boolean) outputs checked if true
+            $UseId (boolean) Uses id of bound
+            $UsePassedValue (boolean) Don't look up bound value, only use the $InputValue
+*#
+#macro(macroRenderValueAttribute
+	$InputName
+	$InputValue
+    $IsChecked
+    $UseId
+    $UsePassedValue
+	)
+
+    #set ($LocalInputValue = "$!InputValue")
+    #set ($LocalIsChecked = $Utils.isYes($IsChecked))
+
+    #if (!$UsePassedValue && $springMacroRequestContext.isBound($InputName))
+        #springBind($InputName)
+
+        ## Set the input values, ignoring anything that might have been sent to us
+        #if ($status.boolean)
+            #set ($LocalIsChecked = $utils.isYes($status.value))
+            #if ("$!LocalInputValue"=="")
+                #set ($LocalInputValue = "on")
+            #end
+        #elseif ($status.value)
+            #set ($LocalInputValue = $status.value)
+        #end
+
+        #if($UseId && $LocalInputValue && $LocalInputValue.id)
+            #set($LocalInputValue = $LocalInputValue.id)
+        #end
+    #end
+    #if($LocalIsChecked)
+        checked="checked"
+    #end
+
+    #if ("$!LocalInputValue" != "")
+        value="#macroSanitizeValue("$!LocalInputValue")"
+    #end
+
+#end
+
+
+#*
+@function	Renders the value attribute for an input tag safely, i.e. replacing quotes with &quot;
+@params		$Value (string) - Value to be sanitized
+*#
+## The formatting of this function is condensed to avoid adding unwanted whitespace
+#macro(macroSanitizeValue
+    $Value
+    )${Value.replace('"', '&quot;')}#end
+
+
+#*
+@function	Render text with a label
+@params		$LabelText (string) - Label text
+			$Description (string) - Description to show
+			$Properties - (map) LabelClass, DescriptionClass
+*#
+#macro(macroTextDisplay
+	$LabelText
+	$Description
+    $Properties
+	)
+	<div class="input-line">
+        #macroShowLabel($InputName $LabelText $Properties.LabelClass false false)
+		<span style='display:inline-block' #if($Properties.DescriptionClass)class='$Properties.DescriptionClass'#end>
+            $Description
+        </span>
+	</div>
+#end
+
+#*
+@function	Render input using the specified type
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text (uses $InputName if not supplied))
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - Properties for this input type, can be any of the following
+                                LabelClass (string) - Label class. To hide label, include 'hidden' in this param
+                                InputClass (string) - Input class
+                                IsRequired (bool)
+                                ForceIsRequired (bool)
+                                IsDisabled (bool)
+                                InputDescription (string) - Description of input's purpose
+                                Placeholder (string) - Placeholder text
+                                Format (String) - Format to display the value in
+                                DivClass (String) - Class for div tag
+                                onChange (function) - Called when a value is changed
+                                UsePassedValue (boolean) Don't look up bound value, only use the $InputValue
+                                showRequiredLabel - if true then label is shown as required but up to code to check
+                                Autocomplete - value for autocomplete attribute
+                                ExtraInputAtt - String containing extra tags to be inserted into the input
+                                ExtraLabelAtt - String containing extra tags to be inserted into the input
+            $Index (int) - An optional index to add to the ID to make it unique
+*#
+#macro(macroGeneralPurposeInput
+    $InputType
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+    #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+    #set($LocalIsRequired = !$ReadOnlyMode && $Utils.isYes($LocalProperties.IsRequired))
+    #if (!$Utils.doStringsMatch($InputType, "hidden") && !$LocalProperties.hideExtra)
+        <div class="input-line $!LocalProperties.DivClass #if($ReadOnlyMode) view-line #end" style="$!LocalProperties.DivStyle">
+        #if (!$LocalProperties.hideLabel)
+            #set($LocalLabelIsRequired = $LocalIsRequired || $Utils.isYes($LocalProperties.showRequiredLabel))
+            #macroShowLabel($InputName $LabelText $LocalProperties.LabelClass $LocalLabelIsRequired $LocalProperties.IsDisabled $Index $LocalProperties)
+        #end
+    #end
+
+    #if((!$ReadOnlyMode && !$LocalProperties.IsReadOnly) || $Utils.doStringsMatch($InputType, "hidden"))
+        #set($LocalIsRequired = !$ReadOnlyMode && $Utils.isYes($LocalProperties.IsRequired))
+        #if ($InputType == "checkbox" && $LocalProperties.addSwitchHandling)
+            #set ($JQInputName = $Utils.getJQuerySelector($InputName))
+            <script>
+                $(document).on("keypress", "#${JQInputName}_focuswrapper", function() {
+                    var thisSwitch=$("#${JQInputName}$!Index").data("kendoMobileSwitch");
+                    thisSwitch.toggle();
+                    #if($LocalProperties.onChange)
+                        ${LocalProperties.onChange}($('#$JQInputName'));
+                    #end
+                });
+            </script>
+            <a href="javascript:void(0)" id="${JQInputName}_focuswrapper">
+        #end
+        <span>
+        <input
+            #set ($KendoType="")
+            #if("$!InputType" != "")
+                type="$InputType"
+                #if (!$Utils.doStringsMatch($InputType, "radio","checkbox","date","time","datetime","number","range"))
+                    #set ($KendoType="k-textbox")
+                #end
+            #end
+            #set ($ClassToUse = "k-input $!KendoType $!LocalProperties.InputClass")
+            #macroRenderInputAttributes($InputName $LocalProperties.Placeholder $LocalIsRequired $LocalProperties.IsDisabled $ClassToUse $NULL $Index $InputType $LocalProperties)
+            #macroRenderValueAttribute($InputName $InputValue $LocalProperties.IsChecked $LocalProperties.UseId $LocalProperties.UsePassedValue)
+            #if($Properties.Width)
+                style="width:$!Properties.Width"
+            #end
+
+            #if(!$Properties.noAutocomplete)
+                #if($Properties.Autocomplete)
+                    autocomplete="$!Properties.Autocomplete"
+                #else
+                    ##autocomplete="$!InputName.replaceAll("\.","_")"
+                #end
+            #elseif(!$Properties.noAutocomplete)
+                autocomplete="off"
+            #end
+            $!LocalProperties.ExtraInputAtt
+        />
+        $!Properties.HelpHTML
+        </span>
+
+        #if ($InputType == "checkbox" && $LocalProperties.addSwitchHandling)
+            </a>
+        #end
+        $!Properties.ExtraHTML
+
+        #if ($springMacroRequestContext.isBound($InputName))
+            #springBind($InputName)
+            #set ($LocalInputName = $status.expression)
+        #else
+            #set ($LocalInputName = $InputName)
+        #end
+        <span class="k-invalid-msg" data-for="$LocalInputName"></span>
+        #if($LocalProperties.focus)
+            <script>
+                $(document).ready(function() {
+                    #set ($JQInputName = $Utils.getJQuerySelector($InputName))
+                    try {
+                        setTimeout(function () {
+                            $('#$JQInputName').focus();
+                        }, 500);
+                    }
+                    catch(X) {}
+                });
+            </script>
+        #end
+    #elseif (!$Utils.doStringsMatch($InputType, "hidden") || $LocalProperties.IsReadOnly)
+        ##The read only display
+        ##Set the value passed in and then attempt to bind
+        #set ($LocalInputValue = "$!InputValue")
+        #if ($springMacroRequestContext.isBound($InputName) && !$LocalProperties.UsePassedValue)
+            #springBind($InputName)
+            #set ($LocalInputValue = $!status.value)
+        #end
+        #if ($Utils.doStringsMatch($InputType, "checkbox"))
+            #if(!$Utils.isblank($!Properties.IsChecked) ) #set($LocalInputValue = $!Properties.IsChecked ) #end
+            <label style="font-size: 125%">
+                <i class="fa #if($!LocalProperties.IsChecked == true) fa-check #else fa-times #end"></i>
+            </label>
+        #elseif ($Utils.doStringsMatch($InputType, "password"))
+            <label style="font-size: 125%">
+                <i class="fa fa-lock"></i>
+            </label>
+        #else
+            #set($Val = "$!LocalInputValue")
+            #if($Utils.isBlank($Val))
+                #macroShowLabel("${InputName}-value" "admin.pages.view.field.empty.text" "empty-label" true $LocalProperties.IsDisabled $Index $LocalProperties)
+            #else
+                #macroShowLabel("${InputName}-value" "$!Val " $LocalProperties.LabelClass true $LocalProperties.IsDisabled $Index $LocalProperties)
+            #end
+        #end
+        $!Properties.ExtraHTML
+    #end
+
+    #if (!$Utils.doStringsMatch($InputType, "hidden") && !$LocalProperties.hideExtra)
+        #macroInputDescription($LocalProperties.InputDescription)
+        #macroShowErrorMessages()
+        #macroShowFieldNote($InputName $Properties)
+        </div>
+    #end
+    #macroAddOnChange($InputName $LocalProperties.onChange)
+
+#end
+
+#*
+@function   Outputs the onchange handler for a control if specified
+@params     $InputName (string) - Id of control to attach event handler to
+*#
+#macro(macroAddOnChange $InputName $OnChangeHandler)
+    #if($OnChangeHandler)
+    <script>
+        #set ($JQInputName = $Utils.getJQuerySelector($InputName))
+        $('#$JQInputName').change(function() {
+            ${OnChangeHandler}($('#$JQInputName'));
+        })
+    </script>
+    #end
+#end
+
+#*
+@function	Render text input (<input type="text">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text (uses $InputName if not supplied))
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputText
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+    #macroGeneralPurposeInput("text" $InputName $LabelText $InputValue $Properties $Index)
+#end
+
+#*
+@function	Render multiple email input (<input type="text">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text (uses $InputName if not supplied))
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputMultipleEmail $InputName $LabelText $InputValue $Properties $Index)
+
+    #macroGeneralPurposeInput("text" $InputName $LabelText $InputValue $Properties $Index)
+
+    #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+
+    <script>
+        var ${JQInputName}_emails = $("#$JQInputName").multipleEmail()[0];
+    </script>
+
+#end
+
+#*
+@function	Render password input (<input type="password">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputPassword
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+    #if($Properties)
+        #set($LocalProperties = $Properties)
+    #else
+        #set($LocalProperties = {})
+    #end
+    #set($tmp=$LocalProperties.put("Autocomplete", "off"))
+    #macroGeneralPurposeInput("password" $InputName $LabelText $InputValue $LocalProperties $Index)
+#end
+
+#*
+@function	Render hidden input (<input type="hidden">)
+@params		$InputName (string) - Name of input
+			$InputValue (string) - Value of input if we want to populate it on load
+            $Properties (map) - See macroGeneralPurposeInput for list of properties
+
+*#
+#macro(macroInputHidden
+	$InputName
+	$InputValue
+    $Properties
+    $Index
+	)
+    #macroGeneralPurposeInput("hidden" $InputName "" $InputValue $Properties $Index)
+#end
+
+#*
+@function	Render e-mail input (<input type="email">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputEmail
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+    #macroGeneralPurposeInput("email" $InputName $LabelText $InputValue $Properties $Index)
+#end
+
+#*
+@function	Render search input (<input type="search">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputSearch
+	$InputName
+    $LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+    #macroGeneralPurposeInput("search" $InputName $LabelText $InputValue $Properties)
+#end
+
+#*
+@function	Render search input as combo box with drop down of search history (<input type="search">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Value of input if we want to populate it on load
+			$HistoryUrl (string) - Url to get the JSON data for the search history from
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputHistorySearch
+	$InputName
+    $LabelText
+    $InputValue
+    $HistoryUrl
+    $Properties
+	)
+    #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+    #set ($LocalInputValue = "$!InputValue")
+
+    #macroShowLabel($InputName $LabelText $LocalProperties.LabelClass $LocalProperties.IsRequired $LocalProperties.IsDisabled $Index $LocalProperties)
+
+    <input type="search"
+    #macroRenderInputAttributes($InputName $LocalProperties.Placeholder $LocalProperties.IsRequired $LocalProperties.IsDisabled "" "" $Index)
+    #macroRenderValueAttribute($InputName $InputValue $LocalProperties.IsChecked)
+    />
+
+    #macroInputDescription($LocalProperties.InputDescription)
+    #macroShowErrorMessages()
+    #macroAddOnChange($InputName $LocalProperties.onChange)
+
+    <script>
+        $('#$InputName').kendoComboBox({
+            dataSource: {
+                transport: {
+                  read: {
+                    url: "$HistoryUrl",
+                    dataType: "json"
+                  }
+                }
+            },
+            highlightFirst: false,
+            placeholder: "#I18N($LocalProperties.Placeholder)",
+            value: "$LocalInputValue"
+        });
+    </script>
+#end
+
+#*
+@function	Render file input (<input type="file">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+			        onSelect - javascript to call when a file is selected
+			        showImage - If true then current image is shown
+			        download - If true then the image can be downloaded
+			        dragDrop - if true then drg drop enabled
+			        NoRemove - if true then remove icon is not shown
+			        files - List of pre-populated files
+			        showRequiredLabel - if true then label is shown as required but up to code to check
+*#
+#macro(macroInputFile
+	$InputName
+	$LabelText
+    $Properties
+    $Index
+	)
+
+    #set($LocalProperties = $Properties)
+
+    #if(!$LocalProperties)
+        #set($LocalProperties = {})
+    #end
+    #macroGeneralPurposeInput("file" $InputName $LabelText "" $LocalProperties $Index)
+    #macroInputHidden("${InputName}_data", $NULL)
+
+    #if (!$LocalProperties.NoRemove)
+        <span id="${InputName}-checkbox">
+            #macroGeneralPurposeInput("checkbox" "${InputName}-delete" $"#I18N('system.forms.file.input.remove')" "" "" $Index)
+        </span>
+    #end
+
+    <script>
+
+        #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+        #if($LocalProperties.dropHereText && "$!LocalProperties.dropHereText" != "")
+            #set($DropHereText = $LocalProperties.dropHereText)
+        #else
+            #set($DropHereText = "#I18N('system.forms.file.input.dropfileshere')")
+        #end
+        #set($FileTypes = $Context.get($SETTING_APP_GENERAL_FILE_UPLOAD_TYPES))
+        #set($FileTypes = "'" + $FileTypes.replaceAll(",","','") + "'")
+        #set($MaxFileSize = $Context.get($SETTING_APP_GENERAL_FILE_UPLOAD_MAXSIZE))
+        #set($MaxFileSize = $MaxFileSize * 1024 * 1024)
+        $('#$JQInputName').kendoUpload({
+            multiple:$Utils.isYes("$!LocalProperties.Multiple"),
+            validation: {
+                allowedExtensions: [$FileTypes],
+                maxFileSize: $!MaxFileSize
+            },
+            localization: {
+                cancel: "#I18N('system.forms.file.input.cancel')",
+                dropFilesHere: "#I18N("$!DropHereText")",
+                remove: "#I18N('system.forms.file.input.remove')",
+                retry: "#I18N('system.forms.file.input.retry')",
+                select: "#I18N('system.forms.file.input.select')"
+            }
+            #if($!LocalProperties.dragDrop)
+                ,async: {
+                    saveUrl: "$AppPath/$PageName/upload",
+                    removeUrl: "$AppPath/$PageName/removeupload",
+                    saveField: "files",
+                    removeField: "ignoreThis"
+                }
+                ,success: function(e) {
+                    var currentVal = $("#${InputName}_data").val();
+                    $("#${InputName}_data").val(currentVal + (currentVal===""?"":",") + e.response.data.fileDetail);
+                }
+                ,remove: function(e) {
+                    var returnValue = false;
+                    var removeFiles = e.files;
+                    var currentVal = $("#${InputName}_data").val();
+                    var currentFiles = eval("[" + currentVal + "]");
+                    var done=false;
+                    try {
+                        for(var rcnt=0; rcnt<removeFiles.length; rcnt++) {
+
+                            var cnt=0;
+                            while(cnt<currentFiles.length && !done) {
+                                if (currentFiles[cnt]) {
+                                    if (currentFiles[cnt].OriginalFilename == removeFiles[rcnt].name) {
+                                        currentFiles.splice(cnt,1);
+                                        done = true;
+                                    }
+                                }
+                                cnt+=1;
+                            }
+                        }
+                        if (done) {
+                            // Removal of file that hasn't been saved yet
+                            $("#${InputName}_data").val(currentFiles);
+                        }
+                        else {
+                            var fileList = [];
+                            for(var fcnt=0; fcnt<e.files.length; fcnt++)
+                                if (e.files[fcnt].mediaId)
+                                    fileList.push(e.files[fcnt].mediaId);
+                                else
+                                    fileList.push(e.files[fcnt].name);
+
+                            PivotalUtils.getJsonContentAsync("$AppPath/$PageName/removeupload", "fileList=" + encodeURIComponent(fileList.join(",")),
+                                    function(response) {
+                                        if (response.inError)
+                                            alert(response.error);
+                                    },true);
+
+                            // Removal of file that had already been loaded
+
+                        }
+                    }
+                    catch(X){}
+                }
+                #if($Properties.files)
+                ,files: $!Properties.files
+                #end
+
+            #end
+            #if($!LocalProperties.onSelect)
+                ,select: $!LocalProperties.onSelect
+            #end
+        });
+        #if (!$LocalProperties.NoRemove)
+            $('#${JQInputName}-checkbox').appendTo('#${JQInputName}-container .k-upload');
+        #end
+    </script>
+#end
+
+#*
+@function	Render URL input (<input type="url">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputUrl
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+    #macroGeneralPurposeInput("url" $InputName $LabelText $InputValue $Properties $Index)
+#end
+
+#*
+@function	Render telephone number input (<input type="tel">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputTelephoneNumber
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+    #macroGeneralPurposeInput("tel" $InputName $LabelText $InputValue $Properties $Index)
+#end
+
+#*
+@function	Render week input (<input type="week">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroWeekInput
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+    #macroGeneralPurposeInput("week" $InputName $LabelText $InputValue $Properties $Index)
+#end
+
+#*
+@function	Render radio input (<input type="radio">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - value returned if this radio item is selected
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputRadio
+	$InputName
+	$LabelText
+    $InputValue
+    $IsChecked
+    $Properties
+    $Index
+	)
+
+    #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+    #set($tmp=$LocalProperties.put("IsChecked", $Utils.isYes($IsChecked)))
+
+    #macroGeneralPurposeInput("radio" $InputName $LabelText $InputValue $LocalProperties $Index)
+#end
+
+#*
+@function	Render radio input (<input type="radio">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (String) - Current value
+			$Options (List) List of Radio options to display
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputRadioGroup
+	$InputName
+	$LabelText
+    $InputValue
+    $Options
+    $Properties
+	)
+
+    <div class="input-line">
+        #if ($springMacroRequestContext.isBound($InputName))
+            #springBind($InputName)
+            #set ($Selected = $utils.splitToList("$!status.value"))
+        #else
+            #set ($Selected = $utils.splitToList("$!InputValue"))
+        #end
+        #macroShowLabel($InputName $LabelText $Properties.LabelClass $Properties.IsRequired $Properties.IsDisabled)
+        #foreach($Option in $Options)
+            #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+            #set($ThisIsChecked = ($InputValue == $Option.value))
+            #set($tmp=$LocalProperties.put("IsChecked", $ThisIsChecked))
+            #macroGeneralPurposeInput("radio" $InputName $Option.text $Option.value $LocalProperties $foreach.count)
+        #end
+    </div>
+#end
+
+#*
+@function	Render checkbox input (<input type="checkbox">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Flag to indicate status of checkbox
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputCheckbox
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+
+    #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+    #set($tmp=$LocalProperties.put("DivClass", "$!LocalProperties.DivClass"))
+    #set($tmp=$LocalProperties.put("IsChecked", $utils.isYes($InputValue)))
+
+    #if($LocalProperties.IsDisabled)
+        #macroGeneralPurposeInput("checkbox" $InputName $LabelText $utils.isYes($InputValue) $LocalProperties $Index)
+    #else
+        #macroGeneralPurposeInput("checkbox" $InputName $LabelText true $LocalProperties $Index)
+    #end
+    #if ($springMacroRequestContext.isBound($InputName) || $InputName.contains("."))
+        #set ($LocalInputName = $status.expression)
+        <input type="hidden" name="$InputName.replaceAll("[^.]+\.", "_")" value="visible">
+        #if($LocalProperties.IsDisabled)
+            <input type="hidden" name="$LocalInputName" value="$InputValue">
+##        #else
+##            <input type="hidden" name="$LocalInputName" value="$!InputValue">
+        #end
+    #end
+#end
+
+#*
+@function	Render switch input (<input type="checkbox">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Flag to indicate status of checkbox
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputSwitch
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+	)
+    #set ($LocalInputValue = "$!InputValue")
+    #if ($springMacroRequestContext.isBound($InputName) && !$Properties.UsePassedValue)
+        #springBind($InputName)
+        #set ($LocalInputValue = $!status.value)
+    #end
+    #if($Properties)
+        #set($LocalProperties = $Properties)
+    #else
+        #set($LocalProperties = {})
+    #end
+    #set($tmp=$LocalProperties.put("addSwitchHandling", true))
+
+    #macroInputCheckbox($InputName $LabelText $LocalInputValue $LocalProperties)
+    <script>
+
+        #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+
+        var tmp = $('#$JQInputName');
+        tmp.kendoMobileSwitch({
+            #if("$!LocalProperties.OnLabel"!="")
+                onLabel: "#I18N($LocalProperties.OnLabel)",
+            #else
+                onLabel: "#I18N('system.forms.switch.yes.label')",
+            #end
+            #if("$!LocalProperties.OffLabel"!="")
+                offLabel: "#I18N($LocalProperties.OffLabel)"
+            #else
+                offLabel: "#I18N('system.forms.switch.no.label')",
+            #end});
+
+        if (tmp.data("kendoMobileSwitch")) {
+            #if ($LocalProperties.onChange)
+                tmp.data("kendoMobileSwitch").bind("change", function (e) {
+                        ${LocalProperties.onChange}(e);
+                });
+            #end
+            #if($utils.isYes($LocalProperties.IsDisabled))
+                tmp.data("kendoMobileSwitch").enable(false);
+            #end
+        }
+    </script>
+#end
+
+#*
+@function	Render checkbox input (<input type="checkbox">)
+@params		$InputName (string) - Name of input
+            $LabelText (string) - Label text
+			$InputValue (string) - List of selected option values, returns values of checked items
+            $Options (List) - List of objects that have Id and Name properties
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputCheckboxGroup
+	$InputName
+    $LabelText
+    $InputValue
+    $Options
+    $Properties
+	)
+
+    <div class="input-line">
+        #if ($springMacroRequestContext.isBound($InputName))
+            #springBind($InputName)
+            #set ($Selected = $utils.splitToList("$!status.value"))
+        #else
+            #set ($Selected = $utils.splitToList("$!InputValue"))
+        #end
+        #macroShowLabel($InputName $LabelText $Properties.LabelClass false $Properties.IsDisabled)
+        #foreach($Option in $Options)
+            #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+            #set($ThisIsChecked = $Selected.contains("$Option.value"))
+            #set($tmp=$LocalProperties.put("IsChecked", $ThisIsChecked))
+            #set($tmp=$LocalProperties.put("DivClass", "checkbox $!LocalProperties.DivClass"))
+            #set($tmp=$LocalProperties.put("IsRequired", false))
+
+            #macroGeneralPurposeInput("checkbox" $InputName $Option.text $Option.value $LocalProperties $foreach.count)
+        #end
+    </div>
+#end
+
+#*
+@function	Render select element (<select>)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Input value
+			$Options (array) - List of options
+			                       Can be in format
+			                       [{"value":"<val>","text":"<text>"},{"value":"<val>","text":"<text>"},...]
+			                       or
+			                       ["<val>","<val>",...]
+			                       or
+			                       [{"label":"<group label>","data":[{"value":"<val>","<text>":"<text>"},{"value":"<val>","<text>":"<text>"}]},...]
+			$Properties (map) -
+                                LabelClass (string) - Label class.
+                                InputClass (string) - Input class
+                                IsRequired (bool)
+                                IsDisabled (bool)
+                                ShowEmptyItem (bool) - If true then an empty entry is shown
+                                IsMultiSelect (bool) - If true then control allows multiselect
+                                HideMultiClear (bool) - If true then the clear button is not shown for multiselect
+                                AddNewLink (string) - URL to display an "Add new" link to.
+                                hideLabel (bool) - Label is hidden if true
+                                ValueIsListOfEntities (bool) - If true, it means the the fields value (binded or passed through) will be a list of entities.
+                                Width - Width of values popup
+                                UsePassedValue - If true then the passed InputValue is used
+
+*#
+#macro(macroInputSelect
+	$InputName
+	$LabelText
+    $InputValue
+    $Options
+    $Properties
+    $Index
+	)
+    ## define $JQInputName here so it work for both EntitySelect & Select add link
+    #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+
+    ## When the value is a list of entities, we need to cycle through them and populate the LocalValue with a comma separated list of ids
+
+    #set ($LocalInputValue = "")
+    ## Check to see if the input value is a complex type - we just want it's ID
+    #if (!$Properties.UsePassedValue && $springMacroRequestContext.isBound($InputName))
+        #springBind($InputName)
+        #set ($LocalInputValue = $!status.value)
+        #set ($LocalInputName = $status.expression)
+    #else
+        #set ($LocalInputValue = "$!InputValue")
+        #set ($LocalInputName = $InputName)
+    #end
+
+    #if ($LocalInputValue.Id)
+        #set ($LocalInputValue="$!LocalInputValue.Id")
+    #end
+    #if ($!Properties.ValueIsListOfEntities == true && $LocalInputValue)
+        ##The bind result will be a List of entities. So lets cycle through it and populate a proper InputValue
+        #set ($Buffer = "")
+        #foreach($curr in $LocalInputValue)
+            ##make sure the list actually contains entities
+            #if($!curr && $!{curr.class.SimpleName.endsWith("Entity")})
+                #if(!$Utils.isBlank("$!Buffer"))
+                    #set ($Buffer = "$!{Buffer},")
+                #end
+                #set ($Buffer = "$!{Buffer}$!{curr.Id}")
+            #end
+        #end
+        ##Copy the Buffer value to the local input value
+        #set($LocalInputValue = $Buffer)
+    #end
+    #set($IsDisabled = $Properties.IsDisabled || $ReadOnlyMode)
+    #if($ReadOnlyMode && false)
+        <div class="input-line $!ClassToUse view-line">
+            #if (!$Properties.hideLabel)
+                #macroShowLabel($InputName $LabelText $Properties.LabelClass false $IsDisabled $Index)
+            #end
+            #set($selVal = "")
+            #if ("$!LocalInputValue" != "")
+                ##Get the selected elem
+                #set($tmp = $LocalInputValue.split(","))
+                #set($selections = [])
+                #foreach($curr in $tmp)
+                    #if (!$Utils.isBlank("$!curr.id"))
+                        #set($temp = $selections.add($curr.id))
+                    #else
+                        #set($temp = $selections.add($curr))
+                    #end
+                #end
+                #set($Comma = "")
+                #foreach($elem in $!Options)
+                    #if ($elem.class.simpleName == "String")
+                        #set($CheckValue = $elem)
+                        #set($CheckText = $elem)
+                    #else
+                        #set($CheckValue = $elem.value)
+                        #set($CheckText = $elem.text)
+                    #end
+                    #if ($selections.contains("$CheckValue"))
+                        #if (!$Utils.isBlank($selVal))
+                            #set($Comma = ",")
+                        #end
+                        #if (!$Utils.isBlank($CheckValue))
+                            #set($selVal = "$selVal$Comma #I18N($!CheckText)")
+                        #end
+                    #end
+                #end
+            #end
+            #if($Utils.isBlank($selVal))
+                #macroShowLabel("${InputName}-value" "admin.pages.view.field.empty.text" "empty-label" $NULL $IsDisabled $Index)
+            #else
+                #macroShowLabel("${InputName}-value" "$!selVal" $Properties.LabelClass $NULL $IsDisabled $Index)
+            #end
+            #macroShowFieldNote($InputName $Properties)
+        </div>
+    #else
+        #if ($Properties.IsMultiSelect)
+            #if ($Properties.HideMultiClear)
+                #set ($ClassToUse = "multi-select")
+            #else
+                #set ($ClassToUse = "multi-select multi-select-clear")
+            #end
+        #end
+        #if (!$Properties.hideExtra)
+        <div class="input-line $!ClassToUse">
+        #end
+            #if (!$Properties.hideLabel)
+                #set($LocalLabelIsRequired = $Properties.IsRequired || $Utils.isYes($Properties.showRequiredLabel))
+                #macroShowLabel($InputName $LabelText $Properties.LabelClass $LocalLabelIsRequired $IsDisabled $Index)
+            #end
+            #set($InputStyle="")
+            #if($Properties.Width)
+                #set($InputStyle="width:$!Properties.Width")
+            #end
+            <select
+                #macroRenderInputAttributes($InputName $Properties.Placeholder $Properties.IsRequired $IsDisabled $Properties.InputClass $Properties.Tooltip $Index)
+                #if($Properties.IsMultiSelect)
+                    multiple="multiple"
+                #end
+                style="$!{InputStyle};display:none"
+            >
+                #if($Properties.ShowEmptyItem)
+                    <option value="" #if ("$!LocalInputValue"=="") selected #end>$!Properties.EmptyItemName</option>
+                #end
+                #if ($Options.Class.SimpleName == "String")
+
+                #elseif(!$Utils.isBlank($Options) && $Options.get(0).label)
+
+                    ## Groups have been defined
+
+                    #foreach ($OptionGroup in $Options)
+                        <optgroup label="#I18N($OptionGroup.label)">
+                            #foreach($Option in $OptionGroup.data)
+                                ## The selection is actually done by Kendo so make sure the case is the same
+                                #if ($utils.doStringsMatch($Option.value,$LocalInputValue))
+                                    #set ($LocalInputValue = $Option.value)
+                                #end
+
+                                #if ("$!Option.value"!="")
+                                    #set($OptionValue = $Option.value)
+                                    #set($OptionText = $Option.text)
+                                #else
+                                    #set($OptionValue = $Option)
+                                    #set($OptionText = $Option)
+                                #end
+                                ## Try translate, if it fails then just use text
+                                #if($I18n.translate($OptionText, true))
+                                    #set($OptionText=$I18n.translate($OptionText))
+                                #end
+                                #if(!$Utils.isBlank($OptionText))
+                                    #set($OptionText = $OptionText)
+                                #end
+
+                                <option value="$OptionValue" #if($utils.doStringsMatch($OptionValue,$LocalInputValue)) selected#end>$OptionText</option>
+                            #end
+                        </optgroup>
+                    #end
+                #else
+
+                    ## Normal select
+
+                    #foreach ($Option in $Options)
+                        ## The selection is actually done by Kendo so make sure the case is the same
+                        #if ($utils.doStringsMatch($Option.value,$LocalInputValue))
+                            #set ($LocalInputValue = $Option.value)
+                        #end
+
+                        #if ("$!Option.value"!="")
+                            #set($OptionValue = $Option.value)
+                            #set($OptionText = $Option.text)
+                        #else
+                            #set($OptionValue = $Option)
+                            #set($OptionText = $Option)
+                        #end
+                        ## Try translate, if it fails then just use text
+                        #if($I18n.translate($OptionText, true))
+                            #set($OptionText=$I18n.translate($OptionText))
+                        #end
+                        #if(!$Utils.isBlank($OptionText))
+                            #set($OptionText = $OptionText + "")
+                        #end
+                        <option value="$OptionValue">$OptionText</option>
+                    #end
+                #end
+            </select>
+            <span class="k-invalid-msg" data-for="$LocalInputName"></span>
+            #set($LocalProperties = $Properties)
+            #if ($Options.Class.SimpleName == "String")
+                #set($tmp = $LocalProperties.put("DataUrl",true))
+            #end
+            #if(!$IsDisabled)
+                #macroOutputAddNewLink($InputName $JQInputName $LocalProperties)
+            #end
+
+            #macroInputDescription($Properties.InputDescription)
+            #macroShowErrorMessages()
+            $!Properties.ExtraHTML
+            #macroShowFieldNote($InputName $Properties)
+        #if (!$Properties.hideExtra)
+        </div>
+        #end
+        #if ($Properties.IsMultiSelect && !$Properties.HideMultiClear)
+##            #macroShowClearButton($InputName, $Index)
+        #end
+
+        ## If not option groups then see if we are doing multi select
+        #if($Utils.isBlank($Options) || !$Options.get(0).label)
+
+            #set($OptionsDatasource="")
+            #if ($Options.Class.SimpleName == "String")
+                #set($ExtraOptions="")
+                #if($Properties.ExtraFilter)
+                    #set($ExtraOptions = $ExtraOptions + "ExtraFilter=$Properties.ExtraFilter")
+                #end
+                #if($Properties.ShowEmptyItem)
+                    #set($ExtraOptions = $ExtraOptions + "&ShowEmptyItem=true")
+                #end
+                #if($Properties.Basket && !$Utils.isBlank($Properties.Basket))
+                    #set($ExtraOptions = $ExtraOptions + "&basket=$Properties.Basket")
+                #end
+
+                #set($Options = $Options + "?" + $ExtraOptions)
+                #set($OptionsDatasource = "dataTextField: ${DQUOTE}text${DQUOTE},dataValueField: ${DQUOTE}value${DQUOTE},dataSource:{transport:{read:{url:${DQUOTE}$Options${DQUOTE}, dataType:${DQUOTE}json${DQUOTE}}}},")
+            #end
+
+            <script>
+                #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+                var tmp = $('#$JQInputName');
+                var tmpData;
+                #if($Properties.IsMultiSelect)
+                    tmpData = tmp.kendoMultiSelect({
+                        #if($OptionsDatasource)
+                            $OptionsDatasource
+                        #end
+                        value: [
+                            #set($Selected = $utils.splitToList($LocalInputValue))
+                            #foreach($Item in $Selected)
+                                "$utils.encodeHTML($Item)",
+                            #end
+                        ]
+                        #if ($Properties.Placeholder)
+                            ,optionLabel: "#I18N($Properties.Placeholder)"
+                        #end
+                    }).data("kendoMultiSelect");
+                #else
+                    tmpData = tmp.kendoDropDownList({
+                        #if($OptionsDatasource)
+                            $OptionsDatasource
+                        #end
+                        value:"$!LocalInputValue"
+                        #if ($Properties.Placeholder)
+                            ,optionLabel: "#I18N($Properties.Placeholder)"
+                        #end
+                    }).data("kendoDropDownList");
+                #end
+                #if ($Properties.IsReadOnly)
+                    tmpData.readonly(true);
+                #end
+            </script>
+        #end
+        #macroAddOnChange($InputName $Properties.onChange)
+    #end
+#end
+
+#macro(macroShowFieldNote $FieldName $Properties)
+    #if($Properties.note)
+        <div id="$!{FieldName}_fieldnote" class="fieldnote">#I18N("$!Properties.note")</div>
+    #end
+#end
+
+#macro(macroOutputAddNewLink $FieldName $JQFieldName $Properties)
+
+    #if($Properties.AddNewLink && !$!Utils.isBlank($Properties.AddNewLink))
+        <a href="#" class="btn btn-primary btn-sm add-new" id="${FieldName}-addnew"><i class="fa fa-plus"></i> #I18N("admin.addnew")</a>
+        <script>
+            $("#${JQFieldName}-addnew").click(function() {
+                $("#$JQFieldName").addClass("entity-select-creator");
+                psApp.windowManager.open({
+                                        #macroOutputAddNewLinkTitle($FieldName),
+                                        #macroOutputAddNewLinkSize($FieldName),
+                                        content:"$Properties.AddNewLink",
+                                        useIFrame:true,
+                                        closeFunction:function() {
+
+                                                try {
+                                                    var id = this.window.$("#entity_id").val();
+                                                    var name= this.window.$("#entity_name").val();
+                                                    var kendoData = $("#$JQFieldName").data("kendoDropDownList");
+
+                                                    if (!kendoData)
+                                                        kendoData = $("#$JQFieldName").data("kendoMultiSelect");
+
+                                                    if (kendoData) {
+                                                        #if($Properties.DataUrl)
+                                                            kendoData.dataSource.read().then(function() {
+                                                                kendoData.value(id);
+                                                            });
+                                                        #else
+                                                            kendoData.dataSource.add({text: name, value: id});
+                                                            kendoData.value(id);
+                                                        #end
+                                                    }
+                                                    $("#$JQFieldName").trigger("change", $("#$JQFieldName"));
+                                                }
+                                                catch(X){}
+                                            }
+                                        });
+                });
+        </script>
+    #end
+#end
+
+## Outputs height and width in format
+## "width", "height"
+## defaults to "800px", "80%"
+##
+## Uses evaluate directive to see if a size has been defined for this window
+##
+## e.g. if field name = caseusersentity.user
+##      it will check to see if the following velocity variables exist
+##      caseuserentity_user-EditWidth
+##      caseuserentity_user-EditHeight
+##
+##      and use those if they do
+##
+#macro(macroOutputAddNewLinkSize $FieldName)
+    #set($LocalFieldName = $FieldName.replaceAll("[.]","_"))
+    #evaluate("width:${HASH}set(${DOLLAR}AddNewWidth = ${DOLLAR}!${LocalFieldName}-EditWidth)${HASH}if(${DOLLAR}AddNewWidth)${DQUOTE}${DOLLAR}{AddNewWidth}px${DQUOTE}${HASH}else ${DQUOTE}800px${DQUOTE}${HASH}end, ")
+    #evaluate("height:${HASH}set(${DOLLAR}AddNewHeight = ${DOLLAR}!${LocalFieldName}-EditHeight)${HASH}if(${DOLLAR}AddNewHeight)${DQUOTE}${DOLLAR}{AddNewHeight}px${DQUOTE}${HASH}else ${DQUOTE}80%${DQUOTE}${HASH}end")
+#end
+
+## Outputs title
+##
+## Uses evaluate directive to see if a title
+##
+## e.g. if field name = caseusersentity.user
+##      it will check to see if the following velocity variables exist
+##      caseuserentity_user-Title
+##
+##      and use those if they do
+##      otherwise use the default title
+##
+#macro(macroOutputAddNewLinkTitle $FieldName)
+    #set($LocalFieldName = $FieldName.replaceAll("[.]","_") + "-Title")
+    #evaluate("title:${DQUOTE}${HASH}if(${DOLLAR}{$LocalFieldName})${HASH}I18N(${DOLLAR}{$LocalFieldName})${HASH}else${HASH}I18N('system.grid.command.create.title')${HASH}end${DQUOTE}")
+#end
+
+#macro(macroInputEntitySelect
+$InputName
+$LabelText
+$InputValue
+$EntityName
+$Properties
+$Index
+)
+    #if($Properties)
+        #set ($Entities = $ControllerUtils.getSelectDisplayList($EntityName, $Properties.Basket, $Properties))
+    #else
+        #set ($Entities = $ControllerUtils.getSelectDisplayList($EntityName))
+    #end
+    #if($Properties.UseEntityText)
+        #set($EntitiesToUse = [])
+        #foreach($Entry in $Entities)
+            #set($tmp=$EntitiesToUse.add($Entry.text))
+        #end
+    #else
+        #set($EntitiesToUse = $Entities)
+    #end
+    #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+    #macroInputSelect($InputName $LabelText $InputValue $EntitiesToUse $Properties $Index)
+#end
+
+#macro(macroInputLookupSelect
+$InputName
+$LabelText
+$InputValue
+$LookupName
+$Properties
+$Index
+)
+
+    #if(!$Properties)
+        #set($LocalProperties={})
+    #else
+        #set($LocalProperties = $Properties)
+    #end
+    #set($NewExtraFilter = "type = '$LookupName'")
+    #if($LocalProperties.ExtraFilter)
+        #set($NewExtraFilter = "($LocalProperties.ExtraFilter) and ($NewExtraFilter)")
+    #end
+
+    ## Check for AddDisabledFilter - current value must be passed - This caters for when the current value is disabled
+    #if($LocalProperties.AddDisabledFilter && !$Utils.isBlank($InputValue))
+        #set($NewExtraFilter = "($NewExtraFilter) and (disabled = false or id = $InputValue)")
+    #elseif($LocalProperties.AddDisabledFilter)
+        #set($NewExtraFilter = "($NewExtraFilter) and (disabled = false)")
+    #end
+
+    #set($LocalProperties.ExtraFilter = $NewExtraFilter)
+    #macroInputEntitySelect($InputName $LabelText $InputValue "LookupsEntity" $LocalProperties $Index)
+
+#end
+
+#macro(macroInputEntityCombo
+$InputName
+$LabelText
+$InputValue
+$EntityName
+$Properties
+$Index
+$PassedEntities
+)
+    #set($LocalProperties = $Properties)
+    #if($PassedEntities && !$Utils.isBlank($PassedEntities))
+        #set($LocalEntities = $PassedEntities)
+    #else
+        #if($Properties.Basket || $Properties.ExtraFilter)
+            #set ($LocalEntities = $ControllerUtils.getSelectDisplayList($EntityName, $Properties.Basket, $Properties))
+        #else
+            #set ($LocalEntities = $ControllerUtils.getSelectDisplayList($EntityName))
+        #end
+    #end
+    #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+
+    #macroInputComboBox("", "", $InputValue, [{
+        "InputName":"$InputName",
+        "InputLabel":"$LabelText",
+        "Placeholder":"$!Properties.Placeholder",
+        "DataSource":$LocalEntities,
+        "CascadeFrom":""
+    }], $LocalProperties, $NULL)
+    #set($Entities = $NULL)
+
+#end
+
+#macro(macroInputLookupCombo
+$InputName
+$LabelText
+$InputValue
+$LookupName
+$Properties
+$Index
+$PassedEntities
+)
+    #if(!$Properties)
+        #set($LocalProperties={})
+    #else
+        #set($LocalProperties=$Properties)
+    #end
+    #set($NewExtraFilter = "type = '$LookupName'")
+    #if($LocalProperties.ExtraFilter)
+        #set($NewExtraFilter = "($LocalProperties.ExtraFilter) and ($NewExtraFilter)")
+    #end
+    #set($LocalProperties.ExtraFilter = $NewExtraFilter)
+    #if(!$LocalProperties.hidePlaceholder)
+        #set($LocalProperties.Placeholder = "lookupsentity.choose.item")
+    #else
+        #set($LocalProperties.Placeholder = "")
+    #end
+    #macroInputEntityCombo($InputName $InputName $!InputValue "LookupsEntity" $LocalProperties $Index $PassedEntities)
+
+#end
+
+#macro(macroShowClearButton $InputName, $Index)
+    #if (!$ClearButtonCreated)
+        <button id="multiSelectClear" style="display:none;position:absolute;z-index:1000" class="btn" tooltip="#I18N("admin.multiselect.clear")">x</button>
+        <script>
+            $(document).ready(function() {
+                $('div.multi-select-clear .k-multiselect').mouseenter(function() {
+                    $('#multiSelectClear').show();
+                    var clearButton = $('#multiSelectClear');
+                    var target = $(this);
+                    var offset = target.offset();
+                    offset.left += target.width() - 10;
+                    offset.top -= 10;
+                    clearButton.offset(offset)
+                    clearButton.prop("multi-input", $(this).find('select'));
+                });
+                $('div.multi-select-clear .k-multiselect').mouseleave(function() {
+                    $('#multiSelectClear').hide();
+                });
+            });
+//            $('#multiSelectClear').click(function(e) {
+//                $(this).prop("multi-input").data('kendoMultiSelect').value([]);
+//                e.preventDefault();
+//            });
+//            $('#multiSelectClear').mouseenter(function() {
+//                $(this).show();
+//            });
+//            $('#multiSelectClear').mouseleave(function() {
+//                $(this).hide();
+//            });
+
+        </script>
+        #set ($ClearButtonCreated = true)
+    #end
+#end
+
+
+#*
+@function	Render text area (<textarea>)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+            $InputValue (string) - Value of input if we want to populate it on load
+            $Properties (map) -
+                                LabelClass (string) - Label class
+                                InputClass (string) - Input class
+                                IsRequired (bool)
+                                IsDisabled (bool)
+                                IsInvisible (bool)
+                                Placeholder (string) - Placeholder text
+                                Cols (string) - Set number of columns (can be over-ridden by CSS)
+                                Rows (string) - Set number of rows (can be over-ridden by CSS)
+                                hideLabel (bool) - Label is hidden if true
+*#
+#macro(macroInputTextArea
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+
+    ## Check to see if the input value is a complex type - we just want it's ID
+    #set ($LocalInputValue = "$!InputValue")
+    #if ($springMacroRequestContext.isBound($InputName))
+        #springBind($InputName)
+        #set ($LocalInputValue = $status.value)
+    #end
+	<div class="input-line textarea #if($ReadOnlyMode) view-line #end" #if ($Properties.IsInvisible)style="display:none"#end style="$!Properties.DivStyle">
+        #if($ReadOnlyMode && !$Properties.IsInvisible)
+            #if (!$Properties.hideLabel)
+                #macroShowLabel($InputName $LabelText $Properties.LabelClass $Properties.IsRequired $Properties.IsDisabled $Index)
+            #end
+            #set($Val = "$!LocalInputValue")
+            #if($Utils.isBlank($Val))
+                #macroShowLabel("${InputName}-value" "admin.pages.view.field.empty.text" "value-label empty-label" $Properties.IsRequired $Properties.IsDisabled $Index)
+            #else
+                #macroShowLabel("${InputName}-value" $!Val "value-label" $Properties.IsRequired $Properties.IsDisabled $Index)
+            #end
+        #else
+            #if(!$Properties.hideLabel)
+                #if (!$Properties.IsInvisible)
+                    #set($LocalLabelIsRequired = $Properties.IsRequired || $Utils.isYes($Properties.showRequiredLabel))
+                    #macroShowLabel($InputName $LabelText $Properties.LabelClass $LocalLabelIsRequired $Properties.IsDisabled $Index $Properties)
+                #else
+                    <label></label>
+                #end
+            #end
+            #set($ThisStyle="")
+            #if ($Properties.IsInvisible)
+                #set($ThisStyle="$!ThisStyle;display:none")
+            #end
+            #if ($Properties.Width)
+                #set($ThisStyle="$!ThisStyle;width:$!Properties.Width")
+            #elseif($Properties.Cols)
+                #set($ThisStyle="$!ThisStyle;width:100%")
+            #end
+
+            <textarea
+                class="k-textbox"
+                #macroRenderInputAttributes($InputName $Properties.Placeholder $Properties.IsRequired $Properties.IsDisabled $Properties.InputClass $NULL $Index)
+                #if("$!Properties.Cols" != "")
+                    cols="$Properties.Cols"
+                #end
+                #if("$!Properties.Rows" != "")
+                    rows="$Properties.Rows"
+                #end
+                style="$!ThisStyle"
+            >$!LocalInputValue</textarea>
+            $!Properties.ExtraHTML
+            #macroShowFieldNote($InputName $Properties)
+            #macroInputDescription($Properties.InputDescription)
+            #macroShowErrorMessages()
+        #end
+    </div>
+    #if(!$ReadOnlyMode)
+        #macroAddOnChange($InputName $Properties.onChange)
+    #end
+#end
+
+#*
+@function	Render text area (<textarea>)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+            $InputValue (string) - Value of input if we want to populate it on load
+            $Properties (map) -
+                                LabelClass (string) - Label class
+                                InputClass (string) - Input class
+                                IsRequired (bool)
+                                IsDisabled (bool)
+                                IsInvisible (bool)
+                                Placeholder (string) - Placeholder text
+                                Cols (string) - Set number of columns (can be over-ridden by CSS)
+                                Rows (string) - Set number of rows (can be over-ridden by CSS)
+*#
+#macro(macroInputEditor
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+
+    ## Check to see if the input value is a complex type - we just want it's ID
+    #set ($LocalInputValue = "$!InputValue")
+    #if ($springMacroRequestContext.isBound($InputName))
+        #springBind($InputName)
+        #set ($LocalInputValue = $status.value)
+    #end
+
+	<div class="textarea">
+        #if (!$Properties.IsInvisible)
+            #macroShowLabel($InputName $LabelText $Properties.LabelClass $Properties.IsRequired $Properties.IsDisabled $Index)
+        #else
+            <label></label>
+        #end
+        #if(!$Properties.Plain)
+            #set($textareaClass="k-textbox")
+        #else
+            <br/>
+        #end
+		<textarea
+            class="$!textareaClass"
+            #macroRenderInputAttributes($InputName $Properties.Placeholder $Properties.IsRequired $Properties.IsDisabled $Properties.InputClass $Properties.Tooltip $Index)
+			#if("$!Properties.Cols" != "")
+				cols="$Properties.Cols"
+			#end
+			#if("$!Properties.Rows" != "")
+				rows="$Properties.Rows"
+			#end
+            #if ($Properties.IsInvisible)
+                style="display:none"
+            #end
+		>$!LocalInputValue</textarea>
+        #macroInputDescription($Properties.InputDescription)
+        #macroShowErrorMessages()
+	</div>
+
+    #if(!$Properties.Plain)
+        <script>
+
+            var editor = $("#${InputName.replaceAll("[.]","\\\\.")}").kendoEditor({
+                #if(!$Utils.isBlank($!Properties.onChange))
+                    change: $Properties.onChange,
+                #end
+                tools: [
+                    "formatting","fontName", "fontSize",
+                    "bold", "italic", "underline","strikethrough", "subscript", "superscript",
+                    "foreColor","backColor",
+                    "justifyLeft", "justifyCenter", "justifyRight","justifyFull",
+                    "insertUnorderedList", "insertOrderedList", "indent","outdent"
+
+                ]
+            }).data("kendoEditor");
+
+            #if($ReadOnlyMode)
+                // make readonly
+                var editorBody = $(editor.body);
+                editorBody.add("td", editorBody).removeAttr("contenteditable");
+            #end
+
+        </script>
+    #end
+#end
+
+
+#*
+@function	Render Transducer lookup input (<input type="text">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text (uses $InputName if not supplied))
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for details of properties
+*#
+#macro(macroInputTransducer
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+    #macroInputEntity($InputName $LabelText $InputValue "transducer" $Properties $Index)
+#end
+
+#*
+@function	Render Site lookup input (<input type="text">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text (uses $InputName if not supplied))
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for details of properties
+*#
+#macro(macroInputSite
+    $InputName
+    $LabelText
+    $InputValue
+    $Properties
+    $Index
+    )
+    #macroInputEntity($InputName $LabelText $InputValue "site" $Properties $Index)
+#end
+
+#*
+@function	Render Room lookup input (<input type="text">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text (uses $InputName if not supplied))
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for details of properties
+*#
+#macro(macroInputRoom
+    $InputName
+    $LabelText
+    $InputValue
+    $Properties
+    $Index
+    )
+    #macroInputEntity($InputName $LabelText $InputValue "room" $Properties $Index)
+#end
+
+#*
+@function	Render System lookup input (<input type="text">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text (uses $InputName if not supplied))
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for details of properties
+*#
+#macro(macroInputSystem
+    $InputName
+    $LabelText
+    $InputValue
+    $Properties
+    $Index
+    )
+    #macroInputEntity($InputName $LabelText $InputValue "system" $Properties $Index)
+#end
+
+#*
+@function	Render Asset lookup input (<input type="text">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text (uses $InputName if not supplied))
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) - See macroGeneralPurposeInput for details of properties
+*#
+#macro(macroInputAsset
+    $InputName
+    $LabelText
+    $InputValue
+    $Properties
+    $Index
+    )
+    #if(!$!Properties)
+        #set($localProperties = {})
+    #else
+        #set($localProperties = $Properties)
+    #end
+    #set($tmp = $localProperties.put("viewLocation" , "$AppPath/rest/assetmanager/1.0/search"))
+    #macroInputEntity($InputName $LabelText $InputValue "asset" $localProperties $Index)
+#end
+
+#*
+@function Display entity search popup dialogue
+@params		$InputName (string)     - Name of input
+            $LabelText  (string)    - Label text (uses $InputName if not supplied))
+            $InputValue (string)    - comma separated list of ids
+            $EntityType (string)    - entity type, ie. site, systyem,room,transducer
+            $Properties (map)       - See macroGeneralPurposeInput for details of properties
+                            Filter(string)          - User specified filter that the user can change
+                            MaxSelection (number)   - maximum number of items that can be selected
+                            MinSelection (number)   - Minimum number of items that can be selected
+                            IsMultiSelect (boolean) - if false then only one item can be selected and the new value will replace the existing value
+                                                    - if true then multiple items can be selected and new values will be added to the existing selections
+                            Title(string)           - Title of popup
+                            TypeFilter (number,number) - list of type ids to restrict the search by
+                            LockTypes (boolean) - If true then the user can't change the TypeFilter
+                            Sort (string) - Field to sort by
+                            Width (string) - Width of popup (e.g. 700px) defaults to 700px
+                            Height (string) - Height of popup (e.g. 500px) defaults to 500px
+                            isUnique (boolean) - If true then the list of entities is unique
+                            siteids (String) - comma separated list of sites to restrict the data by
+                            systemids (String) - comma separated list of systems to restrict the data by
+                            roomids (String) - comma separated list of rooms to restrict the data by
+                            transducerids (String) - comma separated list of transducers to restrict the data by
+                            transducertypes (String) - comma separated list of transducers types to restrict the data by
+
+*#
+#macro(macroInputEntity
+    $InputName
+    $LabelText
+    $InputValue
+    $EntityType
+    $Properties
+    $Index
+    )
+    #set($isRequired = $Properties.IsRequired)
+    #set($InternalReadOnlyMode = false)
+    #if($ReadOnlyMode || $!Properties.IsReadOnly)
+        #set($isRequired = false)
+        #set($InternalReadOnlyMode = true)
+    #end
+    <div class="input-line #if($InternalReadOnlyMode) view-line #end">
+        #macroShowLabel($InputName $LabelText $Properties.LabelClass $isRequired $Properties.IsDisabled $Index)
+        <div id="$InputName$!{Index}_wrapper" class="entity-input k-widget k-multiselect k-header #if($InternalReadOnlyMode) view-elem #end" unselectable='on'>
+            #macroInputHidden($InputName $InputValue $Properties $Index)
+            <div class="k-multiselect-wrap k-floatwrap" unselectable='on'></div>
+        </div>
+        #macroInputDescription($Properties.InputDescription)
+        #macroShowErrorMessages()
+    </div>
+
+    #if (!$AlreadyCreatedTemplate)
+        <script id="entity-input-template" type="text/x-kendo-template">
+            <span class="entity-value k-button k-block" value="#: value #" ${HASH}if(description!=="" && description!=="null" ){${HASH} tooltip='#: description #' ${HASH}}${HASH}>
+                <span unselectable="on">#: text #</span>
+                #if(!$InternalReadOnlyMode)
+                    <span unselectable="on" class="k-icon k-delete" unselectable="on"></span>
+                #end
+            </span>
+        </script>
+        #set ($AlreadyCreatedTemplate=true)
+    #end
+
+    <script>
+    #set ($FullEntityName = "$WordUtils.capitalize($EntityType)Entity")
+    #set ($FullEntityTypeName = "$WordUtils.capitalize($EntityType)TypeEntity")
+    #set($SelectedItems = "$DQUOTE$DQUOTE")
+    #if("$!InputValue" != "" && $Utils.stringContains("$!InputValue", ":"))
+        #set ($slipt = $Utils.splitToList("$!InputValue", ":"))
+        #if($slipt.size() == 2 && $Utils.parseInt($slipt.get(0)) != 0)
+            #set($SelectedItems = "[{'text' : '$slipt.get(1)','value': '$slipt.get(0)','key': '$slipt.get(1)'}]")
+        #end
+    #end
+    #if ("$!InputValue" != "" && "$SelectedItems" == "$DQUOTE$DQUOTE")
+        #set ($SelectedItems = $ControllerUtils.getSelectDisplayListJson("$FullEntityName", "$!InputValue"))
+    #end
+    <script>
+        new AppEntitySelector("$InputName$!{Index}_wrapper", {
+            basket: $SelectedItems,
+            #if ($Properties.viewLocation)
+                viewLocation : '$Properties.viewLocation',
+            #end
+            readOnly: $InternalReadOnlyMode,
+            entity: "$WordUtils.capitalize($EntityType)",
+            entityTypeName: "$FullEntityTypeName",
+            properties: "$!Utils.getQueryString($Properties)",
+            emptyString: "#I18N('admin.pages.view.field.empty.text')",
+            path: "$AppPath"
+            #if ($Properties.width)
+                ,width: "$Properties.width"
+            #end
+            #if ($Properties.height)
+                ,height: "$Properties.height"
+            #end
+            ,title:
+            #if ($Properties.title)
+                "#I18N('$Properties.title')"
+            #else
+                "#I18N('searchentity.popup.title')"
+            #end
+        }).show();
+    </script>
+#end
+
+#*
+@function	Render submit input (<input type="submit">)
+@params		$InputName (string) - Input name
+			$LabelText (string) - Value to be displayed on <input>
+			$Properties (map) -
+	    	    	        InputClass (string) - Input class
+    	    	        	IsDisabled (bool)
+    	    	        	onClick (string) - Javascript function to call when button is clicked
+*#
+#macro(macroButtonSubmit
+	$InputName
+    $LabelText
+    $Properties
+	)
+
+    <input
+        #if ($LabelText.matches("(?i)[a-z.0-9]+"))
+            #macroRenderInputAttributes($InputName $NULL false $Properties.IsDisabled $Properties.InputClass "${LabelText}.description")
+        #else
+            #macroRenderInputAttributes($InputName $NULL false $Properties.IsDisabled $Properties.InputClass)
+        #end
+        type="submit"
+        value="#I18N($LabelText)"
+        class="btn btn-primary"
+    />
+    #if($Properties.onClick)
+        <script>
+            #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+            $('#$JQInputName').click(function() {
+                return ${Properties.onClick}($('#$JQInputName'));
+            });
+        </script>
+    #end
+#end
+
+#*
+@function	Render action button (<button type="button">)
+@params		$InputName (string) - Input name
+			$LabelText (string) - Value to be displayed on <button>
+			$Properties (map) -
+	    	    	        InputClass (string) - Input class
+    	    	        	IsDisabled (bool)
+    	    	        	onClick (string) - Javascript function to call when button is clicked
+    	    	        	Extras (string) - Attributes to add to the tag
+*#
+#macro(macroButtonAction
+	$InputName
+	$LabelText
+    $Properties
+	)
+
+	<input
+        #macroRenderInputAttributes($InputName $Properties.Placeholder false $Properties.IsDisabled "k-button $!Properties.ButtonClass" $Properties.Tooltip)
+		type="button" value="#I18N($LabelText)" $!Properties.Extras/>
+    #if($Properties.onClick)
+        <script>
+            #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+            $('#$JQInputName').click(function(e) {
+                e.preventDefault();
+                return ${Properties.onClick}($('#$JQInputName'));
+            })
+        </script>
+    #end
+#end
+
+#*
+@function	Render a definition block
+@params		$InputName (string) - Name of input
+			$Definition (Definition) - Block of definition information
+			$PlaceHolders (Map) - Map of placeholder values to use
+			$OnlyPropagatable (boolean) - If true, only show paramaters marked as propagatable)
+*#
+#macro(macroDefinitionEdit $InputName $Definition $PlaceHolders $OnlyChildren)
+
+    ## Check if we have been sent a DefinitionValues object instead
+
+    #if ($Utils.doStringsMatch($Definition.Class.SimpleName,"DefinitionSettings","AddressSettings"))
+        #set ($tmp = $Definition)
+        #set ($Definition = $Definition.Definition)
+        #set ($DefinitionValues = $tmp)
+    #end
+
+    ## If there are actually some parameters definied
+
+    #if ($Definition && $Definition.Parameters.size()>0)
+        #set ($RowAddDeleteAllowed = false)
+
+        #foreach ($Parameter in $Definition.Parameters)
+            #set ($InputValue="")
+
+            ## If we have been instructed to only show the child paramaters
+
+            #if ((!$OnlyChildren && ($Parameter.Scope!="children")) || ($OnlyChildren && ($Parameter.Scope=="children")))
+
+                ## If the parameter has sub parameters then we will display them in a grid
+                ## Notice that we don't show anything for the actual parameter value itself, just
+                ## its sub parameters
+
+                #if ($Parameter.hasSubParameters())
+                    #set ($ParamsToUse = $Parameter.SubParameters)
+                    #macroShowLabel($Parameter.Name $Parameter.Label $NULL $NULL $NULL $NULL {"Tooltip":$Parameter.Description})
+                #else
+                    #set ($ParamsToUse = [$Parameter])
+                #end
+
+                ## If this is a multiple parameter, then we will need to loop round
+                ## the number of times we have values for it
+
+                #if ($Parameter.Multiple)
+                    #set ($RowCount = $DefinitionValues.getValue($Parameter.name).Count)
+                    #set ($RowAddDeleteAllowed = true)
+                #else
+                    #set ($RowCount = 1)
+                #end
+
+                #if ($Parameter.hasSubParameters() || $Parameter.Multiple)
+                    <table id="$Parameter.Name" class="multi-parameter-definition">
+                        <tr class="non-item">
+                        #if(!$ReadOnlyMode)
+                            <th>&nbsp;</th>
+                        #end
+                            #foreach($ParamToUse in $ParamsToUse)
+                                <th>
+                                #if ($Parameter.hasSubParameters())
+                                    #macroShowLabel("settings-values.${Parameter.name}.${ParamToUse.name}" $ParamToUse.label $NULL $ParamToUse.Required $NULL $NULL {"Tooltip":$ParamToUse.Description})
+                                #else
+                                    #macroShowLabel("settings-values.${Parameter.name}" $Parameter.label $NULL $Parameter.Required $NULL $NULL {"Tooltip":$Parameter.Description})
+                                #end
+                                </th>
+                            #end
+                            #if(!$ReadOnlyMode)
+                                <th><button class="k-button table-action-add"><i class="fa fa-plus-square"></i></button></th>
+                            #end
+                        </tr>
+                #end
+
+                ## Ouput each row of the parameter values (most are single row parameters)
+
+                #if ($RowCount > 0)
+                    #foreach($Row in [1..$RowCount])
+                        #if ($Parameter.hasSubParameters() || $Parameter.Multiple)
+                            <tr class="item">
+                            #if(!$ReadOnlyMode)
+                                <td>
+                                    <span class="k-button handler"><i class="fa fa-arrows-v"></i></span>
+                                </td>
+                            #end
+                        #end
+
+                        ## Loop through each sub parameter or main parameter if it doesn't have any
+
+                        #foreach($ParamToUse in $ParamsToUse)
+                            #set ($Value = "")
+                            #set ($ParamName = "settings-values.${Parameter.name}")
+                            #if ($Parameter.hasSubParameters())
+                                #set ($ValueNumber = $Row - 1)
+                                #set ($ParamName = "${ParamName}.$ParamToUse.name")
+                                #set ($Value = $DefinitionValues.getValue($Parameter.name).getSubValue($ValueNumber,$ParamToUse.name).String)
+                            #else
+                                #set ($Value = $DefinitionValues.getValue($Parameter.name).String)
+                            #end
+                            #if ($Parameter.hasSubParameters() || $Parameter.Multiple)
+                                <td>
+                            #end
+
+                            ## Use the default value if not set and there isn't a placeholder
+
+                            #set ($PlaceHolder = "")
+                            #if ($PlaceHolders)
+                                #set ($PlaceHolder = $PlaceHolders.get($ParamToUse.Name))
+                            #end
+                            #if ("$!Value"=="" && "$!PlaceHolder" == "")
+                                #set ($Value = $ParamToUse.DefaultValue)
+                            #end
+
+                            #if ($Parameter.Multiple)
+                                #macroDefinitionEditParameter($ParamToUse $ParamName $Value $PlaceHolder $Row)
+                            #else
+                                #macroDefinitionEditParameter($ParamToUse $ParamName $Value $PlaceHolder)
+                            #end
+                        #end
+
+                        #if (!$ReadOnlyMode && ($Parameter.hasSubParameters() || $Parameter.Multiple))
+                            <td>
+                                <button class="k-button table-action-remove"><i class="fa fa-minus-square"></i></button>
+                            </td>
+                        #end
+                    #end
+                #end
+            #end
+
+            ## Close the table but add the action buttons to add/delete/move rows if multiple are allowed
+
+            #if ($Parameter.hasSubParameters() || $Parameter.Multiple)
+                </table>
+                <script>
+                    $("#$Parameter.Name tbody").kendoSortable({
+                        filter: ".item",
+                        handler: ".handler",
+                        cursor: "ns-resize",
+                        ignore: ":not(.handler)", ## Was stealing click events from other elements in the table
+                        container: $("#$Parameter.Name")
+                    });
+                </script>
+            #end
+        #end
+
+        ## Add the action handlers if there are any
+        ## These are pinnded to the fieldset
+
+        #if ($RowAddDeleteAllowed)
+            <script>
+                #set ($ActionHandler = $InputName.replaceAll("[.]",""))
+                #set ($ActionHandler = "actionHandler_$ActionHandler")
+                var $ActionHandler = {
+                    addRow: function(element) {
+
+                        ## Add a new row to the bottom of the table - we have to do this
+                        ## using AJAX rather than just clone the current row because each
+                        ## element will be tied to it's label etc using a unique ID
+
+                        var tbody = $(element).closest("tbody");
+                        var table = tbody.closest("table");
+                        var name = table.attr("id");
+                        tbody.append(PivotalUtils.getContent("$AppPath/$PageName/$SubPageName/definition_row", "typeid=$Definition.Id&typename=$Definition.Name&parameter=" + name));
+                        var newRow = tbody.find("tr").last();
+
+                        ## Re-associate the rows with the sorter
+                        ## Make sure we remove the old handlers first
+
+                        tbody.unbind();
+                        tbody.kendoSortable({
+                            filter: ".item",
+                            handler: ".handler",
+                            cursor: "ns-resize",
+                            container: table
+                        });
+
+                        ## Add commmands to any new buttons - that way we don't
+                        ## have to unbind all the other buttons first
+
+                        newRow.find(".table-action-remove").click(function(){
+                            ${ActionHandler}.removeRow(this);
+                            return false;
+                        });
+                        PivotalUtils.showFormTooltips(newRow);
+                        return false;
+                    },
+                    removeRow: function(element) {
+                        if ($(element).closest("table").find("tr").length > 1) {
+                            $(element).closest("tr").remove();
+                        }
+                        return false;
+                    }
+                };
+                $(".table-action-add").click(function(){
+                    return ${ActionHandler}.addRow(this);
+                });
+                $(".table-action-remove").click(function(){
+                    return ${ActionHandler}.removeRow(this);
+                });
+            </script>
+        #end
+    #end
+
+#end
+
+#*
+@function	Render a parameter definition block
+@params		$ParamToUse (Parameter) - Parameter definition object
+			$ParamName (string) - Name of the parameter
+			$ParamLabel (string) - Label to use
+			$PlaceHolder (string) - Optional placeholder to use)
+			$ParamIndex (integer) - Index of this element
+*#
+#macro(macroDefinitionEditParameter $ParamToUse $ParamName $ParamValue $PlaceHolder $ParamIndex)
+
+    #set ($ParamProperties = {"IsRequired":"$!ParamToUse.required"})
+
+    #if ("$!ParamIndex"=="")
+        #set ($ParamLabel = $ParamToUse.Label)
+        #set ($ParamProperties.Tooltip = $ParamToUse.Description)
+    #else
+        #set ($ParamLabel = "")
+    #end
+    #if ("$!PlaceHolder" != "")
+        #set ($ParamProperties.Placeholder = $PlaceHolder)
+    #end
+
+    #if(($ParamToUse.isType("transducer") || $ParamToUse.isType("site") || $ParamToUse.isType("room") || $ParamToUse.isType("system")) && $Utils.isYes("$!ParamMultiselect"))
+        #set ($ParamProperties.IsMultiselect = "true")
+    #end
+
+    #if ($ParamToUse.hasChoices())
+      #macroInputSelect($ParamName $ParamLabel $ParamValue $ParamToUse.ChoicesDisplay $ParamProperties $ParamIndex)
+
+    #elseif ($ParamToUse.isType("numeric"))
+        #if ($ParamToUse.isSubType("percent"))
+            #set ($ParamProperties.Increment = 5)
+            #set ($ParamProperties.Format = "0\\%")
+        #end
+        #set ($ParamProperties.Min = $ParamToUse.MinValue)
+        #set ($ParamProperties.Max = $ParamToUse.MaxValue)
+        #macroInputNumber($ParamName $ParamLabel $ParamValue $ParamProperties $ParamIndex)
+
+    #elseif ($ParamToUse.isType("boolean"))
+        #macroInputSwitch($ParamName $ParamLabel $ParamValue $ParamProperties $ParamIndex)
+
+    #elseif ($ParamToUse.isType("text"))
+        #macroInputTextArea($ParamName $ParamLabel $ParamValue $NULL $NULL $ParamIndex)
+
+    #elseif ($ParamToUse.isType("date"))
+        #macroInputDate($ParamName $ParamLabel $ParamValue $ParamProperties $ParamIndex)
+
+    #elseif ($ParamToUse.isType("time"))
+        #macroInputTime($ParamName $ParamLabel $ParamValue $ParamProperties $ParamIndex)
+
+    #elseif ($ParamToUse.isType("datetime"))
+        #macroInputDateTime($ParamName $ParamLabel $ParamValue $ParamProperties $ParamIndex)
+
+    #elseif ($ParamToUse.isType("transducer"))
+        #if ($ParamToUse.SubType)
+            #set ($ParamProperties.transducertypes = $ParamToUse.SubType)
+            #set ($ParamProperties.lockTypes = "true")
+        #end
+        #if ($ParamToUse.Multiselect)
+            #set ($ParamProperties.isMultiSelect = "true")
+        #end
+        #macroInputTransducer($ParamName $ParamLabel $ParamValue $ParamProperties $ParamIndex)
+
+    #elseif ($ParamToUse.isType("room"))
+        #if ($ParamToUse.Multiselect)
+            #set ($ParamProperties.isMultiSelect = "true")
+        #end
+        #macroInputRoom($ParamName $ParamLabel $ParamValue $ParamProperties $ParamIndex)
+
+    #elseif ($ParamToUse.isType("site"))
+        #if ($ParamToUse.Multiselect)
+            #set ($ParamProperties.isMultiSelect = "true")
+        #end
+        #macroInputSite($ParamName $ParamLabel $ParamValue $ParamProperties $ParamIndex)
+
+    #elseif ($ParamToUse.isType("system"))
+        #if ($ParamToUse.Multiselect)
+            #set ($ParamProperties.isMultiSelect = "true")
+        #end
+        #macroInputSystem($ParamName $ParamLabel $ParamValue $ParamProperties $ParamIndex)
+
+    #elseif ($ParamToUse.isType("password"))
+        #macroInputPassword($ParamName $ParamLabel $ParamValue $ParamProperties $ParamIndex)
+
+    #else
+        #macroInputText($ParamName $ParamLabel $ParamValue $ParamProperties $ParamIndex)
+    #end
+#end
+
+#*
+@function	Render Kendo UI date picker
+
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Input value
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+
+*#
+#macro(macroInputDate
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+    )
+
+    #macroGeneralPurposeInput("date" $InputName $LabelText $InputValue $Properties $Index)
+
+    ##
+    ## Make sure we are showing the date correctly
+    ## Default it to todays date then disect it.
+    ## and present it to javascript in an unambiguous form
+    ##
+
+    <script>
+
+        #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+        $('#$JQInputName').kendoDatePicker({
+            #if(!$Utils.isBlank($InputValue))
+                #set($parsedDate = $Utils.parseDate("$!InputValue"))
+                #set($ThisYear = $Utils.formatDate($parsedDate, "yyyy"))
+                #set($ThisMonth = $Utils.parseInt($Utils.formatDate($parsedDate, "MM")) - 1)
+                #set($ThisDay = $Utils.formatDate($parsedDate, "dd"))
+                value: new Date($ThisYear, $ThisMonth, $ThisDay)
+            #else
+                value: ""
+            #end
+
+            #if($Properties.Format)
+                , format: "$!Properties.Format"
+            #end
+            ,max: new Date(2100, 11, 31)
+            ,dateInput: true
+        });
+        $('#$JQInputName').keypress(function(event){
+            if(event.which === 32) {
+                event.preventDefault();
+                $('#$JQInputName').data("kendoDatePicker").open();
+            }
+        })
+	</script>
+#end
+
+#*
+@function			Render Kendo UI Slider
+
+@params	(required)	$SliderElement (string) - element selector for the slider
+*#
+
+#*
+@function	Render text input (<input type="text">)
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text (uses $InputName if not supplied))
+			$InputValue (string) - Value of input if we want to populate it on load
+            $Min - Minimum value
+            $Max - Maximum value
+            $SmallStep - small steps between values (when arrows are pressed)
+            $LargeStep - large steps between values (when page up/page down are pressed)
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+			$Index (int) - An optional index to add to the ID to make it unique
+			$ShowButtons (boolean) - Show the increase/decrease buttons?
+*#
+#macro(macroInputSlider
+    $InputName
+    $LabelText
+    $InputValue
+    $Min
+    $Max
+    $SmallStep
+    $LargeStep
+    $Properties
+    $Index
+    $ShowButtons
+    )
+
+    #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+    #set($tmp=$LocalProperties.remove("onChange"))
+    #macroGeneralPurposeInput("range" $InputName $LabelText $InputValue $LocalProperties $Index)
+
+    <script>
+        #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+        $('#$JQInputName').kendoSlider({
+            #if("$!Min" != "")
+                min: $Min,
+            #end
+            #if("$!Max" != "")
+                max: $Max,
+            #end
+            #if("$!SmallStep" != "")
+                smallStep: $SmallStep,
+            #end
+            #if("$!LargeStep" != "")
+                largeStep: $LargeStep,
+            #end
+            showButtons: #if ($ShowButtons) true #else false #end,
+            tickPlacement: #if($Utils.isBlank("$!{Properties.TickPlace}")) "both" #else "$!{Properties.TickPlace}" #end
+            #if($Properties.onChange)
+                , change: function (arg1) {
+                    ${Properties.onChange}($('#$JQInputName'));
+                }
+            #end
+        });
+    </script>
+#end
+
+
+#*
+@function	Render Kendo UI month picker
+
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Input value
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputMonth
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+
+    #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+    #set($tmp=$LocalProperties.put("InputClass", "ui-monthpicker $!LocalProperties.InputClass"))
+
+    #macroGeneralPurposeInput("month" $InputName $LabelText $InputValue $LocalProperties $Index)
+
+    <script>
+
+        #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+        $('#$JQInputName').kendoDatePicker({
+            start: "year",
+            depth: "year",
+            format: "MMMM yyyy"
+        });
+    </script
+#end
+
+#*
+@function	Render Kendo UI time picker
+
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Input value
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputTime
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+    )
+
+    #macroGeneralPurposeInput("time" $InputName $LabelText $InputValue $Properties $Index)
+
+    <script>
+
+        #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+
+        $('#$JQInputName').kendoTimePicker({
+            value:"$!InputValue"
+            #if($Properties.Format)
+                ,format:"$!Properties.Format"
+            #end
+            #if($Properties.Interval)
+                ,interval:"$!Properties.Interval"
+            #end
+        });
+    </script>
+
+#end
+
+#*
+@function	Render Kendo UI date/time picker
+
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Input value
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+*#
+#macro(macroInputDateTime
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+    #macroGeneralPurposeInput("datetime" $InputName $LabelText $InputValue $Properties $Index)
+
+    ##
+    ## Make sure we are showing the date correctly
+    ## Default it to todays date then disect it.
+    ## and present it to javascript in an unambiguous form
+    ##
+
+    <script>
+
+        #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+        $('#$JQInputName').kendoDateTimePicker({
+            #if(!$Utils.isBlank($InputValue))
+                #set($parsedDate = $Utils.parseDateTimeInFormat("$!InputValue", "$!Properties.Format"))
+                #set($ThisYear = $Utils.formatDate($parsedDate, "yyyy"))
+                #set($ThisMonth = $Utils.parseInt($Utils.formatDate($parsedDate, "MM")) - 1)
+                #set($ThisDay = $Utils.formatDate($parsedDate, "dd"))
+                #set($ThisHour = $Utils.formatDate($parsedDate, "HH"))
+                #set($ThisMinute = $Utils.formatDate($parsedDate, "mm"))
+                #set($ThisSecond = $Utils.formatDate($parsedDate, "ss"))
+                value:new Date($ThisYear, $ThisMonth, $ThisDay, $ThisHour, $ThisMinute, $ThisSecond)
+
+            #else
+                value:""
+            #end
+
+            #if($Properties.Format)
+                ,format:"$!Properties.Format"
+            #else
+                ,format:"yyyy-MM-dd HH:mm"
+            #end
+
+            #if($Properties.TimeFormat)
+               , timeFormat: "$!Properties.TimeFormat"
+            #else
+                , timeFormat: "HH:mm"
+            #end
+
+        });
+    </script>
+
+#end
+
+#*
+@function			Render Sparkline
+
+@params	(required)	$SparklineElement (string) - element selector for the sparkline
+                    $data - list of values for the sparkline
+                    $width - width  of the Sparkline defualt is 250
+                    $unit - $unit  of the Sparkline width if percentage set % with width
+*#
+#macro(macroSparkline
+	$SparklineElement
+	$data
+    $width
+    $unit
+	)
+<script>
+    #if ( !$width )
+        #set ( $width = 250 )
+    #end
+    #if ($unit)
+        #set ( $width =$width+"%" )
+    #end
+    $(document).ready(function () {
+        $("#$SparklineElement").sparkline(
+			[#foreach($value in $data)$value#if($foreach.hasNext), #end#end],
+                {
+                    type: "line",
+                    height: 30,
+                    width:  '$width'
+                }
+		);
+    });
+</script>
+#end
+
+
+@params	(required)	$SparklineElement (string) - element selector for the sparkline
+                    $data (map) - Map with series values. { "series1" : [val1,val2,val3] , ...}
+                    $Properties (map) -
+                                Width (string) - Width of the sparkline in pixels
+                                Height (string) - Height of the sparkline in pixels
+                                Title (string) - Title for the sparkline
+                                RenderOnReady (boolean) - Renders the sparkline only after the document is ready. Default is true
+                                ChartOpacity (int) - Opacity of the chart background ( 0 to 1 ). Default is 1
+
+                                SeriesType (map) -  Map with series types, bound by id { "series1" : "bar", ...  }. Options are {line,bar,column,area,pie,bullet}. Defaults to "line"
+                                SeriesDashType (map) - Map with the dash types for the series, bound by id { "series1" : "bar", ...  }. Will only be applicable for line types. Options are {solid,dot,dash,longDash,dashDot,longDashDot,longDashDotDot}. Defaults to "solid"
+                                SeriesStyle (map) - Map with the style applied to the display line, bound by id { "series1" : "bar", ...  }. Will only be applicable for line types. Options are {normal,step,smooth}. Defaults to "normal"
+                                SeriesColor (map) - Map with the color applied to the display line, bound by id { "series1" : "#FF0000", ...  }.
+                                SeriesGap (map) -  Map with series gaps (category clusters), bound by id { "series1" : 7, ...  }.  Will only be applicable for bar and column types. Defaults to "2.5"
+                                SeriesMissingVal (map) -  Map with series config for missing values, bound by id { "series1" : "gap", ...  }.  Will be applicable for "area", "line". Options are {gap,interpolate,zero}. Defaults to "interpolate" for line and zero for area
+
+                                MarkersVisible (map) - Map with booleans to indicate if the markers for the values should be displayed, bound by id { "series1" : true, ...  }. Default is false
+                                MarkersType (map) -  Map with the types of markers enabled for every serie, bound by id { "series1" : "square" ...  }. Options are {square,triangle,circle}
+                                MarkersSize (map) -  Map with the sizes for the enabled markers, bound by id { "series1" : "10" ...  }. Defaults to "6"
+
+                                TooltipVisible (boolean) - Boolean indicating if the tooltip for the values should be displayed. Default is true
+                                TooltipTemplate (string) - Tooltip display template. Refer to "http://docs.telerik.com/kendo-ui/getting-started/framework/templates/overview" for more information on templating
+
+                                ValueAxisRevert (boolean) - Reverts the axis direction - values increase from right to left and from top to bottom
+                                ValueAxisTitle (string) - The title of the value axis
+                                ValueAxisVisible (string) - The title of the value axis
+                                RefreshTime (int) - When reading from a url, if refresh time is set, the series will refresh automaticaly every x miliseconds
+                                OnRefresh (function) - Function to call each time the graph refreshes it's data
+*#
+#macro(macroKendoSparkline
+	$SparklineElementId
+	$data
+    $Properties
+	)
+    #set ( $Width = "$!Properties.Width" )
+    #set ( $Height = "$!Properties.Height" )
+    #if ( !$Utils.isBlank("$!Width") )
+        #set ( $Width = "${Width}" )
+    #end
+    #if ( !$Utils.isBlank("$!Height") )
+        #set ( $Height = "${Height}" )
+    #end
+    <div id="$SparklineElementId"></div>
+
+    <script>
+        #if($Utils.isBlank($!Properties.RenderOnReady) || $!Properties.RenderOnReady)
+            $(document).ready(function () {
+        #end
+
+            #if ( $Utils.isBlank("$!Width") )
+                var widgetWidth = $("#${SparklineElementId}").width( $("#${SparklineElementId}").parent().width() )
+            #else
+                var widgetWidth = $Width;
+            #end
+
+            #if ( $Utils.isBlank("$!Height") )
+                var widgetHeight = $("#${SparklineElementId}").height( $("#${SparklineElementId}").parent().height() )
+            #else
+                var widgetHeight= $Height;
+            #end
+            $("#${SparklineElementId}").width(widgetWidth);
+            $("#${SparklineElementId}").height(widgetHeight);
+
+
+            var redrawFunction = function() {
+
+
+                var titleFontSize = $("#${SparklineElementId.replaceAll("[.]","\\\\.")}").parent().innerHeight()/10;
+                if(titleFontSize == null) titleFontSize = 12;
+                else titleFontSize = Math.round(titleFontSize);
+                var labelFontSize = $("#${SparklineElementId.replaceAll("[.]","\\\\.")}").parent().innerHeight()/20;
+                if(labelFontSize == null) labelFontSize = 10;
+                else labelFontSize = Math.round(labelFontSize);
+                // Binding directly to an array
+                $("#${SparklineElementId.replaceAll("[.]","\\\\.")}").kendoSparkline({
+                            #if(!$Utils.isBlank($!Properties.SparkLineType))
+                                type: '$Properties.SparkLineType',
+                            #end
+                            #if(!$Utils.isBlank($!Properties.Title))
+                                title:{text:'$!Properties.Title',
+                                font: titleFontSize + "px Arial,Helvetica,sans-serif"},
+                            #end
+
+                            valueAxis: {
+                                labels : { font : labelFontSize + "px Arial,Helvetica,sans-serif"},
+                                #if(!$Utils.isBlank($!Properties.ValueAxisRevert))
+                                    reverse: $!Properties.ValueAxisRevert,
+                                #end
+                                #if(!$Utils.isBlank($!Properties.ValueAxisVisible))
+                                    visible: $!Properties.ValueAxisVisible,
+                                #end
+                                title: {
+                                text:#if(!$Utils.isBlank($!Properties.ValueAxisTitle))
+                                            '$!Properties.ValueAxisTitle'
+                                    #else
+                                        ''
+                                    #end
+                                }
+                            },
+                            chartArea: {
+                            ##opacity
+                                #if(!$Utils.isBlank($!Properties.ChartOpacity))
+                                    opacity: $!Properties.ChartOpacity,
+                                #end
+                                background: "#FFFFFF"
+                            },
+                            series: [
+                                #foreach($currKey in $data.keySet())
+                                    #if($velocityCount > 1)
+                                        ,
+                                    #end
+                                    {
+                                        name: "$currKey",
+                                    ##series types
+                                        #if(!$Utils.isBlank($!Properties.SeriesType.get("$currKey")))
+                                            type: '$!Properties.SeriesType.get("$currKey")',
+                                        #end
+                                    ##Series Dash Type
+                                        #if(!$Utils.isBlank($!Properties.SeriesDashType.get("$currKey")))
+                                            dashType: '$!Properties.SeriesDashType.get("$currKey")',
+                                        #end
+                                    ##Series Gaps
+                                        #if(!$Utils.isBlank($!Properties.SeriesGap.get("$currKey")))
+                                            gap: $!Properties.SeriesGap.get("$currKey"),
+                                        #end
+                                    ##Missing vals
+                                        #if(!$Utils.isBlank($!Properties.SeriesMissingVal.get("$currKey")))
+                                            missingValues: '$!Properties.SeriesMissingVal.get("$currKey")',
+                                        #end
+                                    ##Style
+                                        #if(!$Utils.isBlank($!Properties.SeriesStyle.get("$currKey")))
+                                            style: '$!Properties.SeriesStyle.get("$currKey")',
+                                        #end
+                                    ##Color
+                                        #if(!$Utils.isBlank($!Properties.SeriesColor.get("$currKey")))
+                                            color: '$!Properties.SeriesColor.get("$currKey")',
+                                        #end
+                                    ## Markers options
+                                        #if(!$Utils.isBlank($!Properties.MarkersVisible.get("$currKey")))
+                                            markers: {
+                                            ##Markers Type
+                                                #if(!$Utils.isBlank($!Properties.MarkersType.get("$currKey")))
+                                                    type: '$!Properties.MarkersType.get("$currKey")',
+                                                #end
+                                            ##Markers Size
+                                                #if(!$Utils.isBlank($!Properties.MarkersSize.get("$currKey")))
+                                                    size: $!Properties.MarkersSize.get("$currKey"),
+                                                #end
+                                                visible: $!Properties.MarkersVisible.get("$currKey")
+                                            },
+                                        #end
+                                        data: $data.get("$currKey") instanceof Object ? $data.get("$currKey") : PivotalUtils.getJsonContent($data.get("$currKey"), "", false),
+                                        field: "value"
+                                    }
+                                #end
+                            ],
+                            tooltip: {
+                            ##Tooltip Format
+                                #if(!$Utils.isBlank($!Properties.TooltipTemplate))
+                                    template: '$!Properties.TooltipTemplate',
+                                #end
+                                format: '{0}',
+                            ##By default the tooltip is enabled.
+                            visible : #if(!$Utils.isBlank($!Properties.TooltipVisible))
+                                    $!Properties.TooltipVisible
+                                #else
+                                        true
+                                #end
+                            }
+                        }
+                );
+                PivotalUtils.hideModalScreen();
+            }.bind(this);
+
+            $("#${SparklineElementId.replaceAll("[.]","\\\\.")}").data("redrawFunction",redrawFunction);
+            $("#${SparklineElementId.replaceAll("[.]","\\\\.")}").data("redrawFunction")();
+            $( window ).resize(function() {
+                $("#${SparklineElementId.replaceAll("[.]","\\\\.")}").data("redrawFunction");
+            });
+
+            #if(!$Utils.isBlank("$!Properties.RefreshTime"))
+                #foreach($currKey in $data.keySet())
+                    if(!($data.get("$currKey") instanceof Object)) {
+                        setInterval(function () {
+                            var sparkline = $("#$SparklineElementId").data("kendoSparkline");
+                            var dataVal = PivotalUtils.getJsonContent($data.get("$currKey"), "", false);
+
+                           //  IE issue some time not not load sparkline.options
+
+                            if(sparkline.options) {
+                                sparkline.options.series[$velocityCount -1].data = dataVal;
+                            }
+                            sparkline.redraw();
+                            #if ($Properties.OnRefresh)
+                                ${Properties.OnRefresh}($("#$SparklineElementId"), dataVal[dataVal.length-1].value);
+                            #end
+                        }, $!Properties.RefreshTime);
+                    }
+                #end
+            #end
+
+            #if($Utils.isBlank($!Properties.RenderOnReady) || $!Properties.RenderOnReady)
+            });
+            #end
+
+
+    </script>
+
+#end
+
+#*
+@function	Render Kendo UI color palette
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Value of input if we want to populate it on load
+    		$Palette (array) - Hex values for available palette
+			$Properties (map) -
+                                LabelClass (string) - Label class
+                                InputClass (string) - Input class
+                                IsRequired (bool)
+                                IsDisabled (bool)
+                                InputDescription (string) - Description of input's purpose
+                                Placeholder (string) - Placeholder text
+                                onChange (function) - function to call when color selected
+                                TileCols (number) - number of columns to display the palette in
+                                TileWidth (number) - width of tile
+                                TileHeight (number) - height of tile
+
+*#
+#macro(macroInputColorPalette
+    $InputName
+    $LabelText
+    $InputValue
+    $Palette
+    $Properties
+    $Index
+	)
+    <div class="input-line $!Properties.DivClass">
+        #macroShowLabel($InputName $LabelText $Properties.LabelClass $Properties.IsRequired $Properties.IsDisabled)
+        <div id="$InputName" class="ui-color-palette"></div>
+        #macroInputDescription($Properties.InputDescription)
+        #macroShowErrorMessages()
+    </div>
+	<script>
+
+        #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+
+        $('#$JQInputName').kendoColorPalette({
+        columns: #if($Properties.TileCols)$Properties.TileCols#else 4 #end,
+            tileSize: {
+            width: #if($Properties.TileWidth)$Properties.TileWidth#else 34 #end,
+            height: #if($Properties.TileHeight)$Properties.TileHeight#else 19 #end
+            },
+            palette: [
+                #foreach($Color in $Palette)
+                    "$Color",
+                #end
+            ]
+            #if($Properties.onChange)
+                , change: function (arg1) {
+                    // Load value into jQuery object to standardise the interface
+                    $('#$JQInputName').val(arg1.value)
+                    ${Properties.onChange}($('#$JQInputName'));
+            }
+            #end
+            #if($InputValue)
+                , value: "$!InputValue"
+            #end
+        });
+        // Set intial Value
+        $('#$JQInputName').val("$!InputValue");
+	</script>
+#end
+
+#*
+@function	Render Kendo UI color picker
+
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) -
+                                LabelClass (string) - Label class
+                                InputClass (string) - Input class
+                                IsRequired (bool)
+                                IsDisabled (bool)
+                                InputDescription (string) - Description of input's purpose
+                                Placeholder (string) - Placeholder text
+                                onChange (function) - function to call when color changed
+*#
+#macro(macroInputColor
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+
+    #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+    #set($tmp=$LocalProperties.put("InputClass", "ui-colorpicker $!LocalProperties.InputClass"))
+    #set($tmp=$LocalProperties.remove("onChange"))
+    #macroGeneralPurposeInput("text" $InputName $LabelText $InputValue $LocalProperties $Index)
+    <script>
+        #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+        #set ($RecentColorPreference = $Preferences.get("color.recent"))
+        #set ($Colors = "[]")
+        #if (!$Utils.isBlank($RecentColorPreference))
+            #set ($SplitColors = $Utils.split($RecentColorPreference,","))
+            #set ($Colors = "[")
+            #if (!$Utils.isBlank($SplitColors))
+                #foreach($Color in $SplitColors)
+                    #set ($Colors = "${Colors}'${Color}',")
+                #end
+            #end
+            #set ($Colors = "${Colors}]")
+        #end
+        #set($SafeName = $JQInputName.replaceAll("\W", "1"))
+        #set($Method = ".recentColors()")
+        var colorSaveTimer$SafeName;
+        var colorPicker$SafeName = $('#$InputName').nrmmColorPicker({
+            recentPaletteColors: $Colors,
+            i18n: {
+                apply: "#I18N("color.selection.apply")",
+                cancel: "#I18N("color.selection.cancel")",
+                recentColorTitle: "#I18N("color.selection.recentcolorstitle")",
+                standardColorTitle: "#I18N("color.selection.standardcolorstitle")",
+                customColorTitle: "#I18N("color.selection.customcolorstitle")"
+            },
+            change: function() {
+
+                    // We need to save the color changes
+                    if(colorSaveTimer$SafeName) clearTimeout(colorSaveTimer$SafeName);
+                    colorSaveTimer$SafeName = setTimeout(function() {
+
+                        // Update the color by sending the data to the
+                        PivotalUtils.getContentAsync("${AppPath}/color/preferences/save", "recent=" + colorPicker${SafeName}${Method}, function(){}, true);
+                    }, 3000);
+
+                #if($Properties.onChange)
+                    ${Properties.onChange}($('#$JQInputName'));
+                #end
+            }
+        });
+    </script>
+#end
+
+#*
+@function	Render Kendo UI numeric text box
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Value of input if we want to populate it on load
+			$Properties (map) -
+                                InputClass (string) - Input class
+                                LabelClass (string) - Label class
+                                IsRequired (bool)
+                                IsDisabled (bool)
+                                InputDescription (string) - Description of input's purpose
+                                Placeholder (string) - Placeholder text
+                                Format (string) - format of value (e.g: Â£0.00, $0.00, %0)
+                                Decimals (number) - Specifies number of decimal places (default = null)
+                                Increment (number) - Increment steps for input
+                                Min (number) - Minimum value
+                                Max (number) - Maximum value
+                                IsReadOnly (bool) - If true then control is read only and spinners are not displayed
+*#
+#macro(macroInputNumber
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+	)
+	#if ("$!InputValue" == "null")
+		#set ($InputValue = 0)
+	#end
+
+    #*set the min and max value to stop user to enter very big/small number*#
+    #if (!$Properties)
+        #set($Properties = {})
+    #end
+    #if (!$Properties.Min)
+        #set($Properties.Min = 0)
+    #end
+    #if (!$Properties.Max)
+        #set($Properties.Max = 0)
+    #end
+    #if (($!Properties.Min == 0  && $!Properties.Max == 0 ) || ($!Properties.Min  > $!Properties.Max))
+        #set ($Properties.Min = -2000000000000 )
+        #set ($Properties.Max =  2000000000000 )
+    #end
+    #macroGeneralPurposeInput("number" $InputName $LabelText $InputValue $Properties $Index)
+    <script>
+
+        #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+
+        $('#$JQInputName').kendoNumericTextBox({
+            decimals: #if ($!Properties.Decimals) $Properties.Decimals #else 0 #end
+            ,format: #if ("$!Properties.Format" != "")"$Properties.Format"#else"#"#end
+            #if ("$!Properties.Increment"!=""),step: $Properties.Increment#end
+            #if ($!Properties.Min <= $!Properties.Max )
+                #if ("$!Properties.Min"!=""),min: $Properties.Min#end
+                #if ("$!Properties.Max"!=""),max: $Properties.Max#end
+            #end
+            #if ($Properties.IsReadOnly)
+                ,readonly: true
+                ,spinners: false
+            #end
+            #if ($Properties.Placeholder)
+                ,placeholder: '#I18N($Properties.Placeholder)'
+            #end
+        });
+    </script>
+#end
+
+
+#*
+@function			Render Kendo combobox
+
+@params	(required)	$ComboBoxItems (obj) - Items which make up the series of select elements
+*#
+#macro(macroInputComboBoxCascade
+    $InputName
+    $LabelText
+    $InputValue
+    $ComboBoxItems
+    $Properties
+    $Index
+)
+    #set($LocalInputValue = $InputValue)
+    #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+    #set($FirstInputName = $InputName)
+
+        #foreach ($Item in $ComboBoxItems)
+
+            <div class="input-line">
+                #if($Utils.isBlank($FirstInputName) && !$Utils.isBlank($Item.InputName))
+                    #set($FirstInputName = $Item.InputName)
+                #end
+
+                #if (!$LocalProperties.hideLabel)
+                    #macroShowLabel($Item.InputName $Item.InputLabel $LocalProperties.LabelClass $LocalProperties.IsRequired $LocalProperties.IsDisabled $Index)
+                #end
+                <select style="display:none"
+                    #macroRenderInputAttributes($Item.InputName $Item.PlaceHolder $LocalProperties.IsRequired $LocalProperties.IsDisabled)
+                ></select>
+
+            <script type="text/javascript">
+                $.ajaxSetup ({
+                   // Disable caching of AJAX responses
+                   cache: false
+                });
+                    #set($LocalInputValue = $InputValue)
+
+                    #if ($Item.InputValue)
+                        #set ($LocalInputValue = $Item.InputValue)
+                    #end
+                    #if ("$!LocalInputValue" == "null" || "$!LocalInputValue" == 0)
+                        #set ($LocalInputValue = "")
+                    #end
+                    #set ($JQInputName = $Utils.getJQuerySelector($Item.InputName, $Index))
+                    #set ($jsVarName = $Item.InputName.replaceAll("[.]","_"))
+                    var $jsVarName = $("#$JQInputName").kendoComboBox({
+                        #if ("$!Item.CascadeFrom" != "")
+                            cascadeFrom: "$!Item.CascadeFrom",
+                        #end
+                    filter: "contains",
+                    readonly: #if($LocalProperties.IsDisabled) true #else false #end,
+                    placeholder: "$!LocalProperties.Placeholder",
+                    dataTextField: "text",
+                    #if ($Item.DataSource.Class.SimpleName == "String")
+                        dataValueField: "value",
+                        dataSource: {
+                            serverFiltering: true,
+                            transport: {
+                                read: {
+                                    url: "$Item.DataSource",
+                                    dataType: "json"
+                                }
+                            }
+                        }
+                    #else
+
+                        dataValueField: "value",
+                        dataSource: $JsonMapper.serializeItem($Item.DataSource)
+                    #end
+                    #if ("$!LocalInputValue" != "")
+                        ,value: "$LocalInputValue"
+                    #end
+                }).data("kendoComboBox");
+            </script>
+
+            ## set add new for first element
+            #if($LocalProperties.AddNewLink && !$Utils.isBlank($FirstInputName))
+                #set ($JQInputName = $Utils.getJQuerySelector($FirstInputName, $Index))
+                #macroOutputAddNewLink($FirstInputName $JQInputName $LocalProperties)
+            #end
+
+            #if($Item.ExtraHTML)
+                $Item.ExtraHTML
+            #end
+        </div>
+    #end
+#end
+
+
+#*
+@function			Render Kendo combobox
+
+@params	(required)	$ComboBoxItems (obj) - Items which make up the series of select elements
+*#
+#macro(macroInputComboBox
+    $InputName
+    $LabelText
+    $InputValue
+    $ComboBoxItems
+    $Properties
+    $Index
+)
+
+    #set($FirstInputName = $InputName)
+    <div class="input-line">
+        #set($LocalInputValue = $InputValue)
+        #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+        #foreach ($Item in $ComboBoxItems)
+
+            #if($Utils.isBlank($FirstInputName) && !$Utils.isBlank($Item.InputName))
+                #set($FirstInputName = $Item.InputName)
+            #end
+            #if ($Item.InputValue)
+                #set ($LocalInputValue = $Item.InputValue)
+            #end
+            #if ("$!LocalInputValue" == "null" || "$!LocalInputValue" == 0)
+                #set ($LocalInputValue = "")
+            #end
+            #if (!$LocalProperties.hideLabel)
+                #macroShowLabel($Item.InputName $Item.InputLabel $LocalProperties.LabelClass $LocalProperties.IsRequired $LocalProperties.IsDisabled $Index)
+            #end
+            ##<select id="$Item.InputName" name="$Item.InputName" style="display:none"
+            <select style="display:none"
+                #macroRenderInputAttributes($Item.InputName $LocalProperties.Placeholder $LocalProperties.IsRequired $LocalProperties.IsDisabled "" $LocalProperties.Tooltip $Index)
+                    ></select>
+##            <input style="$!LocalProperties.style"
+##                #macroRenderInputAttributes($Item.InputName $LocalProperties.Tooltip $LocalProperties.IsRequired $LocalProperties.IsDisabled)
+##                    />
+            <script type="text/javascript">
+                $.ajaxSetup ({
+                   // Disable caching of AJAX responses
+                   cache: false
+                });
+
+                #set ($JQInputName = $Utils.getJQuerySelector($Item.InputName, $Index))
+
+                //var $Item.InputName = $("#$JQInputName").kendoComboBox({
+                var tmp = $("#$JQInputName").kendoComboBox({
+                    #if ("$!Item.CascadeFrom" != "")
+                        cascadeFrom: "$!Item.CascadeFrom",
+                    #end
+                    filter: "contains",
+                    #if ("$!LocalInputValue" != "")
+                        value: "$LocalInputValue",
+                    #end
+                    placeholder: "#I18N($!LocalProperties.Placeholder)",
+                    dataTextField: "text",
+                    #if ($Item.DataSource.Class.SimpleName == "String")
+                        dataValueField: "name",
+                        dataSource: {
+                            serverFiltering: true,
+                            transport: {
+                                read: "$Item.DataSource"
+                            }
+                        }
+                    #else
+
+                        dataValueField: "value",
+                        dataSource: $JsonMapper.serializeItem($Item.DataSource)
+                    #end
+                    #if($LocalProperties.RestrictToList)
+                    ,change : function (e) {
+                        if (this.value() && this.selectedIndex == -1) {
+                            this._filterSource({
+                                value: "",
+                                field: this.options.dataTextField,
+                                operator: "contains"
+                            });
+                            this.select(1);
+                        }
+                    }
+                    #end
+
+##                    ,dataBound: function(e) {
+##                        ## Expand the width of the dropdown to match the size
+##                        ## of its largest option
+##                        var p = ${Item.InputName}.popup.element;
+##                        var minW = ${Item.InputName}.list.outerWidth();
+##                        var w = p.css("visibility","hidden").show().outerWidth() + 20;
+##                        p.hide().css("visibility","visible");
+##                        if (w > minW) {
+##                            ${Item.InputName}.wrapper.width(w);
+##                        }
+##                    }
+                }).data("kendoComboBox");
+                #if($LocalProperties.IsDisabled || $LocalProperties.IsReadOnly)
+                    tmp.readonly(true);
+                #end
+
+                #if ("$!LocalInputValue" != "")
+                    try {
+                        $("#$JQInputName").val("$!LocalInputValue");
+                    }
+                    catch(X){}
+                #end
+            </script>
+        #end
+
+        ## set add new for first element
+        #if($LocalProperties.AddNewLink && !$Utils.isBlank($FirstInputName))
+            #set ($JQInputName = $Utils.getJQuerySelector($FirstInputName, $Index))
+            #macroOutputAddNewLink($FirstInputName $JQInputName $LocalProperties)
+        #end
+    </div>
+#end
+
+#*
+@function	Render Kendo UI Image Browser
+@params		$InputName (string) - Name of input that will hold the id of the media data
+			$Properties (map) - Map of proprerties
+			$Index - Index
+*#
+#macro(macroImageSearch
+    $InputName
+    $Properties
+    $Index
+	)
+
+    #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+
+    <div class="input-line #if($ReadOnlyMode) view-line #end">
+        #set($LocalInputValue = "")
+        #set($LocalInputValue = $!Properties.InputValue)
+        #set ($InputId = "$InputName")
+        #set ($LocalInputName = $InputName)
+        #if ($springMacroRequestContext.isBound($InputName))
+            #springBind($InputName)
+            #set ($LocalInputName = $status.expression)
+            #if($Utils.isBlank("$!LocalInputValue"))
+                #set($LocalInputValue = $!status.value)
+            #end
+        #end
+        #if(!$Properties)#set($LocalProperties={})#else #set($LocalProperties = $Properties)#end
+        #macroShowLabel($InputName $LocalProperties.LabelText $LocalProperties.LabelClass $LocalProperties.IsRequired $LocalProperties.IsDisabled $Index)
+
+        <span class="select-image">
+            #if (!$Utils.isBlank("$!LocalInputValue"))
+                #set ($ImageActionText = "$!LocalProperties.LabelText")
+                #if($Utils.isBlank("$!ImageActionText"))
+                    #set ($ImageActionText = "$!{LocalInputValue.Name}")
+                #end
+                #set ($ImageActionText = "#I18N($ImageActionText)")
+                #set ($UserImagePath = "${AppPath}/media/stream/$!{LocalInputValue.Id}")
+                #set ($UserImageAlt = "$!{LocalInputValue.Name}")
+            #else
+                #set ($ImageActionText = "#I18N('admin.user.edit.changeimage')")
+                #set ($UserImagePath = "$AppPath/themes/default/imgs/icon-user-default.png")
+                #set ($UserImageAlt = "#I18N('admin.user.edit.changeimage')")
+            #end
+
+            <a #if(!$ReadOnlyMode)href="javascript:imageSearchOpenModalWin()"#end>
+                <img alt="$!UserImageAlt" id="${InputName}-image" src="$UserImagePath" #if(!$ReadOnlyMode)tooltip="$ImageActionText"#end />
+                <input type="hidden" class="k-input k-textbox" id="$!InputId" name="$!LocalInputName" value="$!{LocalInputValue.Id}">
+            </a>
+        </span>
+    </div>
+
+    <script>
+        function imageSearchOpenModalWin(){
+            var window = psApp.windowManager.open({title:"#I18N("image.selection.title")",width:'80%',height:'80%',content:"$AppPath/media/picker?inputname=${InputName.replaceAll("[.]","_")}&isreadonly=$!{Properties.IsReadOnly}&type=$!{LocalProperties.MediaType}",useIFrame:true});
+
+            top.${InputName.replaceAll("[.]","_")}CloseHandler = function(id,name){
+                if(id && name) {
+                    $("#${JQInputName}-image").attr("src", "${AppPath}/media/stream/" + id );
+                    $("#${JQInputName}-image").data("kendoTooltip").options.content = name;
+                    $("#${JQInputName}-image").data("kendoTooltip").refresh();
+                    $("#${JQInputName}-text").html(name);
+                    $("#${JQInputName}").val(id);
+                }
+                this.close();
+            }.bind(window)
+        }
+
+        function imageSearchClearImage$SafeInputName(){
+            $("#${JQInputName}-image").attr("src", "${AppPath}/imgs/icon-user-default.png");
+            $("#${JQInputName}-image").data("kendoTooltip").options.content = "#I18N('admin.user.edit.changeimage')";
+            $("#${JQInputName}-image").data("kendoTooltip").refresh();
+            $("#${JQInputName}-text").html("");
+            $("#${JQInputName}").val("");
+
+            $("#${JQInputName}-remove-link").hide();
+        }
+    </script>
+
+#end
+
+
+#*
+@function	Render Kendo UI date picker
+
+@params		$InputName (string) - Name of input
+			$LabelText (string) - Label text
+			$InputValue (string) - Input value
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+			    SearchData (json or url) - either a json object or a url to get the json from
+			    Data - List of possible values
+
+*#
+#macro(macroInputAutocompleteText
+	$InputName
+	$LabelText
+    $InputValue
+    $Properties
+    $Index
+    )
+
+    #macroGeneralPurposeInput("autocomplete" $InputName $LabelText $InputValue $Properties $Index)
+
+    ##
+    ## Make sure we are showing the date correctly
+    ## Default it to todays date then disect it.
+    ## and present it to javascript in an unambiguous form
+    ##
+
+
+    #set ($JQInputName = $Utils.getJQuerySelector($InputName, $Index))
+
+    <script>
+        var data = [
+              #foreach($dataRow in $Properties.Data)
+                  #if($velocityCount > 1),#end "$dataRow"
+              #end
+        ];
+
+        $('#$JQInputName').kendoAutoComplete({
+            dataSource: data
+        });
+
+	</script>
+#end
+
+#*
+@function	Render the standard form submit buttons
+@params		$Properties (map) - map of settings for the form
+                $Properties.leftButtons - Array of extra buttons - only displayed if present
+                $Properties.rightButtons - Array of extra buttons - only displayed if present
+                $Properties.saveAndCloseButton - Map of properties for the save and close button - only shown if specified
+                $Properties.saveButton - Map of properties for the Save button - shown if editing unless hidden
+                $Properties.cancelButton - Map of properties for the cancel button - shown unless hidden
+                $Properties.editButton - Map of properties for the edit button  - shown if viewing unless hidden
+                $Properties.hideCreateAnother - boolean, true to hide Create Another checkbox
+                $Properties.leftMenu - Settings for left menu
+                                     - id id given to dom element
+                                     - title displayed on menu button
+                                     - items for the menu
+
+                Each Button has the following properties
+                    hide - if true then button is not shown
+                    id - Id of button
+                    label - Label for button
+                    style - Style for button
+                    icon  - Font awesome icon
+                    iconLast - Places icon after text
+                    tooltip - Tooltip
+                    link - Action to perform when clicked
+
+*#
+#macro(macroStandardFormButtons $Properties)
+    <div class="button-wrap form-toolbar k-header">
+        <table>
+            <tr>
+                    #if($Properties.leftMenu)
+                <td>
+                    ## Show left hand menu
+                        <ul id="$Properties.leftMenu.id"><li>#I18N("$!Properties.leftMenu.title")<ul>
+                        #foreach($ItemKey in $Properties.leftMenu.items.keySet())
+                            <li action="$Properties.leftMenu.items.get($ItemKey)">#I18N($ItemKey)</li>
+                        #end
+                        </ul></li></ul>
+                </td>
+                    #end
+                <td>
+                    ## Show left hand buttons
+
+                    #foreach($Button in $Properties.leftButtons)
+                        #macroShowFormButton($Button $NULL)
+                    #end
+                </td>
+                <td style="text-align:right">
+
+                    ## Show right hand buttons
+
+                    #if($Properties.rightButtons)
+                        #foreach($Button in $Properties.rightButtons)
+                            #macroShowFormButton($Button $NULL)
+                        #end
+                    #end
+
+                    ## Show create another checkbox if copying or adding buttons
+
+                    #if (!$Properties.hideCreateAnother && $EditState.is("ADDING","COPYING"))
+                        #macroInputCheckbox("pinned" "global.button.createanother" $pinned {"Tooltip":"global.button.createanother.description", "DivClass":"create-another"})
+                    #end
+
+                    ## Show save and close button
+
+                    #if ($EditState.is("ADDING","COPYING","EDITING"))
+                        #if(!$Properties.saveButton || ($Properties.saveButton && !$Properties.saveButton.hide))
+                            #macroShowFormButton($!Properties.saveButton {"id":"submit","type":"submit","tooltip":"global.button.save.description","icon":"fa-save","label":"global.button.save"})
+                        #else
+                            #macroShowFormButton($NULL {"id":"submit","type":"submit","style":"visibility:hidden;padding:0;margin:0"})
+                        #end
+                        #if($Properties.saveAndCloseButton && !$Properties.saveAndCloseButton.hide)
+                            #macroShowFormButton($!Properties.saveAndCloseButton {"id":"saveandclose","tooltip":"global.button.saveandclose.description","icon":"fa-save","label":"global.button.saveandclose"})
+                            #macroInputHidden("closewindow" "false")
+                            <script>
+                                $('#saveandclose').click(function(event) {
+                                    event.stopPropagation();
+                                    $("#pinned").remove();
+                                    $("#closewindow").val(true);
+                                    $("#submit").click();
+                                    return false;
+                               });
+                            </script>
+                        #end
+
+                    #elseif ($Properties.editButton && !$Properties.editButton.hide && !$Properties.hideEditButton)
+                        ## Show 'swap to edit' button
+                        #if($!Properties.editButton.link)
+                            #set($EditLinkUrl = "$!Properties.editButton.link")
+                        #else
+                            #set($EditLinkUrl = "$AppPath/$PageName/$SubPageName/edit?id=$Entity.Id")
+                        #end
+                        #macroShowFormButton($Properties.editButton {"id":"edit","tooltip":"global.button.edit.description","icon":"fa-pencil","label":"global.button.edit","link": "$!EditLinkUrl"})
+                    #end
+
+                    ## Show cancel button
+
+                    #if (!$Properties.cancelButton.hide)
+                        #macroShowFormButton($!Properties.cancelButton {"id":"cancel","tooltip":"global.button.cancel.description","icon":"fa-undo","label":"global.button.cancel"})
+                        <script>
+                            $('#cancel').click(function(event) {
+                                var modalWindow = psApp.windowManager.getCurrentWindow();
+                                if (modalWindow) {
+                                    psApp.windowManager.close();
+                                }
+                            });
+                        </script>
+                    #end
+                </td>
+            </tr>
+        </table>
+    </div>
+#end
+
+#*
+@function Output button using properties as specified and defaults where not
+@params $ButtonProperties - Map of properties
+                              id - Id of button, must be specified
+                              hide - don't display button
+                              type - type of button (defaults to button)
+                              tooltip - Tooltip for button
+                              style - Style to be applied to button
+                              cssClass - Class to be applied to the button
+                              label - Label for button
+                              link - Action to take when clicked
+                              icon - Fontawesome icon id to appear on button
+                              attributes - List of nanme:value attributes to be added
+                              onClick - Function to run when button is clicked - must return true for action to happen
+        $Default - as above but details from this map are used if not
+                    present in $ButtonProperties
+*#
+#macro(macroShowFormButton $ButtonProperties $Default)
+    #if(!$ButtonProperties.hide)
+        ## Get settings
+        #if($ButtonProperties.id)
+            #set($ThisButtonId = $ButtonProperties.id)
+        #elseif($Default && $Default.id)
+            #set($ThisButtonId = $Default.id)
+        #else
+            #set($ThisButtonId = "")
+        #end
+
+        #if($ButtonProperties.type)
+            #set($ThisButtonType = $ButtonProperties.type)
+        #elseif($Default && $Default.type)
+            #set($ThisButtonType = $Default.type)
+        #else
+            #set($ThisButtonType = "button")
+        #end
+
+        #if($ButtonProperties.tooltip)
+            #set($ThisButtonTooltip = $ButtonProperties.tooltip)
+        #elseif($Default && $Default.tooltip)
+            #set($ThisButtonTooltip = $Default.tooltip)
+        #else
+            #set($ThisButtonTooltip = "")
+        #end
+
+        #if($ButtonProperties.style)
+            #set($ThisButtonStyle = $ButtonProperties.style)
+        #elseif($Default && $Default.style)
+            #set($ThisButtonStyle = $Default.style)
+        #else
+            #set($ThisButtonStyle = "")
+        #end
+
+        #if($ButtonProperties.cssClass)
+            #set($ThisButtonCssClass = $ButtonProperties.cssClass)
+        #elseif($Default && $Default.cssClass)
+            #set($ThisButtonCssClass = $Default.cssClass)
+        #else
+            #set($ThisButtonCssClass = "")
+        #end
+
+        #if($ButtonProperties.label)
+            #set($ThisButtonLabel = $ButtonProperties.label)
+        #elseif($Default && $Default.label)
+            #set($ThisButtonLabel = $Default.label)
+        #else
+            #set($ThisButtonLabel = "")
+        #end
+
+        #if($ButtonProperties.link)
+            #set($ThisButtonLink = $ButtonProperties.link)
+        #elseif($Default && $Default.link)
+            #set($ThisButtonLink = $Default.link)
+        #else
+            #set($ThisButtonLink = "")
+        #end
+
+        #if($ButtonProperties.icon)
+            #set($ThisButtonIcon = $ButtonProperties.icon)
+        #elseif($Default && $Default.icon)
+            #set($ThisButtonIcon = $Default.icon)
+        #else
+            #set($ThisButtonIcon = "")
+        #end
+
+        #if($ButtonProperties.attributes)
+            #set($ThisButtonAttributes = $ButtonProperties.attributes)
+        #elseif($Default && $Default.attributes)
+            #set($ThisButtonAttributes = $Default.attributes)
+        #else
+            #set($ThisButtonAttributes = {})
+        #end
+
+        #if($ButtonProperties.ariaLabel)
+            #set($ThisButtonAriaLabel = $ButtonProperties.ariaLabel)
+        #elseif($Default && $Default.ariaLabel)
+            #set($ThisButtonAriaLabel = $Default.ariaLabel)
+        #else
+            #set($ThisButtonAriaLabel = $ThisButtonToolTip)
+        #end
+        #if(!$Utils.isBlank($ThisButtonAriaLabel))
+            #set($tmp=$ThisButtonAttributes.put("aria-label", $I18n.translate($ThisButtonAriaLabel, true)))
+        #end
+
+        #if($ButtonProperties.iconLast)
+            #set($ThisButtonIconLast = $Utils.isYes($ButtonProperties.iconLast))
+        #elseif($Default && $Default.iconLast)
+            #set($ThisButtonIconLast = $Utils.isYes($Default.iconLast))
+        #else
+            #set($ThisButtonIconLast = false)
+        #end
+
+        #if($ThisButtonId && !$Utils.isBlank($ThisButtonId))
+            <button type="$!ThisButtonType" id="$!ThisButtonId" class="btn btn-primary $!ThisButtonCssClass"
+                #if(!$Utils.isBlank($ThisButtonStyle))
+                    style="$!ThisButtonStyle"
+                #end
+##                #if($ThisButtonTooltip && !$Utils.isBlank($ThisButtonTooltip))
+##                tooltip="#I18N("$!ThisButtonTooltip")"
+##                #end
+                #if(!$Utils.isBlank($ThisButtonAttributes))
+                    #foreach($AttributeName in $ThisButtonAttributes.keySet())
+                        $AttributeName="$!ThisButtonAttributes.get($AttributeName)"
+                    #end
+                #end
+
+                >
+                #if(!$ThisButtonIconLast)
+                    <i class="fa $!ThisButtonIcon"></i>
+                #end
+                #I18N("$!ThisButtonLabel")
+                #if($ThisButtonIconLast)
+                    <i class="fa $!ThisButtonIcon"></i>
+                #end
+            </button>
+            #set($hasLink = $ThisButtonLink && !$Utils.isBlank($ThisButtonLink))
+            #if($hasLink || $ButtonProperties.onClick)
+                <script>
+                    $('#${ThisButtonId}').click(function(event) {
+                        #if($hasLink)
+                            event.stopPropagation();
+                            document.location.href = "$ThisButtonLink";
+                            return false;
+                        #end
+                        #if($ButtonProperties.onClick)
+                            event.preventDefault();
+                            return ${ButtonProperties.onClick}($('#${ThisButtonId}'));
+                        #end
+                   });
+                </script>
+            #end
+        #end
+    #end
+#end
+#*
+@function	Popup code editor
+
+@params		$InputName (string) - Name of input
+			$Type (string) - Type of editor to show (definition,velocity,xml,properties)
+			$LabelText (string) - Label text
+			$InputValue (string) - Input value
+			$Properties (map) - See macroGeneralPurposeInput for list of properties
+                $Width (string) - Initial width of the window (e.g. 400px or 70%)
+                $Height (string) - Initial height of the window (e.g. 400px or 70%)
+
+*#
+#macro(macroInputCodeEditor
+    $InputName
+    $Type
+    $LabelText
+    $InputValue
+    $Properties
+    $Index
+)
+    #macroInputTextArea($InputName $LabelText $InputValue {"IsInvisible":true} $Index)
+    #set($btnKey = "${InputName}.editor.button.title")
+    #set($titleKey = "${InputName}.editor.title")
+    #if($ReadOnlyMode)
+        #set($btnKey = "${InputName}.editor.button.view.title")
+        #set($titleKey = "${InputName}.editor.view.title")
+
+    #end
+    #macroButtonAction("${InputName}_actionbutton" "$btnKey")
+
+    #if ($Properties.Width)
+        #set ($Width = $Properties.Width)
+    #else
+        #set ($Width = "80%")
+    #end
+    #if ($Properties.Height)
+        #set ($Height = $Properties.Height)
+    #else
+        #set ($Height = "80%")
+    #end
+
+    <script>
+        #set ($JQInputName = $Utils.getJQuerySelector($InputName))
+        $("#$JQInputName").data("editHandler", {
+
+            element: $("#$JQInputName"),
+
+            edit: function(button) {
+                psApp.windowManager.open({title:"#I18N($titleKey)", width:"$Width", height:"$Height", content:"$AppPath/media/editor?type=$!Type&id=$InputName&read_only=$!ReadOnlyMode", useIFrame:true, customActions:[
+                    "Maximize","Refresh","Close"
+                    #if(!$ReadOnlyMode)
+                    ,
+                    {
+                        name:"pencil",
+                        handler: $("#$JQInputName").data("editHandler").save
+                    }
+                    #end
+                ]});
+                return false;
+            },
+            save: function(modalWindow) {
+                var content = this.window.MediaEditorHelper.getContent();
+                $("#$JQInputName").data("editHandler").element.text(content);
+                this.window.psApp.windowManager.clearDirty()
+                this.close();
+            }
+        });
+        $("#${JQInputName}_actionbutton").click(function() {
+            $("#$JQInputName").data('editHandler').edit();
+        });
+    </script>
+#end
+
+#macro(macroFroalaEditor $ElementSelector $FieldSelector $Properties)
+
+    #set($LocalProperties = $Properties)
+    #if(!$LocalProperties.containsKey("height"))
+        #set($tmp=$LocalProperties.put("height", "200px"))
+    #end
+    #if(!$LocalProperties.containsKey("width"))
+        #set($tmp=$LocalProperties.put("width", "100%"))
+    #end
+    #if($LocalProperties.containsKey("TextOnlyButtons") && $Utils.isYes($LocalProperties.get("TextOnlyButtons")))
+    var froalaButtons = ['bold','italic','underline','|'
+                         ,'fontFamily','fontSize','color','paragraphFormat','align'
+                         ,'outdent','indent','|'
+                         ,'insertTable','|'
+                         ,'undo','redo','insertLink','|','html'
+                         ,'fullscreen'
+                        ];
+    #else
+    var froalaButtons = ['bold','italic','underline','|'
+                         ,'fontFamily','fontSize','color','paragraphFormat','paragraphStyle','inlineStyle','align','formatOL','formatUL'
+                         ,'outdent','indent','|'
+                         ,'insertImage','insertTable','|'
+                         ,'undo','redo','html','|'
+                         ,'fullscreen'
+##                         ,'|','CodeSnippets'
+                        ];
+    #end
+
+    #if($Properties.toolbarSticky == true)
+        #set($ToolbarSticky = true)
+    #else
+        #set($ToolbarSticky = false)
+    #end
+
+    $("$ElementSelector").froalaEditor({ toolbarInline: false
+        ,height:'$!LocalProperties.height'
+        ,width:'$!LocalProperties.width'
+        ,spellcheck:true
+        ,toolbarSticky:$ToolbarSticky
+        ,toolbarButtons:froalaButtons
+        ,toolbarButtonsSM:froalaButtons
+        ,toolbarButtonsMD:froalaButtons
+        ,toolbarButtonsXS:froalaButtons
+        ,imageManagerLoadURL: "$!LocalProperties.imageManagerLoadURL"
+        ,imageManagerDeleteURL: "$!LocalProperties.imageManagerDeleteURL"
+        ,imageUploadURL: "$!LocalProperties.imageUploadURL"
+        ,paragraphStyles: psApp.froalaHelper.getParagraphTypes()
+        ,paragraphMultipleStyles: false
+        ,codeMirrorOptions : {
+              indentWithTabs: true,
+              lineNumbers: true,
+              lineWrapping: true,
+              mode: 'text/html',
+              tabMode: 'indent',
+              tabSize: 4
+            }
+        ,inlineStyles: {
+             'Label': 'white-space:nowrap;padding-right:10px'
+        }
+    });
+
+    #if($LocalProperties.readonly)
+        $("$ElementSelector").froalaEditor('edit.off');
+        $("$ElementSelector").froalaEditor('toolbar.disable');
+    #end
+
+    psApp.froalaHelper.paragraphNumbersInit("$ElementSelector", "$FieldSelector");
+    psApp.froalaHelper.initialise("$ElementSelector");
+#end
+
+#macro(macroShowGoogleMap $DivId $Properties)
+<script>
+#if($Utils.isYes($Properties.disableDefaultUI))
+    #set($DisableDefaultUI = "true")
+#else
+    #set($DisableDefaultUI = "false")
+#end
+    var googleMapUtils = {
+
+        map: null,
+        marker: null,
+        closeZoom:17,
+        midZoom:14,
+        farZoom:9,
+        markerCallback: null,
+        kmlLayers: [],
+        mapListener: null,
+        onLoad:null,
+        readOnly:false,
+        disableDefaultUI:$DisableDefaultUI,
+
+        initMap: function () {
+            #if($Properties.longitude)
+                #set($Lng = "$!Properties.longitude")
+            #else
+                #set($Lng = "-0.07863163948059082")
+            #end
+            #if($Properties.latitude)
+                #set($Lat = "$!Properties.latitude")
+            #else
+                #set($Lat = "51.504829231091406")
+            #end
+            var startPos = {lat: $Lat, lng: $Lng};
+            var showMarker = false;
+            var zoom = googleMapUtils.farZoom;
+            googleMapUtils.map = new google.maps.Map(document.getElementById('$!DivId'), {
+                zoom: zoom,
+                center: startPos,
+                disableDefaultUI: googleMapUtils.disableDefaultUI
+            });
+
+            google.maps.event.addListenerOnce(googleMapUtils.map, 'idle', function() {
+                googleMapUtils.mapListener = googleMapUtils.map.addListener('click', googleMapUtils.addMarkerFromEvent);
+
+                if (showMarker)
+                    googleMapUtils.showMarker(startPos);
+
+                if (googleMapUtils.onLoad)
+                    googleMapUtils.onLoad();
+            });
+        },
+
+        addMarkerFromEvent: function(event) {
+            if (googleMapUtils.map.getZoom() < googleMapUtils.midZoom)
+                googleMapUtils.setCenter(event.latLng.lng(), event.latLng.lat(), googleMapUtils.midZoom, false);
+            else
+                googleMapUtils.addMarker(event.latLng.lng(), event.latLng.lat())
+        },
+
+        addMarker: function(longitude, latitude) {
+            if(!googleMapUtils.readOnly || googleMapUtils.marker == null) {
+                googleMapUtils.removeMarker();
+                googleMapUtils.showMarker({lat: latitude, lng: longitude});
+            }
+        },
+
+        showMarker: function(markerPos) {
+
+            if (googleMapUtils.apiReady()) {
+                googleMapUtils.marker = new google.maps.Marker({
+                    position: markerPos,
+                    map: googleMapUtils.map,
+                    draggable: !googleMapUtils.readOnly,
+                    animation: google.maps.Animation.DROP,
+                });
+                if(!googleMapUtils.readOnly) {
+                    googleMapUtils.marker.addListener('dblclick', googleMapUtils.removeMarker);
+                    if (googleMapUtils.markerCallback) {
+                        googleMapUtils.markerCallback(googleMapUtils.getLocationDetails());
+                        googleMapUtils.marker.addListener('dragend', function () {
+                            googleMapUtils.markerCallback(googleMapUtils.getLocationDetails());
+                        });
+                    }
+                }
+            }
+            else
+                PivotalUtils.showNotification("Google Mapping API not availble, try again in a few seconds");
+        },
+
+        removeMarker: function() {
+            if (googleMapUtils.marker != null) {
+                googleMapUtils.marker.setMap(null);
+                googleMapUtils.marker = null;
+            }
+        },
+
+        getLocationDetails: function() {
+            var returnValue = {};
+
+            if (googleMapUtils.marker != null) {
+
+                returnValue.lng = googleMapUtils.marker.position.lng();
+                returnValue.lat = googleMapUtils.marker.position.lat();
+
+            }
+            return returnValue;
+        },
+
+        setCenter: function(longitude, latitude, zoom, moveMarker) {
+            googleMapUtils.map.setCenter({lat: latitude, lng: longitude });
+            var zoomToUse = zoom? zoom : googleMapUtils.midZoom;
+            googleMapUtils.map.setZoom(zoomToUse);
+            if (moveMarker)
+                googleMapUtils.addMarker(longitude, latitude);
+        },
+
+        apiReady: function() {
+            return (typeof google === 'object' && typeof google.maps === 'object');
+        },
+
+        addKMLFile: function(filename) {
+            if (googleMapUtils.apiReady && filename) {
+                googleMapUtils.kmlLayers.push(new google.maps.KmlLayer(filename, {
+                    suppressInfoWindows: true,
+                    preserveViewport: true,
+                    clickable: true,
+                    zindex:100,
+                    map: googleMapUtils.map
+                }));
+                if (googleMapUtils.kmlLayers && googleMapUtils.kmlLayers.length==1) {
+                    googleMapUtils.kmlLayers[0].addListener('click', googleMapUtils.addMarkerFromEvent);
+
+                    // Layer override map listener
+                    if (googleMapUtils.mapListener)
+                        google.maps.event.removeListener(googleMapUtils.mapListener);
+                }
+            }
+        }
+    }
+
+
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=${HibernateUtils.getMappingKey()}&callback=googleMapUtils.initMap"></script>
+
+#end
+
+#macro(macroAddGoogleMapLayers)
+    #foreach($kmlFile in $MappingManager.getMappingFileList())
+         googleMapUtils.addKMLFile("$!kmlFile");
+    #end
+#end
+
+#macro(macroShowReadOnlyGoogleMap $DivId $Longitude, $Latitude)
+
+    #macroShowGoogleMap($DivId {"disableDefaultUI":false})
+
+    <script>
+        $(document).ready(function () {
+            googleMapUtils.onLoad = function() {
+                #macroAddGoogleMapLayers()
+                googleMapUtils.readOnly = true;
+                #if ($Longitude && $Latitude)
+                    googleMapUtils.addMarker($Longitude,$Latitude);
+                    googleMapUtils.setCenter($Longitude,$Latitude, googleMapUtils.closeZoom, false);
+                #end
+            }
+        });
+    </script>
+
+#end
+
+## Adds prefix to suffix if condition is true otherwise sets $prefix
+## All elements in the condition array must be true
+#macro(macroSetExtraFilter $Prefix $Suffix $Conditions)
+
+    #set($ConditionResult=true)
+    #set($conditionIndex=0)
+    #foreach($SubCondition in $Conditions)
+        #if(!$SubCondition || $utils.isBlank($SubCondition))
+            #set($ConditionResult=false)
+            #break
+        #end
+    #end
+    #if($ConditionResult)
+        #set($ExtraFilter = $Prefix + " " + $Suffix)
+    #else
+        #set($ExtraFilter = $Prefix)
+    #end
+#end
+

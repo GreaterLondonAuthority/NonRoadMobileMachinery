@@ -1,0 +1,67 @@
+/**
+* function z
+* @param layer The key to get the z-index value for.
+* */
+@function z($layer) {
+  @if not map-has-key($z-layers, $layer) {
+    // Provide a compiler warning to notify the developer that an invalid key has been provided.
+    @warn "No layer found for '#{$layer}' in $z-layers map. Property omitted.";
+  }
+
+  // Return the value based on the key.
+  @return map-get($z-layers, $layer);
+}
+
+/**
+* Map of layers which require a z-index, and it's associated z-index position.
+*
+* presentation-mode-progress: Presentation mode progress bar
+* widget-dialog-submit:       Dashboard Widget Dialog submit button.
+* percent:                    Percent field
+* optimisation-overlay:       Optimisation overlay
+* off-canvas-menu-footer:     Footer of the slide out menu
+* login-banner:               Horizontal banner for the login display
+* planner-left-pane:          Layout planner left panel
+* login-content:              Form content for the login display
+* sidebar:                    Main layout sidebar/menu
+* entity-search-header:       Header for the entity selector
+* entity-search-sidebar:      Sidebar for the entity selector
+* back-to-top:                Back to top button
+* topbar:                     Main layout topbar/header
+* off-canvas-mask:            The slide out menu modal mask
+* modal-screen:               The dashboard modal
+* widget-menu:                Dashboards widget menu.
+* planner-dropdown-menu:      Layout Planner drop down menu
+* optimisation-room-select:   Optimisation room select overlay.
+* widget-dialog-caption:      Dashboard Widget Dialog caption.
+* colorbox:                   The color picker.
+* login-locales:              The login locale selector container.
+* gridster-gs-w:              The dashboard gridster override.
+* animation-container:        Notification animation container.
+* */
+$z-layers: (
+  "presentation-mode-progress": 1,
+  "widget-dialog-submit": 1,
+  "percent": 2,
+  "optimisation-overlay": 2,
+  "off-canvas-menu-footer": 10,
+  "login-banner": 15,
+  "planner-left-pane": 20,
+  "login-content": 25,
+  "sidebar": 100,
+  "entity-search-header": 100,
+  "entity-search-sidebar": 100,
+  "back-to-top": 100,
+  "topbar": 180,
+  "off-canvas-mask": 190,
+  "modal-screen": 1000,
+  "widget-menu": 1000,
+  "planner-dropdown-menu": 1000,
+  "optimisation-room-select": 1000,
+  "widget-dialog-caption": 1000,
+  "alarm-dropdown": 1000,
+  "colorbox": 10020,
+  "login-locales": 30000,
+  "gridster-gs-w": 30000,
+  "animation-container": 10000002
+);

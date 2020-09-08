@@ -1,0 +1,4 @@
+#set($LastBreadCrumb = "#I18N('profile.edit.pagetitle')")
+#parse("external/header.inc")
+#parse("$PageName/main-content.inc")
+#parse("external/footer.inc")

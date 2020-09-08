@@ -1,0 +1,57 @@
+#parse("external/header.inc")
+#macroDashboardHeader()
+#parse("${PageName}/${PageToDisplay}.vm")
+
+<script>
+    $(document).ready(function() {
+        $(".siteRow").on("click", function () {
+            location.href = "$AppPath/site/view/" + $(this).attr("siteId");
+        });
+
+        $(".machineryRow").on("click", function () {
+            var machineryId = $(this).attr("machineryId");
+            var siteId = $(this).attr("siteId");
+            if (machineryId && siteId)
+                location.href = "$AppPath/machinery/edit/" + siteId  + "/" + machineryId;
+            else if (siteId)
+                location.href = "$AppPath/site/view/" + siteId;
+
+        });
+
+        $(".inviteRow").on("click", function () {
+
+            var guid = $(this).attr("guid");
+            if (guid) {
+                PivotalUtils.getJsonContentAsync("$AppPath/action/" + guid, "", function (response) {
+                    if (response.inError)
+                        alert(response.error);
+                    else {
+                        alert(response.data.Message);
+                        location.reload();
+                    }
+                });
+            }
+        });
+
+        $(".removeSiteUser").on("click", function() {
+
+            var roleId = $(this).attr("roleid");
+            var siteId = $(this).attr("siteid");
+            if (roleId && siteId && confirm("#I18N('site.user.remove.confirm.message')")) {
+                psApp.workflow.execute("$AppPath", "REMOVE_SITE_USER", "siteId=" + siteId + "&roleId=" + roleId, function (response) {
+                    if (response.inError)
+                        alert(response.error);
+                    else {
+                        if (response.data && response.data.Message)
+                            alert(response.data.Message);
+                        location.reload();
+                    }
+                });
+            }
+            return false
+        });
+
+    });
+</script>
+
+#parse("external/footer.inc")

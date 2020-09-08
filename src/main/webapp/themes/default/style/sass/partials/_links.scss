@@ -1,0 +1,59 @@
+.minified {
+  .global-header {
+    .links {
+      flex-direction: column;
+      -webkit-flex-direction: column;
+      & > div {
+        padding: 5px 0;
+      }
+    }
+  }
+}
+
+.global-header {
+  .links {
+    padding: 7px 0;
+    display: flex;
+    display: -webkit-flex;
+
+    i {
+      font-size: 1.8em;
+    }
+
+    div {
+      flex: 1;
+      -webkit-flex: 1;
+      text-align: center;
+
+      &.active a {
+        color: #000;
+      }
+    }
+
+    a {
+
+      &:hover {
+        color: #000;
+      }
+
+      color: #fff;
+      text-decoration: none;
+      padding: 0 12px;
+
+
+    }
+
+    .optimise {
+      display: inline-block;
+      width: 30px;
+      height: 20px;
+      margin-left: 10px;
+      background: url('../imgs/optimise.png') no-repeat 0 0;
+      text-indent: -99999px;
+    }
+    .optimise:hover, .optimise.active {
+      background-position: 0 -20px;
+    }
+  }
+}
+

@@ -1,0 +1,25 @@
+/*
+Mapping viewer
+------------------------------*/
+#mappingCaseTitle {
+  padding:3px;
+  background-color: whitesmoke;
+  color: black;
+  font-weight: 600;
+}
+#mappingGLACopyright {
+  font-size:10pt;
+  font-family:"Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif;
+  color:dimgrey;
+  position:absolute;
+  left:10px;
+  bottom:10px;
+}
+#mappingLegend {
+  top:30px;
+  position:absolute;
+  width:250px;
+  padding:3px;
+  margin-left:10px;
+  border: 2px solid grey;
+}

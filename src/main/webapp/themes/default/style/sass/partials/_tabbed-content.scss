@@ -1,0 +1,17 @@
+/*
+Tabbed content
+------------------------------*/
+.tabbed-content-wrap.js-on {
+  position:relative;
+  .tab-links {
+    li {
+      display:inline-block;
+      list-style:none outside;
+    }
+  }
+  .tab-item {
+    //left:0;
+    //position:absolute;
+    //top:50px;
+  }
+}

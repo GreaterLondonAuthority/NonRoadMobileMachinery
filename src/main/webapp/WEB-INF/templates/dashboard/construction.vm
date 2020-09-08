@@ -1,0 +1,21 @@
+<ul class="dashboard list-unstyled">
+    <li>
+        #set($MasterWhereClause = "machinery.site in (select primaryKey.site from SiteUsersEntity su where su.primaryKey.user.id = $CurrentUser.id and ((lower(su.role.name) = 'sub-contractor' and machinery.adminUser.id = $CurrentUser.id) or (lower(su.role.name) <> 'sub-contractor')))")
+        #macroAddMachineryWidget("Machinery awaiting a decision","lower(machinery.exemptionStatus)='pending' and $MasterWhereClause")
+    </li>
+
+    <li>
+        #set($MasterWhereClause = "machinery.site in (select primaryKey.site from SiteUsersEntity su where su.primaryKey.user.id = $CurrentUser.id and ((lower(su.role.name) = 'sub-contractor' and machinery.adminUser.id = $CurrentUser.id) or (lower(su.role.name) <> 'sub-contractor')))")
+        #macroAddMachineryWidget("Machinery requiring TAN to be checked","lower(machinery.exemptionStatus)='check tan' and $MasterWhereClause")
+    </li>
+
+    <li>
+        #set($EndDate=$Utils.dateFormat($Utils.addDate($Utils.getDate(),7,-10), "yyyyMMdd"))
+        #set($MySiteQuery = "select su.primaryKey.site from SiteUsersEntity su where su.primaryKey.user.id = $CurrentUser.id and su.primaryKey.site.endDate >= '$EndDate'")
+        #macroAddSiteWidget("Your Sites" $MySiteQuery $Where "lower(su.primaryKey.site.name)")
+    </li>
+
+    <li>
+        #macroAddInvitationsWidget("Site Invitations")
+    </li>
+</ul>

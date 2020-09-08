@@ -1,0 +1,24 @@
+/*
+Kendo Color Picker
+Need to override default Kendo styles. Might get a bit ugly...
+------------------------------*/
+.k-colorpicker {
+  border-radius:0;
+  .k-picker-wrap,
+  .k-selected-color,
+  .k-picker-wrap.k-state-border-down .k-selected-color,
+  .k-select {
+    border-radius:0;
+  }
+  .k-selected-color {
+    width:50px;
+  }
+  .k-select {
+    @include vertGradient(#fdfdfd, #ededed);
+  }
+}
+.k-flatcolorpicker {
+  .k-color-value {
+    border-radius:0;
+  }
+}

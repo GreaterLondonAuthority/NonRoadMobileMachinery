@@ -1,0 +1,101 @@
+#parse("includes/initialise.inc")
+#parse("$PageName/macros.inc")
+
+<div style="margin-bottom:10px">
+    #I18N("status.threads.count") $Threads.size()
+    #I18N("status.threads.runnable") $RunnableCount
+</div>
+
+#set ($AppName = $APPLICATION_INSTANCE_NAME.replaceAll("([()])", "\\$1"))
+#macroStartStatusTable("status.threads.title")
+    #set ($CurrentState = "")
+    #foreach ($Thread in $Threads.entrySet())
+
+        #set ($Item = $Thread.Value)
+        #set ($StackTrace=$ThreadInfo.getThreadInfo($Item.Id, 1).StackTrace)
+        #set ($CpuTime=$ThreadInfo.getThreadCpuTime($Item.Id) / 1000000)
+        #set ($Style="style='font-weight:normal'")
+        #set ($StyleHead="")
+
+        #if ($foreach.index==0 || ($CurrentState.startsWith("A ") && !$Thread.Key.startsWith("A ")))
+            <thead>
+                #if ($foreach.index==0)
+                    <tr>
+                        <th class="header" colspan="9">#I18N("status.threads.active.name")</th>
+                    </tr>
+                #else
+                    <tr>
+                        <th class="header" colspan="9">#I18N("status.threads.inactive.name")</th>
+                    </tr>
+                #end
+                <tr>
+                    <th style="text-align:left;width:200px">#I18N("status.threads.name")</th>
+                    <th style="text-align:left">#I18N("status.threads.state")</th>
+                    <th style="text-align:left">#I18N("status.threads.id")</th>
+                    <th style="text-align:left">#I18N("status.threads.priority")</th>
+                    <th style="text-align:left">#I18N("status.threads.group")</th>
+                    <th style="text-align:left">#I18N("status.threads.daemon")</th>
+                    <th style="text-align:left">#I18N("status.threads.in_native")</th>
+                    <th style="text-align:left">#I18N("status.threads.cpu_time")</th>
+                    <th style="text-align:left">#I18N("status.threads.class")</th>
+                </tr>
+            </thead>
+        #end
+        #set ($CurrentState=$Thread.Key)
+
+        <tr>
+            #if($Item.Name.startsWith("ScheduledTask"))
+                #set($Style="style='font-weight:bold;background-color:#ffd0d0'")
+            #end
+
+            #if($Item.Name.matches("(?i)ScheduledTask.*"))
+                <td nowrap $Style>
+                    #set ($TaskId=$Item.Name.replaceAll(".+\(","").replaceAll("\)",""))
+                    <i class="fa fa-trash-o actionButton"
+                       style="cursor:pointer"
+                       actionType="killTask"
+                       threadId="$Item.Id"
+                       threadName="$Item.Name"
+                       tooltip='#I18N("status.threads.kill.task")'
+                       style="vertical-align:middle"></i>&nbsp;
+                    $Item.Name
+                </td>
+
+            #elseif($Item.Name.matches("(?i)($AppName.*)|(ajp - .*)|(http - .*)"))
+                <td nowrap style='font-weight:bold;color:red'>
+                    #if (!$Item.Name.matches("(?i)$AppName .+Watchdog.*"))
+                        <i class="fa fa-trash-o actionButton"
+                           style="cursor:pointer"
+                           actionType="killThread"
+                           threadId="$Item.Id"
+                           threadName="$Item.Name"
+                           tooltip='#I18N("status.threads.kill.thread")'
+                           style="vertical-align:middle"></i>&nbsp;
+                    #end
+                    $Item.Name
+                </td>
+
+            #elseif($Item.Name.contains("StandardEngine"))
+                <td nowrap $Style title="$Item">#I18N("status.threads.servlet.container")</td>
+
+            #else
+                <td nowrap $Style>$utils.justifyLeft($Item.Name,40,"<br>")</td>
+            #end
+
+            <td nowrap width="100px;" $Style>$Item.State</td>
+            <td nowrap width="50px" $Style>$Item.Id</td>
+            <td nowrap width="50px" $Style>$Item.Priority</td>
+            <td nowrap width="100px" $Style>$Item.ThreadGroup.Name</td>
+            <td nowrap width="50px" $Style>$Item.isDaemon()</td>
+            <td nowrap width="50px" $Style>$ThreadInfo.getThreadInfo($Item.Id).InNative</td>
+            <td nowrap width="80px;" $Style>$utils.getDuration($CpuTime)</td>
+            <td nowrap width="100%" $Style>
+                #if ($StackTrace.size() > 0)
+                    <i class="fa fa-lightbulb-o showStackTrace" threadId="$Item.Id" style="cursor:pointer"></i>&nbsp;
+                    $StackTrace[0].ClassName
+                #end
+            </td>
+        </tr>
+    #end
+#macroEndStatusTable()
+

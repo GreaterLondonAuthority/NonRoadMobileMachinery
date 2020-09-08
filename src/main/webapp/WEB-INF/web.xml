@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+
+    <distributable/>
+    <display-name>NRMM</display-name>
+    <description>Non-Road Mobile Machinery</description>
+
+    <!-- This set of mappings makes use of the Tomcat default servlet to serve all the static resources
+         this is important as it forces the use of the APR if it is installed -->
+    <servlet>
+        <description>Handles all static file requests</description>
+        <servlet-name>static</servlet-name>
+        <servlet-class>com.pivotal.web.servlet.StaticServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>static</servlet-name>
+        <url-pattern>/javadocs/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>static</servlet-name>
+        <url-pattern>/graphics/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>static</servlet-name>
+        <url-pattern>/mappingfiles/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>static</servlet-name>
+        <url-pattern>/javascript/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>static</servlet-name>
+        <url-pattern>/fonts/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>static</servlet-name>
+        <url-pattern>/themes/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>static</servlet-name>
+        <url-pattern>/favicon.ico</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>static</servlet-name>
+        <url-pattern>/docs/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>static</servlet-name>
+        <url-pattern>/external/*</url-pattern>
+    </servlet-mapping>
+
+    <!-- Filter for collecting the request and response for the ServletHelper and
+         forcing the encoding to be UTF-8 -->
+    <filter>
+        <filter-name>RequestFilter</filter-name>
+        <filter-class>com.pivotal.web.filter.RequestFilter</filter-class>
+        <init-param>
+            <param-name>encoding</param-name>
+            <param-value>UTF-8</param-value>
+        </init-param>
+    </filter>
+
+    <!--
+        Cache the static resources for 15 days.
+        The responses for anything requested to javascript/*, themes/* or /graphics/* will be given an 15 days expiration time
+    -->
+    <filter>
+        <filter-name>HTTPStaticCache</filter-name>
+        <filter-class>com.pivotal.web.servlet.ResponseCachingFilter</filter-class>
+        <init-param>
+            <param-name>Cache-Control</param-name>
+            <param-value>max-age=1296000, public</param-value>
+        </init-param>
+    </filter>
+
+    <filter-mapping>
+        <filter-name>RequestFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <filter-mapping>
+        <filter-name>HTTPStaticCache</filter-name>
+        <url-pattern>/javascript/*</url-pattern>
+        <url-pattern>/themes/*</url-pattern>
+        <url-pattern>/graphics/*</url-pattern>
+    </filter-mapping>
+
+    <!-- Map the filters here -->
+
+    <!-- A URL rewriter would go here -->
+    <!-- The login filter would go here -->
+
+    <!-- The decorating filter should check every response for decorators -->
+
+    <resource-ref>
+        <description>APP Database Connection</description>
+        <res-ref-name>jdbc/app</res-ref-name>
+    </resource-ref>
+
+    <resource-ref>
+        <description>App Email Server</description>
+        <res-ref-name>mail/Session</res-ref-name>
+        <res-type>javax.mail.Session</res-type>
+        <res-auth>Container</res-auth>
+    </resource-ref>
+
+    <!-- Handles all requests into the application with Spring MVC configuration -->
+    <servlet>
+        <description>Handles all requests using SpringMVC</description>
+        <servlet-name>nrmm</servlet-name>
+        <servlet-class>com.pivotal.web.servlet.Dispatcher</servlet-class>
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>
+                /WEB-INF/nrmm-servlet.xml
+            </param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>nrmm</servlet-name>
+        <url-pattern>/*</url-pattern>
+    </servlet-mapping>
+
+    <!-- Context listener for the main application - MUST ALWAYS BE THE VERY FIRST -->
+    <listener>
+        <listener-class>com.pivotal.web.servlet.PreInitialisation</listener-class>
+    </listener>
+
+    <!-- Initialise the context loader listener so that the other listeners can be
+         auto-wired by spring (uses the applicationContext.xml) -->
+    <!--<listener>-->
+        <!--<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>-->
+    <!--</listener>-->
+
+    <!-- Context listener for the main application -->
+    <listener>
+        <listener-class>com.pivotal.web.servlet.Initialisation</listener-class>
+    </listener>
+
+    <error-page>
+        <error-code>404</error-code>
+        <location>/error-404.htm</location>
+    </error-page>
+
+</web-app>

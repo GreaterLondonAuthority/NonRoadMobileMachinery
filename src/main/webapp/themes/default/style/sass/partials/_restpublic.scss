@@ -1,0 +1,46 @@
+.jsonApiDoc .paragraph {}
+.jsonApiDoc .Header1 {
+    margin-top:20px;
+    font-size: 250%;
+}
+.jsonApiDoc .Header2 {
+    margin-top:20px;
+    font-size: 150%;
+}
+.jsonApiDoc .Header3 {
+    margin-top:20px;
+    font-size: 125%;
+}
+.jsonApiDoc .Header4 {
+    margin-top:20px;
+    font-weight: bold;
+}
+.jsonApiDoc .exampleJson {
+    white-space: pre;
+    border: 1px solid #007ee9;
+    display: inline-block;
+    padding:20px;
+    width:700px;
+}
+.jsonApiDoc .code {
+    background-color: #bdeeff;
+    border: 1px solid #007ee9;
+    color: #e94627;
+    padding:5px;
+    margin:5px;
+    width:700px;
+}
+.jsonApiDoc .detailTable  {
+    margin:10px;
+}
+.jsonApiDoc .detailTable table th, .jsonApiDoc .detailTable table td {
+    padding: 5px;
+    border-bottom: 1px solid #007ee9;
+    vertical-align:top;
+    text-align: left;
+}
+.jsonApiDoc .detailTable table th {
+    background-color:#bdeeff;
+    font-size:110%;
+    font-weight: bold;
+}

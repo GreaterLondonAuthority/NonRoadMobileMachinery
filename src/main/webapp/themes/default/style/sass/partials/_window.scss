@@ -1,0 +1,43 @@
+/*
+Kendo Window
+Need to override default Kendo styles. Might get a bit ugly...
+------------------------------*/
+.k-overlay {
+  opacity:.75 !important;
+}
+.k-widget.k-window {
+  @include boxShadow(0, 0, 5px, #000);
+  background:#fff;
+  border:1px solid #ccc;
+  //Joao - Ask Simon why this is here. It's messing up the positioning of the modal windows
+//  top:10% !important;
+}
+.k-window-titlebar {
+  background:#ddd;
+  border-bottom:1px solid #ccc;
+  font-family:'SourceSansRegular';
+}
+.k-edit-form-container .k-edit-buttons {
+  border-top:1px solid #ccc;
+  padding:20px 10px;
+}
+.k-window {
+  .k-window-content {
+    padding:20px;
+  }
+  .section.main {
+    width:100%;
+  }
+}
+/*
+display: block;
+    left: 179.95px;
+    min-height: 50px;
+    min-width: 90px;
+    opacity: 1;
+    padding-top: 33px;
+    top: 456.517px;
+    transform: scale(1);
+    width: 70%;
+    z-index: 10003;
+*/

@@ -1,0 +1,387 @@
+.col-md-3, .col-md-9 {
+  background-color: white;
+}
+
+.simulation-image {
+  display: none;
+}
+
+.simulation-info {
+  font-size: 11px;
+  color: grey;
+}
+
+.optimisation-header {
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+
+  h1 {
+    padding: 0 0 20px 0;
+  }
+}
+
+.simulation-info i {
+  font-size: 15px;
+}
+
+.optimisation-list i, .simulation-info i {
+  padding-right: 5px;
+}
+
+.rooms-search {
+  padding-bottom: 10px;
+}
+
+.thumbnails {
+  .detail {
+    display: none;
+  }
+  .panel-body {
+    padding: 0px;
+  }
+  .thumbnail {
+    margin-bottom: 0px !important;
+    padding: 0px;
+  }
+}
+
+@media only screen and (max-width: 1200px) {
+  .btn span {
+    display: none;
+  }
+}
+
+@media only screen and (max-width: 1023px) {
+  .optimisation-list .thumbnail {
+    display: none;
+  }
+}
+
+.blink {
+  -webkit-animation: blink 700ms infinite alternate;
+  -moz-animation: blink 700ms infinite alternate;
+  -o-animation: blink 700ms infinite alternate;
+  animation: blink 700ms infinite alternate;
+}
+
+@-webkit-keyframes blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+
+@-o-keyframes blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+
+@-moz-keyframes blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+
+@keyframes blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+
+.simulationHiddenData {
+  display: none;
+  visibility: hidden;
+}
+
+.simulationVisibleData {
+  display: block;
+}
+
+a.thumbnail.planview {
+  margin-bottom: 5px;
+}
+
+.temperature {
+  display: block;
+  width: 100%;
+  height: 20px;
+  background-size: 100% 20px;
+  ul {
+    list-style-type: none;
+    margin: 0px;
+    padding: 0px;
+    overflow: hidden;
+    li {
+      width: 30%;
+      float: left;
+      a {
+        display: block;
+        width: 60px;
+        margin-left: 30%;
+        color: #ffffff;
+      }
+    }
+  }
+}
+
+.defaultplanview {
+  display: block;
+  padding: 4px;
+  margin-bottom: 20px;
+  line-height: 1.42857143;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  -webkit-transition: all .2s ease-in-out;
+  -o-transition: all .2s ease-in-out;
+  transition: all .2s ease-in-out;
+}
+
+.comparison-view {
+  th {
+    background-color: #fff;
+    color: #1f2228;
+    width: 30%;
+  }
+
+  thead th {
+    text-align: center;
+
+    &.actions {
+      text-align: left;
+    }
+  }
+
+  tbody th.heading {
+    text-indent: 0;
+  }
+
+  tbody th {
+    text-indent: 20px;
+  }
+
+  tbody td {
+    background-color: #f5f5f5;
+    text-align: center;
+  }
+
+  .diff {
+    background-color: #2da0ce;
+    color: #fff;
+    border-color: #fff;
+  }
+
+  tr:hover .diff {
+    color: #1f2228;
+  }
+
+  td.spacer {
+    background-color: #fff;
+  }
+}
+
+.comparison-view>thead>tr>th {
+  border-bottom: 1px solid #ddd;
+}
+
+div[id^='roomplan'] img {
+  width: 100%;
+}
+
+.export-view {
+  display: none;
+}
+
+.optimisation-header {
+  padding-bottom: 10px;
+}
+.options {
+  text-align: right;
+}
+
+.room-select {
+  position: absolute;
+  left: -2000px;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  transition: .75s;
+  background-color: rgba(31,34,40,0.9);
+  padding: 20px;
+  z-index: 1000;
+}
+
+.room-select.in {
+  left: 0;
+}
+
+.room-select h1 {
+  font-size: 24px;;
+}
+
+.room-select h1 a {
+  float: right;
+  color: white;
+  text-decoration: none;
+}
+
+.room-select p.lead {
+  font-size: 21px;
+}
+
+.room-select h1, .room-select p.lead {
+  color: #fff;
+}
+
+.room-select .optimisation-list .thumbnail {
+  /*height: 100%;*/
+}
+
+.room-select .optimisation-list .thumbnail:hover {
+  background-color: #ebece9;
+}
+
+.room-select .optimisation-list .thumbnail img {
+  width: 100%;
+}
+
+.room-select .optimisation-list {
+  list-style-type: none;
+}
+
+.room-select .optimisation-list li {
+  float: left;
+  width: 20%;
+  height: 350px;
+  margin: 5px;
+  line-height: 350px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.clearfix::after {
+  clear: both;
+}
+
+.clearfix::before, .clearfix::after {
+  content: " ";
+  display: table;
+}
+
+.thumbnails .defaultplanview, .thumbnails .planview {
+  margin-bottom: 0;
+  border: none;
+}
+
+.page-header.optimisation {
+  margin-top: 0;
+}
+
+.extra-info {
+  text-align: center;
+  font-weight: bold;
+}
+
+.plus{
+  background-color: #EF3F3F !important;
+}
+
+.minus{
+   background-color: #7EBC56 !important;
+}
+
+.imagemaxview{
+     position: relative;
+     float: left;
+     width: 50%;
+ }
+.optimisationprogressbar{
+  width:100%;
+}
+.planstopsimulation{
+  display: none;
+  margin-top: 10px;
+}
+
+.temperature-scale {
+    .heatmapscale {
+      cursor: pointer;
+    }
+
+    color: grey;
+    margin-bottom: 20px;
+}
+
+.temperature-scale .labels-top .col-xs-6:nth-child(2) {
+    text-align: right;
+}
+
+.temperature-scale .labels-bottom .col-xs-4:nth-child(2) {
+    text-align: center;
+}
+
+.temperature-scale .labels-bottom .col-xs-4:nth-child(3) {
+    text-align: right;
+}
+
+.temperature-scale .scale {
+    margin: 5px 0;
+}
+
+.temperature-scale .scale {
+    border: 1px solid #aaaaaa;
+}
+
+.temperature-scale .scale img {
+    width: 100%;
+    height: 22px;
+}
+
+.panel.simulating .overlay {
+    display: block;
+}
+
+.overlay {
+    display: none;
+}
+
+.overlay {
+    background-color: rgba(240,240,240,0.9);
+    border:1px solid #cecece;
+    position: absolute;
+    right: 15px;
+    left: 15px;
+    top: 0;
+    bottom: 20px;
+    text-align: center;
+    z-index: 2;
+    border-radius: 4px;
+}
+
+.overlay .content {
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -50%)
+}
+.optimisationprogressbar{
+  width: 95%;
+}

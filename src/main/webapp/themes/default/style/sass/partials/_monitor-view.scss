@@ -1,0 +1,109 @@
+/*
+Monitor view
+------------------------------*/
+/* Layout */
+.monitor-main-content {
+  float:left;
+  margin-left:-25px;
+  margin-right:20px;
+  padding:10px;
+  width:870px;
+}
+.monitor-main-inner {
+  background:url(../imgs/monitor-main-bg.png) 0 0 repeat-x #fff;
+  padding:10px;
+  canvas {
+    background:#fff;
+    border:5px solid #e1e2e7;
+    margin:0 auto;
+    padding:10px;
+    width:820px;
+  }
+}
+/* Secondary content */
+.monitor-secondary-content {
+  float:right;
+  padding-top:20px;
+  position:relative;
+  width:445px;
+  .tabbed-content-wrap,
+  .notes-wrap {
+    border:3px solid #eee;
+  }
+  .notes-wrap {
+    border-top:0;
+  }
+  .tab-links {
+    background:#eee;
+    border-bottom:2px solid #d6d7dc;
+    height:45px;
+    padding-top:2px;
+    text-align:center;
+    a {
+      @include animate(background-color, .3s);
+      @include sprite;
+      background-color:transparent;
+      border:2px solid transparent; /* Prevents jumping when <a> has .active */
+      height:25px;
+      padding:10px 10px 9px 10px;
+      width:25px;
+      &:hover,
+      &:focus {
+        background-color:#ddd;
+        text-decoration:none;
+      }
+      &.tab-0 {
+        background-position:13px -27px;
+      }
+      &.tab-1 {
+        background-position:-32px -27px;
+      }
+      &.tab-2 {
+        background-position:-79px -27px;
+      }
+    }
+    .active a {
+      background-color:#fff;
+      border:2px solid #D6D7DC;
+      border-bottom:2px solid #fff;
+    }
+  }
+  .tab-content {
+    float:left;
+    padding:20px;
+  }
+  .last-updated {
+    font-family:'SourceSansLight', arial, helvetica, sans-serif;
+    font-style:italic;
+    padding:20px;
+    text-align:right;
+  }
+}
+/* Breadcrumbs */
+.monitor-header {
+  padding:10px;
+  .breadcrumbs {
+    li {
+      background:url(../imgs/breadcrumb-divider.png) right center no-repeat #fff;
+      display:inline;
+      font-family:'SourceSansRegular', arial, helvetica, sans-serif;
+      font-size:2em;
+      list-style:none outside;
+      margin-right:5px;
+      padding-right:20px;
+      &:last-of-type {
+        background:0;
+        margin-right:0;
+        padding-right:0;
+      }
+    }
+    a {
+      color:$palette_primary_darkgrey;
+      font-family:'SourceSansLight', arial, helvetica, sans-serif;
+      &:hover,
+      &:focus {
+        text-decoration:underline;
+      }
+    }
+  }
+}

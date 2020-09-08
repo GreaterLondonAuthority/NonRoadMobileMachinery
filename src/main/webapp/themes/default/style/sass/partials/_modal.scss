@@ -1,0 +1,19 @@
+/* Action dialog */
+div.k-window-content.confirm-dialog {
+  background-color: $grey;
+  color: #fff;
+  padding:0;
+  p.confirm-dialog-message {
+    padding:5px;
+    margin:0;
+  }
+  p.confirm-dialog-buttons {
+    margin:0;
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+  }
+  .k-button {
+    margin-left:5px;
+  }
+}

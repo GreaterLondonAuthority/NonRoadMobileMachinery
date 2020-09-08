@@ -1,0 +1,44 @@
+/* The admin pill/tab bar to separate fieldsets */
+.pill-bar {
+  padding-bottom: 10px;
+}
+
+.nav-pills>li.form-errors>a:before {
+  content: "\f12a";
+  font-family: "Font Awesome 5 Pro";
+  display: block;
+  position: absolute;
+  left: 4px;
+  font-size: $font-size-base;
+  color: #CC112E;
+}
+
+.chart {
+  position: relative;
+  display: inline-block;
+  width: 150px;
+  height: 150px;
+  margin: 15px;
+  text-align: center;
+}
+.chart canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.percent {
+  display: inline-block;
+  line-height: 150px;
+  z-index: 2;
+}
+.percent:after {
+  content: '%';
+  margin-left: 0.1em;
+  font-size: .8em;
+}
+
+.create-another {
+  display: inline;
+  vertical-align: middle;
+  margin-right:20px;
+}

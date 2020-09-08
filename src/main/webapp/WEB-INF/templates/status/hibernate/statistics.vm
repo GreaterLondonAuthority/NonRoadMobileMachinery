@@ -1,0 +1,138 @@
+#parse("includes/initialise.inc")
+#parse("$PageName/macros.inc")
+
+#macroStartStatusTable("status.hibernate.statistics.title")
+    #macroShowStatusTableRowNoTranslation("StatisticsEnabled" $Statistics.StatisticsEnabled)
+    #macroShowStatusTableRowNoTranslation("StartTime" $utils.dateFormat($Statistics.StartTime, "dd MMMM yyyy HH:mm:ss z"))
+    #macroShowStatusTableRowNoTranslation("CloseStatementCount" $Statistics.CloseStatementCount)
+    #macroShowStatusTableRowNoTranslation("CollectionFetchCount" $Statistics.CollectionFetchCount)
+    #macroShowStatusTableRowNoTranslation("CollectionLoadCount" $Statistics.CollectionLoadCount)
+    #macroShowStatusTableRowNoTranslation("CollectionRecreateCount" $Statistics.CollectionRecreateCount)
+    #macroShowStatusTableRowNoTranslation("CollectionRemoveCount" $Statistics.CollectionRemoveCount)
+    #macroShowStatusTableRowNoTranslation("CollectionUpdateCount" $Statistics.CollectionUpdateCount)
+    #macroShowStatusTableRowNoTranslation("ConnectCount" $Statistics.ConnectCount)
+    #macroShowStatusTableRowNoTranslation("EntityDeleteCount" $Statistics.EntityDeleteCount)
+    #macroShowStatusTableRowNoTranslation("EntityFetchCount" $Statistics.EntityFetchCount)
+    #macroShowStatusTableRowNoTranslation("EntityInsertCount" $Statistics.EntityInsertCount)
+    #macroShowStatusTableRowNoTranslation("EntityLoadCount" $Statistics.EntityLoadCount)
+    #macroShowStatusTableRowNoTranslation("EntityUpdateCount" $Statistics.EntityUpdateCount)
+    #macroShowStatusTableRowNoTranslation("FlushCount" $Statistics.FlushCount)
+    #macroShowStatusTableRowNoTranslation("OptimisticFailureCount" $Statistics.OptimisticFailureCount)
+    #macroShowStatusTableRowNoTranslation("PrepareStatementCount" $Statistics.PrepareStatementCount)
+    #macroShowStatusTableRowNoTranslation("QueryCacheHitCount" $Statistics.QueryCacheHitCount)
+    #macroShowStatusTableRowNoTranslation("QueryCacheMissCount" $Statistics.QueryCacheMissCount)
+    #macroShowStatusTableRowNoTranslation("QueryCachePutCount" $Statistics.QueryCachePutCount)
+    #macroShowStatusTableRowNoTranslation("QueryExecutionCount" $Statistics.QueryExecutionCount)
+    #macroShowStatusTableRowNoTranslation("QueryExecutionMaxTime" $Statistics.QueryExecutionMaxTime)
+    #macroShowStatusTableRowNoTranslation("QueryExecutionMaxTimeQueryString" $!utils.justifyLeft($!Statistics.QueryExecutionMaxTimeQueryString,60,"<br>"))
+    #macroShowStatusTableRowNoTranslation("SecondLevelCacheHitCount" $Statistics.SecondLevelCacheHitCount)
+    #macroShowStatusTableRowNoTranslation("SecondLevelCacheMissCount" $Statistics.SecondLevelCacheMissCount)
+    #macroShowStatusTableRowNoTranslation("SecondLevelCachePutCount" $Statistics.SecondLevelCachePutCount)
+    #macroShowStatusTableRowNoTranslation("SessionCloseCount" $Statistics.SessionCloseCount)
+    #macroShowStatusTableRowNoTranslation("SessionOpenCount" $Statistics.SessionOpenCount)
+    #macroShowStatusTableRowNoTranslation("SuccessfulTransactionCount" $Statistics.SuccessfulTransactionCount)
+    #macroShowStatusTableRowNoTranslation("TransactionCount" $Statistics.TransactionCount)
+#macroEndStatusTable()
+
+#macroStartStatusTable("status.hibernate.cache.title")
+    <thead>
+        <tr>
+            <th>&nbsp;</th>
+            <th>#I18N("status.hibernate.stats.cache.loads")</th>
+            <th>#I18N("status.hibernate.stats.cache.updates")</th>
+            <th>#I18N("status.hibernate.stats.cache.inserts")</th>
+            <th>#I18N("status.hibernate.stats.cache.deletes")</th>
+            <th>#I18N("status.hibernate.stats.cache.fetches")</th>
+            <th>#I18N("status.hibernate.stats.cache.lock_fails")</th>
+        </tr>
+    </thead>
+
+    #set ($Names=[])
+    #foreach ($Name in $Statistics.EntityNames)
+        #set($tmp=$Names.add($Name))
+    #end
+    #foreach ($Name in $Utils.sortList($Names))
+        #set ($EStats=$Statistics.getEntityStatistics($Name))
+        #if ($EStats.LoadCount > 0)
+            <tr>
+                <td>$Name.replaceAll(".+\.","")</td>
+                <td>$EStats.LoadCount</td>
+                <td>$EStats.UpdateCount</td>
+                <td>$EStats.InsertCount</td>
+                <td>$EStats.DeleteCount</td>
+                <td>$EStats.FetchCount</td>
+                <td>$EStats.OptimisticFailureCount</td>
+            </tr>
+        #end
+    #end
+#macroEndStatusTable()
+
+#if ($Statistics.getSecondLevelCacheRegionNames().size() > 0)
+    #macroStartStatusTable("status.hibernate.cache.second.title")
+        <thead>
+            <tr>
+                <th>&nbsp;</th>
+                <th>#I18N("status.hibernate.stats.cache.second.hits")</th>
+                <th>#I18N("status.hibernate.stats.cache.second.misses")</th>
+                <th>#I18N("status.hibernate.stats.cache.second.puts")</th>
+                <th>#I18N("status.hibernate.stats.cache.second.inmemory")</th>
+                <th>#I18N("status.hibernate.stats.cache.second.ondisk")</th>
+                <th>#I18N("status.hibernate.stats.cache.second.size_in_memory")</th>
+            </tr>
+        </thead>
+        #set ($Names=[])
+        #foreach ($Name in $Statistics.SecondLevelCacheRegionNames)
+            #set($tmp=$Names.add($Name))
+        #end
+        #foreach ($Name in $Utils.sortList($Names))
+            #set ($EStats=$Statistics.getSecondLevelCacheStatistics($Name))
+            #if ($EStats.SizeInMemory > 0)
+                <tr>
+                    <td>$Name.replaceAll(".+\.","")</td>
+                    <td>$EStats.HitCount</td>
+                    <td>$EStats.MissCount</td>
+                    <td>$EStats.PutCount</td>
+                    <td>$EStats.ElementCountInMemory</td>
+                    <td>$EStats.ElementCountOnDisk</td>
+                    <td>$EStats.SizeInMemory</td>
+                </tr>
+            #end
+        #end
+    #macroEndStatusTable()
+#end
+
+#macroStartStatusTable("status.hibernate.cache.queries.title")
+    <thead>
+        <tr>
+            <th>&nbsp;</th>
+            <th>#I18N("status.hibernate.stats.cache.queries.hits")</th>
+            <th>#I18N("status.hibernate.stats.cache.queries.puts")</th>
+            <th>#I18N("status.hibernate.stats.cache.queries.execs")</th>
+            <th>#I18N("status.hibernate.stats.cache.queries.rows")</th>
+            <th>#I18N("status.hibernate.stats.cache.queries.avg_time")</th>
+            <th>#I18N("status.hibernate.stats.cache.queries.max_time")</th>
+            <th>#I18N("status.hibernate.stats.cache.queries.min_time")</th>
+        </tr>
+    </thead>
+    #foreach ($Query in $Statistics.Queries)
+        #set ($QStats=$Statistics.getQueryStatistics($Query))
+        <tr>
+            <td>$Query.replaceAll(",",", ")</td>
+            <td>$QStats.CacheHitCount</td>
+            <td>$QStats.CachePutCount</td>
+            <td>$QStats.ExecutionCount</td>
+            <td>$QStats.ExecutionRowCount</td>
+            <td>$QStats.ExecutionAvgTime</td>
+            <td>$QStats.ExecutionMaxTime</td>
+            <td>
+                #if ($QStats.ExecutionMaxTime == 0)
+                    0
+                #else
+                    $QStats.ExecutionMinTime
+                #end
+            </td>
+        </tr>
+    #end
+#macroEndStatusTable()
+
+

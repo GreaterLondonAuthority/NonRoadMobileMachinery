@@ -1,0 +1,77 @@
+#if ($CurrentUser.hasAccess($PRIVILEGES_PERFORMANCE_ADMIN))
+
+    #set($SystemNav =
+    [
+        {
+            "SectionTitle":"status.navbar.title",
+            "SectionIcon":"medkit",
+            "SectionLinks": [
+                {
+                    "Href":"jvm",
+                    "LinkText":"status.navbar.jvm"
+                },
+                {
+                    "Href":"system",
+                    "LinkText":"status.navbar.system"
+                },
+                {
+                    "Href":"servlet",
+                    "LinkText":"status.navbar.servlet"
+                },
+                {
+                    "Href":"threads",
+                    "LinkText":"status.navbar.threads"
+                },
+                {
+                    "Href":"log",
+                    "LinkText":"status.navbar.logs"
+                },
+                {
+                    "Href":"pool",
+                    "LinkText":"status.navbar.pools"
+                },
+                {
+                    "Href":"hibernate",
+                    "LinkText":"status.navbar.hibernate"
+                },
+                {
+                    "Href":"diagnostics",
+                    "LinkText":"status.navbar.diagnostics"
+                }
+            ]
+        },
+        {
+            "SectionTitle":"performance.navbar.title",
+            "SectionIcon":"tachometer-alt",
+            "SectionLinks": [
+                {
+                    "Href":"stats",
+                    "LinkText":"performance.navbar.stats"
+                },
+                {
+                    "Href":"memory",
+                    "LinkText":"performance.navbar.memory"
+                },
+                {
+                    "Href":"pools",
+                    "LinkText":"performance.navbar.pools"
+                },
+                {
+                    "Href":"users",
+                    "LinkText":"performance.navbar.users"
+                },
+                {
+                   "Href":"chart_stats",
+                   "LinkText":"performance.navbar.preference"
+                }
+            ]
+        }
+    ]
+    )
+    #set($FooterProperties ={"HeartbeatExtra":"nologout=true"})
+    #macroPageLayout3("System")
+#else
+    <script>
+        document.location.replace("$AppPath/dashboard");
+    </script>
+#end

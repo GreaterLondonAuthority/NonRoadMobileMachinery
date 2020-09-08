@@ -1,0 +1,54 @@
+.AgendaCases {
+  text-align: center;
+  width:100%;
+}
+.AgendaCases table {
+  background-color: whitesmoke;
+  text-align: left;
+  width:80%;
+  vertical-align: top;
+}
+.AgendaCaseEnd tr td, .AgendaCases tr th {
+  margin:5px;
+  padding:5px;
+}
+.AgendaCaseEnd, .AgendaCases tr th {
+  border-bottom: 1px solid lightyellow;
+}
+.AgendaCases .AgendaSectionHeading tr td {
+  font-weight: bold;
+}
+.AgendaCases tr td .AgendaSectionHeading {
+  font-weight: bold;
+  margin-top:20px;
+}
+//Styles for numbering paragraphs
+.counterReset {
+  counter-reset: pnSection1 -1;
+}
+.numberedParagraph1 {
+  counter-reset: pnSection2;
+}
+.numberedParagraph1:before {
+  font-weight: bold;
+  counter-increment: pnSection1;
+  content: "" counter(pnSection1) ". ";
+}
+.numberedParagraph2 {
+    counter-reset: pnSection3;
+}
+.numberedParagraph2:before {
+  font-weight: bold;
+  counter-increment: pnSection2;
+  content: "" counter(pnSection1) "." counter(pnSection2) ". ";
+}
+.numberedParagraph3:before {
+  font-weight: bold;
+  counter-increment: pnSection3;
+  content: "" counter(pnSection1) "." counter(pnSection2) "." counter(pnSection3) ". ";
+}
+.numberedParagraph {
+  font-weight: bold;
+  font-size:14px;
+  display:inline;
+}

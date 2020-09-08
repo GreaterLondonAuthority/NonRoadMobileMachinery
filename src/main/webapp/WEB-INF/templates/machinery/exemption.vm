@@ -1,0 +1,100 @@
+#set($LastBreadCrumb = "Machinery")
+#parse("external/header.inc")
+
+#macroStartForm("exemptionSaveForm" "$AppPath/$PageName/$SubPageName" {"noResize":true,"onValidationSuccessful":"machineryExemptionUtils.validationOk","onValidationFailed":"machineryExemptionUtils.validationFailed","onSubmit":"machineryExemptionUtils.checkData"})
+    #macroStartFieldset("machinery.exemption.existing.detail")
+        #macroInputHidden("siteId" $!siteentity.id)
+        #macroInputHidden("machineryId" $!machineryentity.id)
+        #macroInputHidden("originalExemptionId" $!machineryentity.exemptionId)
+        #macroInputHidden("action" $action)
+        #macroInputText("oldExemptionStatus" "machineryentity.exemptionStatus" $machineryentity.exemptionStatus {"IsReadOnly":true})
+        #macroInputText("oldExemptionStatusDate" "machineryentity.exemptionStatusDate" $Utils.dateFormat($machineryentity.exemptionStatusDate, "$DEFAULT_DATE_FORMAT") {"IsReadOnly":true})
+        #macroInputText("oldExemptionStatusExpiryDate" "machineryentity.exemptionStatusExpiryDate" $Utils.dateFormat($machineryentity.exemptionStatusExpiryDate, "$DEFAULT_DATE_FORMAT") {"IsReadOnly":true})
+        #macroInputText("oldExemptionId" "machineryentity.exemptionId" $machineryentity.exemptionId {"IsReadOnly":true})
+    #macroEndFieldset()
+
+    #macroStartFieldset("machinery.exemption.edit.detail")
+        #if($action=="accept")
+            #macroInputLookupSelect("machineryentity.exemptionStatusReason" $NULL $NULL "exemptionaccept" {"IsRequired":true,"ShowEmptyItem":"true"})
+            #macroInputLookupSelect("machineryentity.exemptionStatusCode" $NULL $NULL "exemptioncode" {"IsRequired":true,"ShowEmptyItem":"true"})
+            #macroInputHidden("exemptionStatus" "Accepted")
+            #macroInputHidden("lookuptype" "exemptionaccept")
+            #macroInputDate("machineryentity.exemptionStatusDate" $NULL $Utils.dateFormat($machineryentity.exemptionStatusDate, "yyyy-MM-dd") {"Format":"$DEFAULT_DATE_FORMAT","IsRequired":true})
+            #macroInputText("machineryentity.exemptionStatusExpiryDate" $NULL $Utils.dateFormat($machineryentity.exemptionStatusExpiryDate, "$DEFAULT_DATE_FORMAT") {"ExtraInputAtt":"readonly","Width":"175px","UsePassedValue":true})
+            #macroInputText("machineryentity.exemptionId" $NULL $NULL {"IsRequired":true})
+
+        #else
+            #macroInputLookupSelect("machineryentity.exemptionStatusReason" $NULL $NULL "exemptionreject" {"IsRequired":true,"ShowEmptyItem":"true"})
+            #macroInputHidden("exemptionStatus" "Rejected")
+            #macroInputHidden("lookuptype" "exemptionrejected")
+            #macroInputHidden("machineryentity.exemptionStatusDate")
+            #macroInputHidden("machineryentity.exemptionStatusExpiryDate")
+        #end
+        #macroInputHidden("exemptionStatusReasonName")
+    #macroEndFieldset()
+
+#set($EndFormProperties={"saveButton":{"label":"machinery.exemption.button.save"},"cancelButton":{"hide":true}})
+
+#set($RightButtons = [])
+#set($tmp = $RightButtons.add({"id":"gotoMachineryEdit", "label":"global.button.close","icon":"fa-times","onClick":"machineryExemptionUtils.gotoMachineryEdit"}))
+#set($tmp = $EndFormProperties.put("rightButtons",$RightButtons))
+
+#macroEndForm($EndFormProperties)
+
+<script>
+$(document).ready(function () {
+    $("#machineryentity\\.exemptionStatusReason").bind("change", machineryExemptionUtils.updateEndDate);
+    $("#machineryentity\\.exemptionStatusCode").bind("change", machineryExemptionUtils.updateEndDate);
+    #if($action=="accept")
+        $("#machineryentity\\.exemptionStatusDate").bind("change", machineryExemptionUtils.updateEndDate);
+        machineryExemptionUtils.updateEndDate();
+    #end
+});
+
+var machineryExemptionUtils = {
+
+    checkData: function () {
+
+        machineryExemptionUtils.updateEndDate();
+        PivotalUtils.getJsonContentAsync("$AppPath/$PageName/$SubPageName", $("#exemptionSaveForm").serialize(), function(response) {
+            if (response.inError)
+                alert(response.error);
+            else {
+                PivotalUtils.showNotification("#I18N("machinery.exemption.save_ok_message")");
+                location.href = "$AppPath/$PageName/$SubPageName/$!machineryentity.id/$action";
+            }
+        }, true);
+
+
+        return false;
+   },
+
+   validationOk: function () {
+       // Now check workflow to see what we need to do
+       psApp.workflow.execute("$!AppPath","MACHINERY_EXEMPTION_EMAILS", $("#exemptionSaveForm").serialize(), function(response) {
+           psApp.workflow.evalResponse(response);
+       });
+   },
+
+    validationFailed: function () {
+        PivotalUtils.showNotification("#I18N("machinery.exemption.error.validationfailed")", "error");
+        $(".k-invalid:first").focus();
+    },
+
+    updateEndDate: function() {
+        $("#exemptionStatusReasonName").val($("#machineryentity\\.exemptionStatusReason").data('kendoDropDownList').text().toLowerCase());
+
+        // Now check workflow to see what we need to do
+        psApp.workflow.execute("$!AppPath","MACHINERY_EXEMPTION_FORM", $("#exemptionSaveForm").serialize(), function(response) {
+            psApp.workflow.evalResponse(response);
+        });
+    },
+
+    gotoMachineryEdit: function() {
+        location.href="$AppPath/machinery/edit/$!machineryentity.site.id/$!machineryentity.id";
+    }
+}
+
+</script>
+
+#parse("external/footer.inc")

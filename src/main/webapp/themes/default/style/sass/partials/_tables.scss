@@ -1,0 +1,54 @@
+/*
+Global table styles
+(Overwrite default Kendo styles in _kendo.grid.scss)
+------------------------------*/
+$defaultTableBorderRadius: 5px;
+$defaultTableBorderColor: #eee;
+table {
+  font-family:'SourceSansLight', arial, helvetica, sans-serif;
+  border:0;
+  border-collapse:collapse;
+  width:100%;
+}
+th,
+td {
+  border:1px solid $defaultTableBorderColor;
+  padding:10px;
+}
+th {
+  font-family:'SourceSansRegular', arial, helvetica, sans-serif;
+  @include vertGradient('#f8f8f8', '#f3f3f3');
+  border-right:1px solid #dbdbdb;
+  font-weight:normal;
+  a {
+    color:$palette_bodyText;
+    text-decoration:underline;
+    &:hover,
+    &:focus {
+      text-decoration:none;
+    }
+  }
+  &[scope=col] {
+    border-bottom:0;
+    text-align:left;
+    &:first-of-type {
+      @include borderRadius($defaultTableBorderRadius, 0px, 0px, 0px);
+    }
+    &:last-of-type {
+      @include borderRadius(0px, $defaultTableBorderRadius, 0px, 0px);
+      border-right:0;
+    }
+  }
+  &[scope=row] {
+    text-align:right;
+    &:first-of-type {
+      @include borderRadius($defaultTableBorderRadius, 0px, 0px, 0px);
+    }
+  }
+}
+tr:nth-child(odd) {
+  background-color:#f6fbff;
+}
+tr:nth-child(even) {
+  background-color:#fff;
+}

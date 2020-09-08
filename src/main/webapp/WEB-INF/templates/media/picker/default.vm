@@ -1,0 +1,189 @@
+#macroPageHead($PageTitle)
+
+<div class="k-editor-dialog k-popup-edit-form k-edit-form-container k-window-content k-content k-imagebrowser-dialog" data-role="window" tabindex="0">
+    <div id="imgBrowser"></div>
+
+    <div class="k-edit-buttons k-state-default">
+        <button id="clear-search" class="k-dialog-clear k-button">#I18N("image.selection.clear")</button>
+        <button id="select-img" class="k-dialog-insert k-button">#I18N("image.selection.selectfile")</button>
+        <button id="close-picker" class="k-dialog-close k-button">#I18N("image.selection.cancel")</button>
+    </div>
+</div>
+
+
+<script>
+
+
+    imagePickerResizer = function() {
+        var containerDiv = $(".k-imagebrowser-dialog");
+        var browser = $(".k-imagebrowser");
+        var buttonsBar = $(".k-edit-buttons");
+        var availableBrowserSpace = containerDiv.outerHeight(true) - (buttonsBar.outerHeight(true) + 20);
+        var tilesDiv = $(".k-tiles");
+
+        var deltaTiles = tilesDiv.offset().top - browser.offset().top;
+        var tilesHeight = availableBrowserSpace - deltaTiles - buttonsBar.outerHeight(true);
+
+        browser.height(availableBrowserSpace);
+        tilesDiv.height(tilesHeight);
+
+    },
+    $(document).ready(function() {
+        // create Editor from textarea HTML element with default set of tools
+        var elem = $("#imgBrowser").kendoImageBrowser({
+            messages: {
+                uploadFile: '#I18N("image.selection.uploadFile")',
+                orderBy: '#I18N("image.selection.orderBy")',
+                orderByName: '#I18N("image.selection.orderByName")',
+                orderBySize: '#I18N("image.selection.orderBySize")',
+                invalidFileType: '#I18N("image.selection.invalidFileType")',
+                deleteFile: '#I18N("image.selection.deleteFile")',
+                emptyFolder: '#I18N("image.selection.emptyFolder")',
+                search: '#I18N("image.selection.search")'
+            },
+            transport: {
+                schema: {
+                    model: {
+                        id : "internalid"
+                    }
+                },
+                read:
+                {
+                    url: "$AppPath/media/library/list?type=$!type"
+                },
+                #if(!$!IsReadOnly)
+                    destroy:function (options) {
+                        if(options && options.data.internalid != null) {
+                            var res = PivotalUtils.getContent("$AppPath/media/deletemedia?id="+options.data.internalid, "",true);
+                            if(res!=""){
+                                var obj = eval('(' + res + ')');
+                                if(obj.inError) {
+                                    alert(obj.error);
+                                }
+                            }
+                            this.data("kendoImageBrowser").dataSource.read();
+                            options.success();
+                        }
+                    }.bind($("#imgBrowser")),
+                    uploadUrl: "$AppPath/media/uploadmedia?type=$!type",
+                #end
+                thumbnailUrl: function(path,name){
+
+                    // To make the image name unique the id is apended to it in []
+                    // So we can try and split it out and get the id from the the last
+                    // item in brackets
+                    var imgId = decodeURIComponent(name);
+                    var aTmp = name.split("[");
+                    if (aTmp.length > 1) {
+                        aTmp = aTmp[aTmp.length - 1].split("]");
+                        if (aTmp.length > 1 && aTmp[0].length > 0) imgId = aTmp[0];
+                    }
+                    var obj = this.data("kendoImageBrowser").dataSource.get(imgId),
+                        res = null;
+                    if(obj) {
+                        res = "$AppPath/media/stream/" + obj.internalid;
+                    }
+                    return res;
+                }.bind($("#imgBrowser")),
+                imageUrl: "$AppPath/media/stream/{0}"
+            }
+        }).data("kendoImageBrowser");
+
+        elem.setTooltips = function(e) {
+            var elements = $('.k-tile strong');
+            if (elements) {
+                elements.kendoTooltip({
+                    position: "top",
+                    iframe: true,
+                    show: function (e) {
+                        setTimeout(function (e) {
+                            $(e).tooltip('hide');
+                        }, 5000);
+                    },
+                    content: function (e) {
+                        return e.target.html();
+                    }
+
+                }).data("kendoTooltip");
+            }
+        }
+        elem.arrangeBy.bind("change" , function(e) {
+            setTimeout(this.setTooltips, 2000);
+        }.bind(elem));
+        setTimeout(elem.setTooltips, 2000);
+
+
+        //Hack to load all the images instead of waiting for the scroll. That causes problems with the search.
+        //When the thumbnail is not loaded when we filter, than we get the progress instead of the image
+        elem._scroll = function() {
+            var that = this;
+            if (that.options.transport && that.options.transport.thumbnailUrl) {
+                clearTimeout(that._timeout);
+
+                that._timeout = setTimeout(function() {
+                    that._tiles.each(function() {
+                        that._loadImage(this);
+                    });
+
+                    that._tiles = that._tiles.filter(function() {
+                        return !this.loaded;
+                    });
+                }, 250);
+            }
+        }
+        //Reload the images after upload. We need this because we are using a different format for the file.
+        //We are using the id and not the name as unique identifier.
+        //Taking this out will result in not finding the uploaded images thumbnails.
+        #if(!$!IsReadOnly)
+            elem.upload.bind("success" , function(e) {
+                this.dataSource.read();
+                setTimeout(this.setTooltips, 2000);
+            }.bind(elem));
+        #end
+        $("#select-img").bind("click", function(e){
+            var closeHandler = top.${InputField.replaceAll("[.]","_")}CloseHandler;
+            var browserDiv = $(".k-imagebrowser"),
+                selectedUid = browserDiv.find(".k-state-selected").attr("data-uid"),
+                dsItem = browserDiv.data("kendoImageBrowser").dataSource.getByUid(selectedUid);
+
+            if(dsItem) {
+                closeHandler(dsItem.path,dsItem.name);
+            }
+        });
+
+        $("#close-picker").bind("click", function(e){
+            top.${InputField}CloseHandler();
+        });
+
+        $("#clear-search").bind("click", function(e){
+            if ($(".k-search-wrap input").val("")!="") {
+                $(".k-search-wrap input").val("");
+                $(".k-search-wrap a").trigger("click");
+            }
+        });
+
+        $("#imgBrowser").data("kendoImageBrowser").bind("apply", function(e){
+            var browserDiv = $(".k-imagebrowser"),
+                selectedElem = browserDiv.find(".k-state-selected"),
+                selectedImg = selectedElem.find("img"),
+                dsItem = browserDiv.data("kendoImageBrowser").dataSource.getByUid(selectedElem.attr("data-uid"));
+            if(selectedImg && selectedImg.attr("src")){
+                PivotalUtils.showImagePreview(selectedImg.attr("src"), dsItem.name,"75%","75%", '#I18N("image.selection.preview.error")');
+            }
+        });
+
+        imagePickerResizer();
+        var imagePickerResizerTimer;
+        $(window).bind('resize', function () {
+            clearTimeout(imagePickerResizerTimer);
+            imagePickerResizerTimer = setTimeout(function() {
+                imagePickerResizer();
+            },100);
+        });
+    });
+
+
+
+</script>
+
+#macroFooter()

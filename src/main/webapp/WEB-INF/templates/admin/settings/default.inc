@@ -1,0 +1,1 @@
+<script>window.location.href="$AppPath/$PageName/$SubPageName/general";</script>

@@ -1,0 +1,25 @@
+/*
+Archive selector
+------------------------------*/
+.archive-selector-wrap {
+  font-family:'SourceSansLight', arial, helvetica, sans-serif;
+  padding-right:10px;
+  text-align:right;
+  margin-bottom:20px;
+  p {
+    padding:0;
+  }
+  .current-archive {
+    @include fauxButton;
+    display:inline;
+    span {
+      font-family:'SourceSansBold', arial, helvetica, sans-serif;
+      border-right:1px solid #bbb;
+      margin-right:2px;
+      padding-right:5px;
+    }
+  }
+  .toggle-icon {
+    @include arrowDown;
+  }
+}

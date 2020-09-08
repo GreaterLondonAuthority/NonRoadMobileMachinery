@@ -1,0 +1,51 @@
+#macroPageHead("")
+<style>
+    .prefRow {
+        display: table-row;
+    }
+    .prefCell {
+        display: table-cell;
+        padding-right: 5px;
+    }
+    .counter {
+        white-space: nowrap;
+    }
+    .data {
+        width:100px;
+    }
+</style>
+
+#foreach($preferenceKey in $preferences.keySet())
+    <div class="prefRow">
+        <div class="prefCell counter">
+            $velocityCount <a href="javascript:void(0)" onclick="userPrefAdmin.removePreference($velocityCount)"><i class="fa fa-remove"></i></a>
+            <div id="pref_$velocityCount" style="display: none">$!preferenceKey</div>
+        </div>
+        <div class="prefCell">
+            $preferenceKey
+        </div>
+        <div class="prefCell">
+            $preferences.get($preferenceKey).class.simpleName
+        </div>
+        <div class="prefCell">
+            $preferences.get($preferenceKey)
+        </div>
+    </div>
+#end
+#macroFooter()
+
+<script>
+    var userPrefAdmin = {
+
+        removePreference: function(counter) {
+            var prefName = encodeURIComponent($("#pref_" + counter).html());
+
+            var response = PivotalUtils.getJsonContent("$AppPath/$PageName/$SubPageName/removepreferences/$userentity.id", "name=" + prefName, false);
+            if (response.inError) {
+                alert(response.error);
+            }
+            else
+                window.location.reload();
+        }
+    };
+</script>

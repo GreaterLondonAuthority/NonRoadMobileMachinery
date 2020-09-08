@@ -1,0 +1,1606 @@
+#*
+ ***************************************************************************
+ *
+ * Copyright (c) Greater London Authority, 2020. This source code is licensed under the Open Government Licence 3.0.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM.
+ *
+ ****************************************************************************
+ *#
+
+#set ($GlobalIncludes = "")
+
+#########################
+## Page layout
+#########################
+
+#*
+@function	Basic page layout templates
+@params		$PageTitle (string) - Use for <h1> and <title>
+@notes		$BodyClass added to <body> element. Enables styling on a per-layout basis.
+*#
+#macro(macroPageLayout1
+$PageTitle
+)
+    #parse("includes/initialise.inc")
+    #set ($BodyClass = "layout-1")
+    #parse("includes/page-layouts/layout-1.inc")
+#end
+#macro(macroPageLayout3
+$PageTitle
+)
+    #parse("includes/initialise.inc")
+    #set ($BodyClass = "layout-3")
+    #parse("includes/page-layouts/layout-3.inc")
+#end
+
+#########################
+## Mobile Page layout
+#########################
+
+#*
+@function	Basic mobile page layout templates
+@params		$PageTitle (string) - Use for <h1> and <title>
+@notes		$BodyClass added to <body> element. Enables styling on a per-layout basis.
+*#
+#macro(macroMobilePageLayout1
+$PageTitle
+)
+    #parse("includes/initialise.inc")
+    #parse("includes/mobile/page-layouts/mobile-layout-1.inc")
+#end
+
+#*
+@function	Render page head (static UI calls, meta etc)
+@params		$PageTitle (string) - Use for <title>
+*#
+#macro(macroPageHead $PageTitle)
+    #parse("includes/initialise.inc")
+    #parse("includes/page-head.inc")
+#end
+
+#*
+@function	Render page head for printing/pdf  (static UI calls, meta etc)
+            Excludes all the unneeded stuff
+@params		$PageTitle (string) - Use for <title>
+*#
+#macro(macroPrintPageHead $PageTitle)
+    #parse("includes/initialise.inc")
+    #parse("includes/print/page-head.inc")
+#end
+
+#*
+@function	Render mobile page head (static UI calls, meta etc)
+@params		$PageTitle (string) - Use for <title>
+*#
+#macro(macroMobilePageHead $PageTitle)
+    #parse("includes/initialise.inc")
+    #parse("includes/mobile/mobile-page-head.inc")
+#end
+
+#*
+@function	Render page head for a widget (static UI calls, meta etc, and title/bgcolour if selected)
+@params     $Includes (map) - Expects both a list of "css" and "js" libraries to include
+*#
+#macro(macroWidgetHead $Includes)
+    #set ($GlobalIncludes = $Includes)
+    ## Check to see if nothing was passed in. If so force BOOTSTRAP otherwise just check if its in
+    #if (("$!Includes" == "") || ($Includes.size() == 0))
+        #set ($Includes = [$INC.BOOTSTRAP])
+    #elseif (!$Includes.contains($INC.BOOTSTRAP))
+        #set ($tmp = $Includes.add($INC.BOOTSTRAP))
+    #end
+    #parse("includes/initialise.inc")
+    #parse("includes/widget-head.inc")
+#end
+
+#*
+@function	Render page end for a widget
+@param      $refreshTime - Time in milliseconds between checking for alert notifications. Default 60000 (1 minute)
+*#
+#macro(macroWidgetEnd $refreshTime)
+    #parse("includes/widget-notification.inc")
+    #parse("includes/widget-end.inc")
+#end
+
+
+#*
+@function	Will request the that the layout change the widget menu bar color
+@param      $WidgetId - The widget identifier
+@param      $Color - The color to set the menu bar
+*#
+#macro(macroChangeWidgetBarColor $WidgetId $Color)
+
+    #if("$!WidgetId" != "" && "$!Color" != "")
+
+        ## Widget whose bgcolor change based on values burgernot show right color
+        ## add default color to the doc to use for ref in manue
+        <input type="hidden" id ="widget-$!{WidgetId}-defaultBurgerColor" value="$Color">
+
+        <script src="$AppPath/javascript/modules/dashboard.js" type="text/javascript" charset="utf-8"></script>
+        <script>
+              psApp.dashboardshelper.requestWidgetStyleChange($WidgetId, {"contrast-color": "$Color"})
+        </script>
+    #end
+#end
+
+#*
+@function	Renders the HTML, CSS and JS required to input a transducer vale from the widget.
+@param      $valueConatiner - The existing container element that holds the normal widget UI.
+*#
+#macro(macroInputWidget $valueContainer)
+    <style scoped="scoped">
+        .tab-pane {
+            height: 100%;
+        }
+
+        .tab-content {
+            position: absolute;
+            width: 100%;
+            top: 0;
+            bottom: 0;
+        }
+
+        .input-container {
+            height: 100%;
+            display: flex;
+            display: -webkit-flex;
+            justify-content: center;
+            -webkit-justify-content: center;
+            align-items: center;
+            -webkit-align-items: center;
+            flex-direction: column;
+            -webkit-flex-direction: column;
+        }
+
+        .input-container .transducer-input-title {
+            margin-bottom: 10px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        #input-tabs {
+            display: none;
+        }
+
+        /* Turn back on the span for small displays as it's
+        required for the toggle buttons. */
+        .btn span {
+            display: block;
+        }
+
+        #confirmation-modal.modal {
+            color: #333333!important;
+        }
+
+        #confirmation-modal .modal-dialog {
+            margin: 0;
+            border-radius: 0;
+            height: 100%;
+        }
+
+        #confirmation-modal .modal-content {
+            background-color: rgba(17,27,37,.7);
+            color: white;
+            height: 100%;
+            border-radius: 0;
+        }
+
+        #confirmation-modal .modal-header {
+            border-bottom: none;
+        }
+
+        #confirmation-modal .modal-header .close {
+            color: white;
+        }
+
+        #confirmation-modal .modal-header h4 {
+            font-size: 1.5em;
+        }
+
+        #confirmation-modal .modal-footer {
+            border-top: none;
+        }
+
+        @media (max-height: 220px) {
+            .modal-dialog {
+                margin: 0;
+            }
+
+            .modal-content {
+                border-top-right-radius: 0;
+                border-top-left-radius: 0;
+            }
+
+            .modal-header, .modal-body, .modal-footer {
+                padding: 7px;
+            }
+        }
+
+    </style>
+
+    <script>
+        $(document).ready(function() {
+
+        ## DOM Manipulation to allow the macro to inject the existing widget content
+        ## into the Input Widget HTML, CSS ans JS
+        $('$valueContainer').appendTo($('#value-pane'));
+
+            var dialContainerHeight = 0, dialContainerWidth = 0;
+
+            initDoc();
+
+            function activateTab(tab) {
+                $('.nav-tabs a[href="#' + tab + '"]').tab('show');
+            }
+
+            /**
+             * Event handler for when the tabs changes.
+             *
+             * Available tabs are:
+             *   value-pane (default)
+             *   analogue-input-pane
+             *   digital-input-pane
+             * */
+            $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+                if($(e.target).attr('aria-controls') == 'analogue-input-pane') {
+                ## Create the dial for analogue input.
+                    drawDial();
+                ## $(e.relatedTarget) = last tab
+                } else if ($(e.target).attr('aria-controls') == 'number-input-pane') {
+                    $("#number-input").kendoNumericTextBox({format: "#.00 $!OutputTransducer.analogueUnits"});
+                } else if ($(e.target).attr('aria-controls') == 'digital-input-pane') {
+                    ## Reinitialise the toggle switch as it will not be sized correctly as
+                    ## the container was not on display.
+                    $('#digital-input').bootstrapToggle('destroy');
+                    $('#digital-input').bootstrapToggle({on: '#I18N("$!OutputTransducer.digitalOnLabel")', off: '#I18N("$!OutputTransducer.digitalOffLabel")'});
+                    ##Set the value
+                }
+            });
+
+            /**
+             * Click handler to show the confirmation dialog.
+             * */
+            $('.confirm-value').click(function(event) {
+                event.preventDefault();
+                $('#confirmation-modal').modal('show');
+            });
+
+            /**
+             * Click handler to cancel any input and return to the value panel.
+             * */
+            $('.cancel-value').click(function(event) {
+                event.preventDefault();
+                activateTab('value-pane');
+            });
+
+            /**
+             * Click handler for the confirmation dialog Yes button.
+             * */
+            $('#confirmation-yes').click(function(event) {
+                event.preventDefault();
+
+                var inputValue = 0;
+
+                if( $('.tab-pane.active').attr('id') == 'analogue-input-pane' ) {
+                    inputValue = $('.dial').val();
+                } else if( $('.tab-pane.active').attr('id') == 'number-input-pane' ) {
+                    inputValue = $('#number-input').val();
+                } else if( $('.tab-pane.active').attr('id') == 'digital-input-pane' ) {
+                    if( $("#digital-input").is(':checked') ) {
+                        inputValue = 1;
+                    } else {
+                        inputValue = 0;
+                    }
+                }
+
+                ## Setup the params for the JSON post request
+                var params = jQuery.param({
+                    widget: $Configuration.widgetId,
+                    transducer: $OutputTransducer.id,
+                    value: inputValue
+                });
+
+                ## Make the POST request passing along the paramaters to update the transducer.
+                var response = PivotalUtils.getJsonContent('$AppPath/widgets/set/value?id=$Configuration.widgetId&transducer=$OutputTransducer.id',params,true);
+
+                ## Switch to the value pane.
+                activateTab('value-pane');
+
+                if(response) {
+                    if(response.hasOwnProperty('data')) {
+                        if(response.data.hasOwnProperty('value')) {
+                            $('#value-content').text(response.data.value + response.data.units);
+                        }
+                    }
+
+                    if(response.hasOwnProperty('error') && response.error) {
+                        alert(response.error);
+                    }
+                }
+            });
+
+            /**
+             * Initialise the document.
+             * */
+            function initDoc() {
+                ## Set the position of the main body content to the top, minus the height of the widget title (if it exists).
+                $('.tab-content').css('top', $('.widget-title').outerHeight() + $('.widget-title-link').outerHeight());
+            }
+
+            /**
+             * Draw the input dial for analogue transducers.
+             */
+            function drawDial() {
+                dialContainerHeight = $('#analogue-input-pane .input-container').innerHeight();
+                dialContainerWidth = $('#analogue-input-pane .input-container').innerWidth();
+
+                var min = Math.min(dialContainerHeight,dialContainerWidth),
+                    minValue = #if("$!OutputTransducer.transducerType.analogueMinimumValue" == "") 0 #else $OutputTransducer.transducerType.analogueMinimumValue #end,
+                    maxValue = #if("$!OutputTransducer.transducerType.analogueMaximumValue" == "") 1000000 #else $OutputTransducer.transducerType.analogueMaximumValue #end
+
+                $('.dial').knob(
+                        {
+                            'min': minValue,
+                            'max': maxValue,
+                            'width':min / 2,
+                            'height':min / 2,
+                            'displayPrevious': true
+                        }
+                );
+            }
+
+            $(window).trigger('resize');
+        });
+    </script>
+
+    <!-- Hide the tabs as we're controlling the switching programmatically. -->
+    <ul id="input-tabs" class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active"><a href="#value-pane" aria-controls="value-pane" role="tab" data-toggle="tab">Value</a></li>
+        <li role="presentation" class=""><a href="#number-input-pane" aria-controls="number-input-pane" role="tab" data-toggle="tab">Numeric Input</a></li>
+        <li role="presentation" class=""><a href="#analogue-input-pane" aria-controls="analogue-input-pane" role="tab" data-toggle="tab">Analogue Input</a></li>
+        <li role="presentation" class=""><a href="#digital-input-pane" aria-controls="digital-input-pane" role="tab" data-toggle="tab">Digital Input</a></li>
+    </ul>
+
+    <!-- Value and Input tab containers. -->
+    <div class="tab-content">
+        <!-- Value Container -->
+        <div role="tabpanel" class="tab-pane fade in active" id="value-pane">
+        </div>
+
+        <!-- Number Input Container -->
+        <div role="tabpanel" class="tab-pane fade" id="number-input-pane">
+            <div class="input-container">
+                <h1 class="transducer-input-title">$!Configuration.title</h1>
+                <div>
+                    <input id="number-input" type="number" value="$Value" min="0" max="100" step="0.1" />
+                </div>
+                <div style="padding-top: 10px">
+                    <button class="btn btn-default cancel-value">Cancel </button>
+                    <button class="btn btn-primary confirm-value">SET <i class="fa fa-check"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analogue Input Container -->
+        <div role="tabpanel" class="tab-pane fade" id="analogue-input-pane">
+            <div class="input-container">
+                <h1 class="transducer-input-title">$!Configuration.title</h1>
+                <input type="text" class="dial" value="$Value" />
+                <div style="padding-top: 10px">
+                    <button class="btn btn-default cancel-value">Cancel </button>
+                    <button class="btn btn-primary confirm-value">SET <i class="fa fa-check"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Digital Input Container -->
+        <div role="tabpanel" class="tab-pane fade" id="digital-input-pane">
+            <div class="input-container">
+                <h1 class="transducer-input-title">$!Configuration.title</h1>
+                #if("$!Value" == "$!OutputTransducer.digitalOnLabel")
+                    <input id="digital-input" type="checkbox" checked data-toggle="toggle">
+                #else
+                    <input id="digital-input" type="checkbox" data-toggle="toggle">
+                #end
+                <div style="padding-top: 10px">
+                    <button class="btn btn-default cancel-value">Cancel </button>
+                    <button class="btn btn-primary confirm-value">SET <i class="fa fa-check"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal. -->
+    <div id="confirmation-modal" class="modal fade">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Are you sure?</h4>
+                </div>
+                <div class="modal-body">
+                    <p>You're about to set the value of this transducer.</p>
+                    <p>Do you wish to continue?</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="confirmation-no" type="button" class="btn btn-default" data-dismiss="modal">No</button>
+                    <button id="confirmation-yes" type="button" class="btn btn-primary" data-dismiss="modal">Yes <i class="fa fa-check"></i></button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+#end
+
+#*
+@function	This will embed the dynamic style for the particular dashboard configuration
+@param      $Dashboard - The dashboard model
+*#
+#macro(macroAddDashboardStyle $Dashboard)
+
+    <style>
+        #if("$!Dashboard" != "")
+            #set($ImageRef = $PropertyUtils.getUrlReferenceFromId($Dashboard.bgImage))
+            #set($ImageStyle = $PropertyUtils.getBackgroundImageCssStyle($ImageRef, $Dashboard.IsBgImageScaled))
+            #if("$!ImageStyle" != "")
+            .layout {
+                $ImageStyle
+            }
+            #end
+        #end
+
+        header {
+            display: none;
+        }
+
+        .fa-check-circle-o {
+            color: #b7cf46;
+        }
+
+        .fa-warning {
+            color: #db524b;
+        }
+
+        .menu {
+            padding: 0 10px 0 10px;
+            text-align: right;
+            #if("$!Dashboard" != "")
+                border-bottom: 1px solid $Dashboard.menuColor;
+                background-color: $Dashboard.bgColor;
+                color $Dashboard.menuItemColor;
+            #else
+                color: white;
+            #end
+        }
+
+        .menu a {
+            cursor: pointer;
+        }
+
+        .menu a, #sub-menu a {
+            #if("$!Dashboard" != "" && !$Utils.isBlank($Dashboard.menuItemColor))
+                color:$Dashboard.menuItemColor;
+            #else
+                color: #fff;
+            #end
+            font-size: 1.5em;
+        }
+
+        #sub-menu a.disabled, #sub-menu a:hover.disabled{
+            color: rgba(255,255,255,.5);
+        }
+
+        .menu.active a {
+##            #if("$!Dashboard" != "")background-color: $Dashboard.menuColor; #end
+        }
+
+        .menu #menu-status-icon {
+            font-size: 1.5em;
+            padding: 7px 5px;
+        }
+
+        .menu a {
+            padding: 5px 10px;
+        }
+
+        #sub-menu a {
+            padding: 5px;
+        }
+
+        #sub-menu {
+            padding: 5px 16px;
+            #if("$!Dashboard" != "" && !$Utils.isBlank($Dashboard.menuColor))background-color: $Dashboard.menuColor; #end
+            text-align: right;
+            #if("$!Dashboard" != "" && !$Utils.isBlank($Dashboard.menuItemColor))
+                color:$Dashboard.menuItemColor;
+            #else
+                color: #fff;
+            #end
+        }
+
+        #sub-menu span {
+            font-family: 'Open Sans Condensed';
+            font-size: 1.5em;
+        }
+
+        .menu h1 {
+            display: inline-block;
+            #if("$!Dashboard" != "") color: $Dashboard.fgColor; #end
+            font-family: 'Open Sans Condensed';
+            font-size: 1.5em;
+            padding: 4px 5px;
+        }
+    </style>
+    <script>
+        var menuItemColor ='#fffff';
+           #if("$!Dashboard" != "" && !$Utils.isBlank($Dashboard.menuItemColor))
+            menuItemColor = '$Dashboard.menuItemColor';
+           #end
+        var bgColor = '#1F2228';
+            #if("$!Dashboard" != "")
+            bgColor = '$Dashboard.bgColor'
+            #end
+        var menuColor = '';
+            #if("$!Dashboard" != "")
+            menuColor= '$Dashboard.menuColor'
+            #end
+        // Darken the
+        var newMenuItemColor = LightenDarkenColor(menuItemColor, -100);
+        /**
+         *This will update the menu color and bgcolor on hover dynamiaclly
+         * */
+        $(function () {
+            $("#sub-menu a").hover(
+                function () {
+                    if(!$(this).hasClass( "disabled" )) {
+                        $(this).css('color', newMenuItemColor)
+                    }
+                }, function () {
+                        if(!$(this).hasClass( "disabled" )) {
+                            $(this).css('color', menuItemColor)
+                        }
+                });
+        });
+        /**
+         *This will update the burger color and bgcolor on hover dynamiaclly
+         * */
+        $(function () {
+            $(".menu a").hover(
+                function () {
+                    $(this).css('color', newMenuItemColor)
+                    $(this).css('background-color', menuColor)
+                }, function () {
+                    $(this).css('color', menuItemColor)
+                    $(this).css('background-color', bgColor)
+                });
+        });
+        /**
+         * This will light /dark colur based on the amount is provided
+         * this will work for hover new color for items user define color
+         * @param col orignal color
+         * @param amt amount need to increase decrese
+         * @returns {string} updated color
+         */
+        function LightenDarkenColor(col, amt) {
+
+            var usePound = false;
+
+            if (col[0] == "#") {
+                col = col.slice(1);
+                usePound = true;
+            }
+
+            var num = parseInt(col,16);
+
+            var r = (num >> 16) + amt;
+
+            if (r > 255) r = 255;
+            else if  (r < 0) r = 0;
+
+            var b = ((num >> 8) & 0x00FF) + amt;
+
+            if (b > 255) b = 255;
+            else if  (b < 0) b = 0;
+
+            var g = (num & 0x0000FF) + amt;
+
+            if (g > 255) g = 255;
+            else if (g < 0) g = 0;
+
+            return (usePound?"#":"") + ("0" + r.toString(16)).substr(-2) + ("0" + g.toString(16)).substr(-2) + ("0" + b.toString(16)).substr(-2);
+        }
+    </script>
+#end
+
+#*
+@function	This will include the JavaScript snippet for handling the dashboard menu
+@params		none
+*#
+#macro(macroAddDashboardMenuScript)
+    <script>
+        /**
+         * Contains the functionality for creating the menu to show on a dashboard and provide access to it for adding
+         * new menu items
+         */
+        var DashboardMenu = {
+
+            /**
+             * This will initialise the Dashboard menu
+             */
+            initialise: function() {
+                $('[data-toggle="tooltip"]').tooltip();
+                $('.locked-link').click(function(event) {
+                    event.preventDefault();
+
+                    $(this).toggleClass('locked');
+                    if($(this).hasClass('locked')) {
+                        $(this).html('<i class="fa fa-unlock"></i>');
+                        ##Change the tooltip to "unlock"
+                        $(this).data('tooltip', '#I18N("dashboards.top.menu.unlock")');
+                        $('#sub-menu span').html($(this).data('tooltip'));
+                        dashboard.lockDashboard();
+
+                    } else {
+                        $(this).html('<i class="fa fa-lock"></i>');
+                        ##Change the tooltip to "lock"
+                        $(this).data('tooltip', '#I18N("dashboards.top.menu.lock")');
+                        $('#sub-menu span').html($(this).data('tooltip'));
+                        dashboard.unlockDashboard();
+                    }
+                });
+
+                $('#sub-menu').on('hide.bs.collapse show.bs.collapse', function () {
+                    $('.menu').toggleClass('active');
+                });
+
+                // Add the hover event to the menu items
+                this.addHoverEvent($('#sub-menu a'));
+            },
+
+            /**
+             * This will add the hover handler [for the menu] to the provided selector
+             *
+             * @param selector the selector to add the event to
+             */
+            addHoverEvent: function(selector) {
+                if(!(selector instanceof jQuery)) selector = $(selector);
+                selector.hover(
+                        function(event) {
+                            $('#sub-menu span').html($(this).data('tooltip'));
+                        },
+                        function() {
+                            $('#sub-menu span').html('');
+                        }
+                );
+            },
+
+            /**
+             * Will prepend the menu item to the current menu
+             *
+             * @param menuItem the actual menu item to add to the menu - this is expected to be a fully defined item
+             */
+            prependMenuItem: function(menuItem) {
+                if(!(menuItem instanceof jQuery)) menuItem = $(menuItem);
+                this.addHoverEvent(menuItem);
+                $("#sub-menu a:first").before(menuItem);
+            },
+
+            /**
+             * Will append the menu item to the current menu
+             *
+             * @param menuItem the actual menu item to add to the menu - this is expected to be a fully defined item
+             */
+            appendMenuItem: function(menuItem) {
+                if(!(menuItem instanceof jQuery)) menuItem = $(menuItem);
+                this.addHoverEvent(menuItem);
+                $("#sub-menu").prepend(menuItem);
+            }
+        };
+    </script>
+#end
+
+#*
+@function	Render global header (logo/nav/search etc)
+@params		none
+*#
+#macro(macroGlobalHeader)
+    #parse("includes/initialise.inc")
+#end
+
+#*
+@function	Shows the standard footer for each page
+@params		none
+*#
+#macro(macroFooter $FooterProperties)
+    #parse("includes/page-end.inc")
+#end
+
+#*
+@function	Shows the standard footer for each mobile page
+@params		none
+*#
+#macro(macroMobileFooter)
+    #parse("includes/mobile/mobile-page-end.inc")
+#end
+
+#*
+@function	Defines a function execution manager. It will allow us register function on ready, periodically and on resize.
+            All of them get executed on one go avoiding multiple handlers from competing for some thread time.
+@params		$ManagerDeclaration Manager declarion. To get a manager in the global scope use something like - 'test_manager_variable'. Otherwise, use - 'var test_manager_variable'.
+*#
+#macro(defineScriptExecutionManager $ManagerDeclaration)
+<script>
+        $ManagerDeclaration = (function () {
+        //private stuff. defined within the local scope.
+        var readyExecutionItems = {
+            1: [],
+            2: [],
+            3: []
+        };
+        var timeoutExecutionItems = {
+            1: [],
+            2: [],
+            3: []
+        };
+        var resizeExecutionItems = {
+            1: [],
+            2: [],
+            3: []
+        };
+        //default timeout period
+        var timeoutPeriod = 15000;
+
+        /**
+         * Add an execution item to a queue
+         * @param coordinatorObject Coordination queue
+         * @param functionItem Function Item to Execution
+         * @param executionOrder Execution order [1,2 or 3]. Default is 1.
+         * @returns {boolean} true if item was added successfully
+         */
+        var addExectutionItem = function (coordinatorObject, functionItem, executionOrder) {
+            //Check if we've been passed a valid coordinator object
+            if (!coordinatorObject || (coordinatorObject !== readyExecutionItems && coordinatorObject !== timeoutExecutionItems && coordinatorObject !== resizeExecutionItems)) return false;
+            if (!functionItem)return false;
+            //Is the item a function or not
+            if (typeof functionItem !== 'function') return false
+            //set default priority if not present
+            if (!executionOrder) {
+                executionOrder = 1;
+            }
+            //check for invalid priotity
+            if (!coordinatorObject.hasOwnProperty(executionOrder))return false;
+            coordinatorObject[executionOrder].push(functionItem);
+            return true;
+        };
+
+        /**
+         * Builds and runs the function call stack based on the configured queue
+         * @param coordinatorObject Coordination queue to execute
+         * @returns {Function} function that will execute the whole coordination queue
+         */
+        var buildFunctionStack = function (coordinatorObject) {
+            return function () {
+                for (var key in coordinatorObject) {
+                    var execFunctionArray = coordinatorObject[key];
+                    for (var fKey in execFunctionArray) {
+                        var execFunction = execFunctionArray[fKey];
+                        if (execFunction && typeof execFunction === 'function') {
+                            execFunction();
+                        }
+                    }
+                }
+            };
+        };
+
+        //Public methods
+        return {
+            /**
+             * Add function item to the on ready handler
+             * @param functionItem Function to execute on ready
+             * @param executionOrder Order of execution [1,2 or 3]. Default is 1.
+             */
+            addReadyExectionItem: function (functionItem, executionOrder) {
+                addExectutionItem(readyExecutionItems, functionItem, executionOrder);
+            },
+            /**
+             * Add function item to the polling handler
+             * @param functionItem Function to execute periodically
+             * @param executionOrder Order of execution [1,2 or 3]. Default is 1.
+             */
+            addTimeoutExectionItem: function (functionItem, executionOrder) {
+                addExectutionItem(timeoutExecutionItems, functionItem, executionOrder);
+            },
+            /**
+             * Add function item to the resize handler
+             * @param functionItem Function to execute on window resize
+             * @param executionOrder Order of execution [1,2 or 3]. Default is 1.
+             */
+            addResizeExectionItem: function (functionItem, executionOrder) {
+                addExectutionItem(resizeExecutionItems, functionItem, executionOrder);
+            },
+            /**
+             * Register the resize item to run on the ready event
+             */
+            executeReadyItems: function () {
+                var mainExec = buildFunctionStack(readyExecutionItems);
+                //call the on ready function with all the requested functions
+                $(document).ready(mainExec);
+            },
+            /**
+             * Register the timeout items to run every x miliseconds.
+             * @param timeout Interval time in miliseconds. If none is provided, a default 15000 miliseconds will be used.
+             */
+            executeTimeoutItems: function (timeout) {
+                var mainExec = buildFunctionStack(timeoutExecutionItems);
+                //call a set interval with all the requested functions
+                setInterval(mainExec, timeout ? timeout : timeoutPeriod);
+            },
+            /**
+             * Register the resize items to run on window resize
+             */
+            executeResizeItems: function () {
+                var mainExec = buildFunctionStack(resizeExecutionItems);
+                //call a set interval with all the requested functions
+                $(window).resize(mainExec);
+            }
+        }
+    })();
+</script>
+#end
+
+
+#########################
+## Typography
+#########################
+
+#*
+@function	Render headings <hx>
+@params		$HeadingLevel (string) - Number between 1 and 6
+			$String (string) - Text of the heading
+			$HeadingClass (string) - Heading class
+			$HeadingId (string) - Heading ID
+*#
+#macro(macroHeading
+$HeadingLevel
+$String
+$HeadingClass
+$HeadingId
+)
+<$HeadingLevel
+    #if("$!HeadingClass"!="")
+    class="$!HeadingClass"
+    #end
+    #if("$!HeadingId"!="")
+    id="$!HeadingId"
+    #end
+>#I18N($String)</$HeadingLevel>
+#end
+
+#*
+@function	Render feedback message
+@params		$MsgType (string) - can be one of: 'info', 'error', 'warning', 'success'
+			$MsgText (string) - Text of the message
+			$MsgTitle (string) - Sub-heading which appears above the $MsgText
+*#
+#macro(macroFeedbackMsg
+$MsgType
+$MsgText
+$MsgTitle
+)
+<div class="feedback-msg $MsgType">
+    <span class="icon"></span>
+    #if("$!MsgTitle" != "")
+        <p class="feedback-msg-title">#I18N($!MsgTitle)</p>
+    #end
+    <p>#I18N($MsgText)</p>
+</div>
+#end
+
+
+#########################
+## <img/> element
+#########################
+#macro(macroImage
+$ImgSrc
+$ImgTitle
+$ImgClass
+$ImgWidth
+$ImgHeight
+)
+<img
+    #if("$!ImgTitle" != "")
+            title="$ImgTitle"
+    #else
+            title=""
+    #end
+    #if("$!ImgClass" != "")
+            class="$ImgClass"
+    #end
+    #if("$!ImgHeight" != "")
+            height="$ImgHeight"
+    #end
+            src="$ImgSrc"
+    #if("$!ImgWidth" != "")
+            width="$ImgWidth"
+    #end
+        />
+#end
+
+#*
+@function	Attach a modal dialog to the clock event of an element
+@params		$Id (string) - ID of the element to attach to
+			$Title (string) - Title to give the dialog
+			$Width (string) - Initial width of the window (e.g. 400px or 70%)
+			$Height (string) - Initial height of the window (e.g. 400px or 70%)
+			$Url (string) - URL to get source
+			$UseIFrame (boolean) - True if the content should be rendered inside an IFrame)
+*#
+#macro(macroModalWindow
+$Id
+$Title
+$Width
+$Height
+$Url
+$UseIFrame
+)
+<script>
+    $(document).ready(function () {
+        $("#$Id").click(function () {
+            psApp.windowManager.open({title:"#I18N($Title)", width:"$Width", height:"$Height", content:"$Url", useIFrame:$UseIFrame});
+            return false;
+        });
+    });
+</script>
+#end
+
+
+#*
+@function	Creates a layout planner div with the given properties
+@params		$PlannerId (string) - Id of the created div
+			$EditModeOn (boolean) - Is the planner in edit mode or not
+			$AdditionalConfigs (List) - List of additional configurations. It will accept URLs in ' or JS objects (refence or string representation)
+*#
+#macro(macroLayoutPlanner $PlannerId $EditModeOn $Configs $Props $Svg $ElemList)
+
+<div id="$PlannerId" style="overflow:hidden;height:inherit;"></div>
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        var configs =
+        {
+            editMode: $EditModeOn,
+            panAdditionalCallback:  #if($Utils.isBlank("$!Props.panAdditionalCallback")) "" #else $!Props.panAdditionalCallback #end,
+            zoomAdditionalCallback:  #if($Utils.isBlank("$!Props.zoomAdditionalCallback")) "" #else $!Props.zoomAdditionalCallback #end,
+            backgroundColor : #if($Utils.isBlank("$!Props.backgroundColor")) "#FFFFFF" #else "$!Props.backgroundColor" #end,
+            #if(!$Utils.isBlank("$!Props.backgroundOpacity")) backgroundOpacity : "$!Props.backgroundOpacity", #end
+            propertiesViewSource: "$AppPath/$PageName/propertiesdisplay",
+            animationsReadSource: "$AppPath/$PageName/getanimations",
+            paletteGroups : #if($Utils.isBlank("$!Props.paletteGroups")) {} #else $!Props.paletteGroups #end,
+            entityId : #if($Utils.isBlank("$!Props.entityId")) '' #else '$!Props.entityId' #end,
+            entityName : #if($Utils.isBlank("$!Props.entityName")) '' #else '$!Props.entityName' #end,
+            assetTag : #if($Utils.isBlank("$!Props.assetTag")) '' #else '$!Props.assetTag' #end,
+            favourites : #if($Utils.isBlank("$!Props.favourites")) [] #else $!Props.favourites #end,
+            messages: {
+                'planner.props.title': "#I18N('planner.props.title')",
+                'planner.types.title': "#I18N('planner.types.title')",
+                'planner.types.select.all.title': "#I18N('planner.types.select.all.title')",
+                'planner.elems.title': "#I18N('planner.elems.title')",
+                'planner.group.favourites': "#I18N('layout.planner.group.favourites')",
+                'planner.group.general': "#I18N('layout.planner.group.general')",
+                'planner.search.placeholder': "#I18N('layout.planner.search.placeholder')"
+            },
+            toolbar: [
+                #foreach ($opt in $Configs)
+                    #if($VelocityCount > 1)
+                        ,
+                    #end
+                    $opt
+                #end
+            ]
+        };
+
+    ##Pass planner configs PLUS addtionals. the planner configs are the defaults
+        var domelem = $("#${PlannerId}");
+        #if($Utils.isBlank("$!Svg"))
+            PlannerFactory.buildPlanner(domelem, configs);
+        #else
+            PlannerFactory.buildPlannerSvg(domelem, configs, '$Svg');
+        #end
+
+        ##Run Animations
+        #if(($EditModeOn == false || $Utils.doStringsMatch("$EditModeOn" , "false")) && $ModuleManager.isModuleEnabled($Module.AlarmsControl))
+
+            var updateAnimationResults = function(){
+                var planObj = $("#${PlannerId}").planObject();
+
+                if(planObj) {
+
+                    if(!planObj.activeAnimations){
+                        planObj.activeAnimations = {color : {}, hide : {}};
+                    }
+                    var lastActiveAnimations = $.extend(true,{},planObj.activeAnimations);
+
+                    PivotalUtils.getJsonContentAsync("$AppPath/layout-planner/get-animation-results","ref_entity=$!Props.entityName&ref_id=$!Props.entityId",function(object) {
+
+
+                        //Object holds all the the animations to run, and all the elements related to each of them
+                        for (var animationType in object) {
+                            var elemsToAnimate = object[animationType];
+
+                            //Found a color animation. Paint element
+                            if (animationType === 'color') {
+                                for (var idx in elemsToAnimate) {
+                                    var dtls = elemsToAnimate[idx];
+                                    var elemId = dtls.elem;
+                                    var color = dtls.color;
+                                    //Store original colour
+                                    if(planObj.activeAnimations && planObj.activeAnimations.color && !planObj.activeAnimations.color[elemId]) {
+                                        var tmp = planObj.svgElem.find("[internal-id='" + elemId + "']");
+                                        if (tmp) {
+                                            planObj.activeAnimations.color[elemId] = tmp.attr("fill");
+                                        }
+                                    }
+                                    planObj.paintElement(elemId,color,100);
+                                    if(lastActiveAnimations && lastActiveAnimations.color && lastActiveAnimations.color[elemId]){
+                                        delete lastActiveAnimations.color[elemId];
+                                    }
+                                }
+                            }
+
+                            //Found a hide animation. Hide element
+                            else if (animationType === 'hide') {
+                                for (var idx in elemsToAnimate) {
+                                    var dtls = elemsToAnimate[idx];
+                                    var elemId = dtls.elem;
+
+                                    var elem = planObj.getGlobalElementById(elemId);
+                                    if(elem) elem.setHidden(true);
+                                    if(planObj.activeAnimations && planObj.activeAnimations.hide && !planObj.activeAnimations.hide[elemId]) {
+                                        planObj.activeAnimations.hide[elemId] = true;
+                                    }
+                                    if(lastActiveAnimations && lastActiveAnimations.hide && lastActiveAnimations.hide[elemId]){
+                                        delete lastActiveAnimations.hide[elemId];
+                                    }
+                                }
+                            }
+                        }
+
+                        //Restore original colour when animation is no longer required
+                        for (var animationType in lastActiveAnimations) {
+                            var animatedElemsForType = lastActiveAnimations[animationType];
+                            if(animatedElemsForType){
+                                if (animationType === 'color') {
+                                    for (var elemToRestore in animatedElemsForType) {
+                                        planObj.paintElement(elemToRestore, animatedElemsForType[elemToRestore], 100);
+                                    }
+                                }
+                                else if (animationType === 'hide') {
+                                    for (var elemToRestore in animatedElemsForType) {
+                                        var elem = planObj.getGlobalElementById(elemToRestore);
+                                        if(elem) elem.setHidden(false);
+                                    }
+                                }
+                            }
+                        }
+
+
+                    },false,2000);
+                }
+            };
+            updateAnimationResults();
+            setInterval(updateAnimationResults, 5000);
+
+        #end
+
+    });
+</script>
+
+#end
+
+##
+## Matches passed in href to see if it matches the current URL
+## Check variable AdminHrefMatches for result
+##
+#macro(macroAdminHrefMatches $Href)
+    #set($AdminHrefMatches = false)
+    #set($AdminHrefMatches = $Utils.doStringsMatch($AdminNavLink.Href, $SubPageName, "$SubPageName/$ActionPageName", "$Request.RequestURI", "$SubPageName?$!Request.QueryString", "$SubPageName/$ActionPageName?$!Request.QueryString", "$Request.RequestURI?$!Request.QueryString"))
+#end
+
+#*
+@function	Displays the sidebar links seen on the Admin style pages
+@params		$NavLinks (list of maps) - List of maps of name and uri
+*#
+#macro(macroShowAdminSidebarLinks $NavLinks)
+<ul>
+    #foreach($AdminNavSection in $NavLinks)
+        #set ($IsSelected = false)
+        #foreach($AdminNavLink in $AdminNavSection.SectionLinks)
+
+            #macroAdminHrefMatches($AdminNavLink.Href)
+            #if($AdminHrefMatches || $AdminNavLink.IsSelected)
+                #set ($IsSelected = true)
+                #break
+            #end
+        #end
+        <li #if($IsSelected)class="active"#end>
+            <a>
+                <i class="fa fa-lg fa-fw fa-$!AdminNavSection.SectionIcon"></i>
+                <span class="menu-item-parent">#I18N($AdminNavSection.SectionTitle)</span>
+            </a>
+
+            <ul style="display: none;">
+
+                ## Find the last matching link
+                #set ($SelectedHref = "")
+                #foreach($AdminNavLink in $!AdminNavSection.SectionLinks)
+                    #macroAdminHrefMatches($AdminNavLink.Href)
+                    #if($AdminHrefMatches)
+                        #set ($SelectedHref = $AdminNavLink.Href)
+                    #end
+                #end
+
+                #foreach($AdminNavLink in $!AdminNavSection.SectionLinks)
+                    <li data-test="$PageName"
+                        #if($AdminNavLink.IsSelected || $Utils.doStringsMatch($AdminNavLink.Href, $SelectedHref))
+                        class="active"
+                        #end
+                            >
+                        #if($AdminNavLink.Href)
+                                <a href=
+                            #if (!$AdminNavLink.Absolute)
+                                    "$AppPath/$PageName/$AdminNavLink.Href"
+                            #else
+                                "$AdminNavLink.Href"
+                            #end
+                            >#I18N($AdminNavLink.LinkText)</a>
+                        #end
+
+                        #if ($AdminNavLink.JavaScript)
+                            <a href="javascript:$AdminNavLink.JavaScript">#I18N($AdminNavLink.LinkText)</a>
+                        #end
+                    </li>
+                #end
+            </ul>
+        </li>
+    #end
+</ul>
+#end
+
+#*
+@function	Shows any notifications that might be available
+*#
+#macro(macroShowNotifications)
+##    #if (!$Utils.isBlank($SESS_notifications))
+##        <script>
+##            ## Make sure we only do this for the top window or an iframe that is orphaned
+##            try {
+##                if (window.self === top || !top.PivotalUtils) {
+##                    #foreach($notif in $SESS_notifications)
+##                        PivotalUtils.showNotification("#I18N($notif.message)", "$notif.level");
+##                        #if(!$Utils.isBlank($notif.mediaUrl))
+##                            PivotalUtils.queueAudioFile("$AppPath", "$notif.mediaUrl");
+##                        #end
+##                    #end
+##                }
+##            }
+##            catch(x){}
+##        </script>
+##        $SESS_notifications.clear()
+##    #end
+#end
+
+#*
+@function	If we are coming back from a successful POST and we're instructed
+            to close the popup
+*#
+#macro(macroCloseWindowIfOK)
+    #if ($CloseWindow)
+        <html>
+            <head>
+                <script src="$AppPath/javascript/jquery/jquery-1.11.1.min.js" type="text/javascript"></script>
+                <script src="$AppPath/javascript/common.js" type="text/javascript"></script>
+                <script src="$AppPath/javascript/pivotalutils.js" type="text/javascript"></script>
+                <script src="$AppPath/javascript/modules/psApp.js" type="text/javascript"></script>
+                <script src="$AppPath/javascript/modules/logger.js" type="text/javascript"></script>
+                <script src="$AppPath/javascript/modules/windowmanager.js" type="text/javascript"></script>
+            </head>
+            <body>
+                ## The name and ID of the newly added/edited items
+                ## This is used in the 'Add New' feature for dropdowns of entities
+                <input type="hidden" id="entity_name" value="$Entity.Name">
+                <input type="hidden" id="entity_id" value="$Entity.Id">
+                <script>
+                    psApp.windowManager.close(true);
+                </script>
+            </body>
+        </html>
+        #stop
+    #end
+#end
+
+#*
+@function	This will generate the administrator side menu and add in any new links
+            specified by any plugins
+*#
+#macro(macroGenerateAdminMenu)
+
+    #set($SystemNav = [])
+
+    #if($CurrentUser.hasAccess($PRIVILEGES_HAS_ADMIN_ACCESS))
+
+        #set($HasSystemAdmin = $CurrentUser.hasAccess($PRIVILEGES_SYSTEM_ADMIN))
+
+        #set($TheseOptions = [])
+        #set($tmp = $TheseOptions.add({"Href":"user","LinkText":"admin.navbar.users"}))
+        #set($tmp = $TheseOptions.add({"Href":"role","LinkText":"admin.navbar.role"}))
+        #set($tmp = $TheseOptions.add({"Href":"role_type","LinkText":"admin.navbar.role_type"}))
+
+        #set($tmp = $SystemNav.add(
+            {
+                "SectionTitle":"admin.navbar.title.users",
+                "SectionIcon":"users",
+                "SectionLinks": $TheseOptions
+            }
+        ))
+
+        #set($TheseOptions = [])
+        #set($tmp = $TheseOptions.add({"Href":"borough","LinkText":"admin.navbar.borough"}))
+
+        #set($tmp = $SystemNav.add(
+            {
+                "SectionTitle":"admin.navbar.title.lookups.site",
+                "SectionIcon":"building",
+                "SectionLinks": $TheseOptions
+            }
+        ))
+
+        #set($TheseOptions = [])
+        #set($tmp = $TheseOptions.add({"Href":"lookups?type=eustage","LinkText":"admin.navbar.lookup.eu_engine_emission_stage"}))
+        #set($tmp = $TheseOptions.add({"Href":"lookups?type=machinerymanufacturer","LinkText":"admin.navbar.lookup.machinery_manufacturer"}))
+        #set($tmp = $TheseOptions.add({"Href":"lookups?type=enginemanufacturer","LinkText":"admin.navbar.lookup.engine_manufacturer"}))
+        #set($tmp = $TheseOptions.add({"Href":"lookups?type=machinerytype","LinkText":"admin.navbar.lookup.machinery_type"}))
+
+        #set($tmp = $SystemNav.add(
+            {
+                "SectionTitle":"admin.navbar.title.lookups.machinery",
+                "SectionIcon":"snowplow",
+                "SectionLinks": $TheseOptions
+            }
+        ))
+
+        #set($TheseOptions = [])
+        #set($tmp = $TheseOptions.add({"Href":"lookups?type=retrofitmodel","LinkText":"admin.navbar.lookup.retrofit_model"}))
+
+        #set($tmp = $SystemNav.add(
+            {
+                "SectionTitle":"admin.navbar.title.lookups.retrofit",
+                "SectionIcon":"screwdriver",
+                "SectionLinks": $TheseOptions
+            }
+        ))
+
+        #set($TheseOptions = [])
+        #set($tmp = $TheseOptions.add({"Href":"lookups?type=exemptionreason","LinkText":"admin.navbar.lookup.exemption_reason"}))
+        #set($tmp = $TheseOptions.add({"Href":"lookups?type=exemptioncode","LinkText":"admin.navbar.lookup.exemption_codes"}))
+        #set($tmp = $TheseOptions.add({"Href":"lookups?type=exemptionaccept","LinkText":"admin.navbar.lookup.exemption_accept"}))
+        #set($tmp = $TheseOptions.add({"Href":"lookups?type=exemptionreject","LinkText":"admin.navbar.lookup.exemption_reject"}))
+
+        #set($tmp = $SystemNav.add(
+            {
+                "SectionTitle":"admin.navbar.title.lookups.exemption",
+                "SectionIcon":"clipboard-check",
+                "SectionLinks": $TheseOptions
+            }
+        ))
+
+        #if($HasSystemAdmin)
+            #set($TheseOptions = [])
+            #set($tmp = $TheseOptions.add({"Href":"task","LinkText":"admin.navbar.task.task"}))
+            #set($tmp = $TheseOptions.add({"Href":"report","LinkText":"admin.navbar.task.report"}))
+            #set($tmp = $TheseOptions.add({"Href":"distribution_list","LinkText":"admin.navbar.task.distribution_list"}))
+            #set($tmp = $TheseOptions.add({"Href":"report_log","LinkText":"admin.navbar.task.log"}))
+
+            #set($tmp = $SystemNav.add(
+                {
+                    "SectionTitle":"admin.navbar.task.title",
+                    "SectionIcon":"table",
+                    "SectionLinks": $TheseOptions
+                }
+            ))
+        #end
+
+        #set($TheseOptions = [])
+        #if($HasSystemAdmin)
+            #set($tmp = $TheseOptions.add({"Href":"workflow","LinkText":"admin.navbar.workflow.scripts"}))
+            #set($tmp = $TheseOptions.add({"Href":"action_type","LinkText":"admin.navbar.workflow.action_type"}))
+            #set($tmp = $TheseOptions.add({"Href":"report_text_type","LinkText":"admin.navbar.task.report_text_type"}))
+        #end
+        #set($tmp = $TheseOptions.add({"Href":"report_text","LinkText":"admin.navbar.task.report_text"}))
+
+        #set($tmp = $SystemNav.add(
+            {
+                "SectionTitle":"admin.navbar.workflow.title",
+                "SectionIcon":"tasks",
+                "SectionLinks": $TheseOptions
+            }
+        ))
+
+        #if($HasSystemAdmin)
+            #set($TheseOptions = [])
+            #set($tmp = $TheseOptions.add({"Href":"settings/general","LinkText":"admin.navbar.general_settings"}))
+            #set($tmp = $TheseOptions.add({"Href":"settings/authentication","LinkText":"admin.navbar.authentication_settings"}))
+##            #set($tmp = $TheseOptions.add({"Href":"note_type","LinkText":"admin.navbar.note_type"}))
+##            #set($tmp = $TheseOptions.add({"Href":"settings/backup","LinkText":"admin.navbar.backup"}))
+            #set($tmp = $TheseOptions.add({"Href":"lookups?type=inputpatterns","LinkText":"admin.navbar.lookup.pattern"}))
+
+            #set($tmp = $SystemNav.add(
+                {
+                    "SectionTitle":"admin.navbar.title.settings",
+                    "SectionIcon":"cogs",
+                    "SectionLinks": $TheseOptions
+                }
+            ))
+        #end
+    #end
+#end
+
+#*
+@function	This will return the sections and links for the specific location.
+@params		LocationName (string) - The location name
+@return     The parsed location in $Location
+*#
+#macro(macroSectionsForLocation $LocationName)
+    #set($Location = {
+    "Name": "$LocationName",
+    "Sections": []
+    })
+
+## Ensure that there is a content manager
+    #if("$!ContentManager" != "")
+
+    ## Lets fetch them and and their corresponding links
+        #set ($WebSections=$ContentManager.getWebSections("test.links", $Context))
+
+    ## Output the Sections
+        #foreach($WebSection in $WebSections)
+
+        ## Create the section object
+            #set($Section = {
+            "SectionTitle": $WebSections.getWebLabel().getDisplayableLabel($Request, $Context),
+            "SectionLinks": []
+            })
+
+        ## Are there any links for this section
+            #macroLinksForSection("$LocationName/$WebSection.getSectionName()"))
+
+        ## Add the links to this section
+            #set ($tmp = $Section.SectionLinks.addAll($Links))
+
+        ## Add this section to the location
+            #set ($tmp = $Location.Sections.addAll($Section))
+        #end
+    #end
+#end
+
+#*
+@function	This will return the links for the section.
+@params		SectionName (string) - The section name
+@return     An array of links for the section in $Links
+*#
+#macro(macroLinksForSection
+$SectionName)
+    #set($Links = [])
+
+## Ensure that there is a content manager
+    #if("$!ContentManager" != "")
+
+    ## This will get the web items for the section e.g. test.links/top
+        #set ($WebItems = $ContentManager.getWebItems($SectionName))
+        #if(!$WebItems.isEmpty())
+            #foreach($WebItem in $WebItems)
+            ## Add the links for this section
+                #set ($tmp = $Links.addAll([{
+                "Absolute":true,
+                "Href":$WebItem.getLink().getDisplayableUrl($Request, $Context),
+                "LinkText":$WebItem.getWebLabel().getDisplayableLabel($Request, $Context)
+                }]))
+            #end
+        #end
+    #end
+#end
+
+##
+## Display the link for a single page
+## - $link                  Url to be called when a button is clicked. Page parameter is added
+## - $page                  Page to jump to
+## - $currentPage           Current page being displayed
+## - $recordsPerPage        Number of records to be shown on each page
+##
+#macro(macroDisplayPage $link $page $currentPage $recordsPerPage)
+    #set ($row = (($page - 1) * $recordsPerPage) + 1)
+    #if ($currentPage == $page)
+        <li class="active"><a href="${link}$page" page="$page" row="$row">$page</a></li>
+    #else
+        <li><a href="${link}$page" page="$page" row="$row">$page</a></li>
+    #end
+#end
+
+##
+## Display a paging control
+## Need to be careful with the passed in parameters ensuring that data is displayed correctly around the
+## minimum number of pages
+## - $link                  Url to be called when a button is clicked. Page parameter is added
+## - $currentPage           Current page being displayed
+## - $minPages              If the total number of pages <= this value then just display all page links regardless. Handy method and useful for low page numbers
+## - $total                 Total number of entites to display
+## - $recordsPerPage        Number of records to be shown on each page
+## - $endsTokeep            Number of Initial and Final pages to always display
+## - $middleSectionEachSide Number of records to be shown either side of the current page when in the middle of a page list
+## - $linkIsFormatString    If true, the link will be used as a format string in String.format(), with the page number passed as a parameter
+##                          (by default, the string "?page=<pageNumber>" will just be appended to the URL)
+##
+#macro(macroShowPageControl $link $currentPage $minPages $recordsPerPage $total $endsToKeep $middleSectionEachSide $linkIsFormatString)
+    ## multiply size by 1.0 to convert to a double.
+    #set ($rawLastPage = $total * 1.0 / $recordsPerPage)
+    #set ($rawLastPage = $Math.ceil($rawLastPage))
+    #set ($lastPage = $rawLastPage.intValue())
+    #if($rawLastPage > $lastPage)
+        #set($lastPage = $lastPage + 1)
+    #end
+
+    #set ($previousPage = $currentPage - 1)
+    #set ($nextPage = $currentPage + 1)
+
+    #if(! $linkIsFormatString)
+        #set($link = "$link?page=%d")
+    #end
+
+<div>
+    <ul class="pagination">
+        #if ($total > $recordsPerPage)
+            #set($Modifier="")
+            #if ($currentPage <= 1)
+                #set($Modifier="disabled")
+            #end
+            <li class="first-page $!Modifier"><a href="${link}1" page="1"><i class="fa fa-fast-backward"></i></a></li>
+            <li class="previous-page $!Modifier"><a href="${link}$previousPage" page="$previousPage"><i class="fa fa-step-backward"></i></a></li>
+        #end
+        ## Check to see if we can just display all pages
+        #if ($lastPage <= $minPages)
+            #foreach ($i in [1..$lastPage])
+                #macroDisplayPage($link $i $currentPage $recordsPerPage)
+            #end
+        #else
+            #set ($section1End = $endsToKeep)
+            #set ($section3Start = $lastPage - $endsToKeep + 1)
+            #set ($section2Start = $currentPage - $middleSectionEachSide)
+            #set ($section2End = $currentPage + $middleSectionEachSide)
+            #set ($showSection1Seperator = false)
+            #set ($showSection2Seperator = false)
+            ## Validate the sections
+            #if ($section1End >= ($section2Start - 1))
+                #set ($section2Start = $section1End + 1)
+                #set ($section2End = $section2Start + ($middleSectionEachSide * 2))
+                #set ($showSection1Seperator = false)
+            #end
+            #if ($section2End >= ($section3Start - 1))
+                #set ($section2Start = $section3Start - ($middleSectionEachSide * 2) - 1)
+                #if ($section2Start < ($section1End + 1))
+                    #set ($section2Start = $section1End + 1)
+                    #set ($showSection1Seperator = false)
+                #end
+                #set ($section2End = $section3Start - 1)
+                #set ($showSection2Seperator = false)
+            #end
+            #foreach ($i in [1..$section1End])
+                #macroDisplayPage($link $i $currentPage $recordsPerPage)
+            #end
+            #if ($showSection1Seperator)
+                ...
+            #end
+            #foreach ($i in [$section2Start..$section2End])
+                #macroDisplayPage($link $i $currentPage $recordsPerPage)
+            #end
+            #if ($showSection2Seperator)
+                ...
+            #end
+            #foreach ($i in [$section3Start..$lastPage])
+                #macroDisplayPage($link $i $currentPage $recordsPerPage)
+            #end
+        #end
+        &nbsp;
+        #if ($total > $recordsPerPage)
+            #set($Modifier="")
+            #if ($currentPage >= $lastPage)
+                #set($Modifier="disabled")
+            #end
+            <li class="next-page $!Modifier"><a href="${link}$nextPage" page="$nextPage"><i class="fa fa-step-forward"></i></a></li>
+            <li class="next-page $!Modifier"><a href="$${link}$lastPage" page="$lastPage"><i class="fa fa-fast-forward"></i></a></li>
+        #end
+    </ul>
+</div>
+#end
+
+##
+## This will create new event widthChanged  when come width of some div changed this event trigger
+## after define this macro we call like e.g  $('#divId').on('widthChanged',function(){});
+##
+#macro(macroCreateWidthChangedEvent)
+
+<style>
+    iframe.width-changed {
+        width: 100%;
+        display: block;
+        border: 0;
+        height: 0;
+        margin: 0;
+    }
+</style>
+<script>
+    $.event.special.widthChanged = {
+        remove: function () {
+            $(this).children('iframe.width-changed').remove();
+        },
+        add: function () {
+            var elm = $(this);
+            var iframe = elm.children('iframe.width-changed');
+            if (!iframe.length) {
+                iframe = $('<iframe/>').addClass('width-changed').prependTo(this);
+            }
+            var oldWidth = elm.width();
+
+            function elmResized() {
+                var width = elm.width();
+                if (oldWidth != width) {
+                    elm.trigger('widthChanged', [width, oldWidth]);
+                    oldWidth = width;
+                }
+            }
+
+            var timer = 0;
+            var ielm = iframe[0];
+            (ielm.contentWindow || ielm).onresize = function () {
+                clearTimeout(timer);
+                timer = setTimeout(elmResized, 20);
+            };
+        }
+    }
+</script>
+#end
+
+
+##
+## This will Declear script Resize the menu of the widget accoring to the width of the widget
+##
+#macro(macroResizeWidgetMenu)
+<script>
+    var LayoutMaueManager = {
+
+        /**
+         * This will update menu size base on the widget size
+         * @param widgetId wisget id
+         */
+        widgetMenuResize: function (widgetId) {
+            var newwidth = $('#widget-' + widgetId).parent().width();
+            if (newwidth <= 122) {
+                $('#widget-' + widgetId).find("#widget-" + widgetId + "-menu ul li button ,#widget-" + widgetId + "-menu ul li div").css({padding: "2px 3.5px", fontSize: "5px"});
+            }
+            else if (newwidth <= 165) {
+                $('#widget-' + widgetId).find("#widget-" + widgetId + "-menu ul li button ,#widget-" + widgetId + "-menu ul li div").css({padding: "4px 5px", fontSize: "7px"});
+            }
+            else if (newwidth <= 180) {
+                $('#widget-' + widgetId).find("#widget-" + widgetId + "-menu ul li button ,#widget-" + widgetId + "-menu ul li div").css({padding: "5px 7px", fontSize: "8px"});
+            }
+            else if (newwidth <= 194) {
+                $('#widget-' + widgetId).find("#widget-" + widgetId + "-menu ul li button ,#widget-" + widgetId + "-menu ul li div").css({padding: "5px 8px", fontSize: "9px"});
+            }
+            else if (newwidth <= 234) {
+                $('#widget-' + widgetId).find("#widget-" + widgetId + "-menu ul li button ,#widget-" + widgetId + "-menu ul li div").css({padding: "5px 8px", fontSize: "10px"});
+            } else {
+            ## revert back to default state
+                $('#widget-' + widgetId).find("#widget-" + widgetId + "-menu ul li button ,#widget-" + widgetId + "-menu ul li div").css({padding: "5px 10px", fontSize: "12px"});
+            }
+        }
+    }
+</script>
+#end
+

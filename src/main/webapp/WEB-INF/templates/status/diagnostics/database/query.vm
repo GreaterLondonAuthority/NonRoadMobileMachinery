@@ -1,0 +1,61 @@
+#macroPageHead($PageTitle)
+
+#macroStartForm("queryForm" $NULL {"noDirtyFlag":true})
+    #macroStartFieldset("status.diagnostics.database.query.title")
+        #macroInputSelect("datasource" "status.diagnostics.database.query.datasource" $Preferences.dataource $DatasourceList)
+        #macroInputTextArea("query" "status.diagnostics.database.query.text" $Preferences.query {"Cols":60,"Rows":6,"Tooltip":"SQL statement"})
+        #macroInputSwitch("csv" "status.diagnostics.database.query.csv" $Preferences.csv)
+        <div class="input-line">
+            <label>&nbsp;</label>
+            #macroButtonAction("submitAction" "global.button.execute" {"Tooltip":"Execute the query (F9)"})
+        </div>
+    #macroEndFieldset()
+#macroEndForm()
+
+<iframe id="surrogate" style="display:none"></iframe>
+<div id="results" style="overflow:auto">&nbsp;</div>
+
+<script type="application/javascript">
+    var executeActions = {
+        resizeTimer: false,
+
+        #**
+         * Resize the results table so that we don't lose the query input
+         *#
+        resize: function() {
+            clearTimeout(this.resizeTimer);
+            this.resizeTimer = setTimeout(function() {
+                var table = $("#results");
+                if (table.length > 0) {
+                    var position = table.position();
+                    table.height($(window).height() - position.top - 5);
+                    $("#results").show();
+                }
+            }, 300);
+        },
+        #**
+         * Execute the query in the text area against the selected data source
+         *#
+        execute: function() {
+            PivotalUtils.showModalScreen("#I18N("status.diagnostics.database.query.execute")")
+            setTimeout(function() {
+                if ($("#csv").prop("checked"))
+                    $("#surrogate").prop("src", "$AppPath/$PageName/$SubPageName/$ActionPageName/results/csv?" + $("#queryForm").serialize());
+                else
+                    $("#results").html(PivotalUtils.getContent("$AppPath/$PageName/$SubPageName/$ActionPageName/results", $("#queryForm").serialize(), true));
+                PivotalUtils.hideModalScreen();
+            },100);
+            return false;
+        }
+    }
+    $('#submitAction').click(executeActions.execute);
+    $(document).keyup(function(event) {
+        if (event.which == 120)
+            executeActions.execute();
+    });
+    $(window).resize(executeActions.resize);
+    setTimeout(executeActions.resize, 500);
+</script>
+
+#macroFooter()
+

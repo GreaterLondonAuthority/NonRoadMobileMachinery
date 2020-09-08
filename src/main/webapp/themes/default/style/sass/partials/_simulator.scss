@@ -1,0 +1,30 @@
+.inline {
+  display:inline;
+}
+
+// Simple slider used for transducers.
+
+.simpleSliderContainer {
+    width:160px;
+    border:1px solid silver !important;
+}
+
+.simpleSliderContainer td {
+    border-collapse: collapse;
+    border:none;
+    padding:0px 5px;
+    margin:0px;
+}
+
+.simpleSliderMin, .simpleSliderMax{
+    width:20px !important;
+}
+
+.simpleSliderNotice {
+    text-align:center;
+    color:#666;
+}
+
+.simpleSliderInput {
+  width:130px !important;
+}

@@ -1,0 +1,118 @@
+<?xml version='1.0' encoding='utf-8'?>
+
+
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+    <session-factory>
+
+        <!-- Database connection details -->
+        <!-- Use our own connection provider so that we can control how JDBC connections are used -->
+        <!-- These two lines need to be commented out if you want to do HQL testing, you can then uncomment the LOCAL testing settings-->
+
+        <property name="connection.datasource">java:/comp/env/jdbc/app</property>
+        <property name="hibernate.connection.provider_class">com.pivotal.system.hibernate.utils.AppConnectionProvider</property>
+
+        <!-- Database connection details FOR LOCAL PostgreSQL TESTING -->
+        <!-- Uncomment the following lines to test hibernate with postgres-->
+<!--        <property name="hibernate.connection.driver_class">org.postgresql.Driver</property>-->
+<!--        <property name="hibernate.connection.url">jdbc:postgresql://localhost:5432/nrmm?user=nrmm</property>-->
+<!--        <property name="hibernate.connection.username">nrmm</property>-->
+<!--        <property name="hibernate.connection.password">nrmm</property>-->
+<!--        <property name="hibernate.connection.pool_size">1</property>-->
+<!--        <property name="hibernate.default_schema">nrmm</property>-->
+<!--        <property name="hibernate.dialect">org.hibernatespatial.postgis.PostgisDialect</property>-->
+
+        <!-- Some overriding parameters -->
+        <!-- Do not be tempted to turn on query caching - it has a -->
+        <!-- devastating effect (downwards) on performance -->
+
+        <property name="hibernate.dialect">org.hibernatespatial.postgis.PostgisDialect</property>
+        <property name="hibernate.cache.region.factory_class">net.sf.ehcache.hibernate.EhCacheRegionFactory</property>
+        <property name="hibernate.cache.use_query_cache">false</property>
+        <property name="hibernate.cache.default_cache_concurrency_strategy">read-write</property>
+        <property name="hibernate.cache.use_second_level_cache">true</property>
+        <property name="javax.persistence.sharedCache.mode">ENABLE_SELECTIVE</property>
+        <property name="sharedCache.mode">ENABLE_SELECTIVE</property>
+        <property name="hibernate.generate_statistics">true</property>
+        <property name="hibernate.cache.use_structured_entries">false</property>
+        <property name="current_session_context_class">thread</property>
+        <property name="hibernate.connection.isolation">2</property>
+        <property name="hibernate.dbcp.poolPreparedStatements">true</property>
+        <property name="hibernate.jdbc.use_streams_for_binary">true</property>
+        <property name="connection.url">jdbc:postgresql://localhost:5432/nrmm</property>
+        <property name="connection.driver_class">org.postgresql.Driver</property>
+
+        <!-- Print SQL to stdout -->
+        <!--<property name="hibernate.show_sql">false</property>-->
+        <!--<property name="hibernate.format_sql">true</property>-->
+        <!--<property name="connection.url">jdbc:postgresql://localhost:5432/nrmm?user=nrmm</property>-->
+        <!--<property name="connection.driver_class">org.postgresql.Driver</property>-->
+        <!--<property name="connection.driver_class">org.postgresql.Driver</property>-->
+
+        <!-- Mapping classes -->
+
+        <mapping class="com.pivotal.system.hibernate.entities.ActionEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.ActionTypeEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.AutoSaveEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.BoroughEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.ChangeLogEntity"/>
+<!--        <mapping class="com.pivotal.system.hibernate.entities.EmailQueueEntity"/>-->
+        <mapping class="com.pivotal.system.hibernate.entities.DatasourceEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.DistributionListEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.LogEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.LookupsEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.MachineryEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.MachineryMediaEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.MediaEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.MediaFileEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.MediaTypeEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.NoteEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.NoteMediaEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.NoteTypeEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.ReportEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.ReportTextEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.ReportTextTypeEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.RoleEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.RoleTypeEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.ScheduledTaskEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.SettingsEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.SiteEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.SiteUsersEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.UserEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.UserLogEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.UserStatusEntity"/>
+        <mapping class="com.pivotal.system.hibernate.entities.WorkflowEntity"/>
+
+
+        <!-- 2nd Level Cache classes -->
+
+        <class-cache class="com.pivotal.system.hibernate.entities.ActionTypeEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.AutoSaveEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.ChangeLogEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.DatasourceEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.DistributionListEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.LogEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.LookupsEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.MediaEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.MediaTypeEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.NoteEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.NoteMediaEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.NoteTypeEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.ReportEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.ReportTextEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.ReportTextTypeEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.RoleEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.RoleTypeEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.ScheduledTaskEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.SettingsEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.SiteEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.UserEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.UserLogEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.UserStatusEntity" usage="read-write"/>
+        <class-cache class="com.pivotal.system.hibernate.entities.WorkflowEntity" usage="read-write"/>
+
+    </session-factory>
+</hibernate-configuration>

@@ -1,0 +1,147 @@
+.entity-search {
+  form {
+    background-color: white;
+    overflow-y: visible;
+
+    input[type=submit] {
+      display: none;
+    }
+  }
+
+  .type-list {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  #results {
+    .nothingfound {
+      text-align: center;
+    }
+  }
+
+  .k-combobox {
+    width: 100%;
+  }
+
+  .filter-button {
+    margin-right: 5px;
+  }
+
+  .filter {
+    margin-top: 8px;
+  }
+
+  .header {
+    background-color: #ffffff;
+    border-bottom: 1px solid lightgrey;
+    min-height: 30px;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    padding: 10px 20px;
+    z-index: 100;
+  }
+
+  .results {
+    margin: 50px 0;
+  }
+
+  footer {
+    background-color: #EBECE9;
+    border-top: 1px solid lightgrey;
+    width:100%;
+    position: fixed;
+    bottom: 0;
+    padding: 10px 20px;
+  }
+
+  footer .col-xs-6:nth-child(2) {
+    text-align: right;
+  }
+
+  .results ul {
+    list-style-type: none;
+    padding: 10px;
+    margin: 0;
+  }
+
+  .results ul li {
+    display: inline-block;
+    border:1px solid lightgrey;
+    padding: 5px 25px 5px 5px;
+    margin: 5px;
+    width: 200px;
+    height: 100px;
+    min-height: 100px;
+    overflow:auto;
+    cursor: pointer;
+    position:relative;
+  }
+
+  .results ul li:before {
+    position:absolute;
+    font-family: "Font Awesome 5 Pro";
+    top:0;
+    right:5px;
+    content: "";
+    font-size: 1.7em;
+    color: #666;
+  }
+
+  .results ul li:hover:before {
+    content: "\f0fe";
+  }
+
+  .results ul li:hover {
+    background-color: #f0f0f0;
+  }
+
+  .results ul li a {
+    text-decoration: none;
+    color: #333;
+  }
+
+  .results ul li.TransducerEntity {
+    border-left: 10px solid #6a9625;
+  }
+
+  .results ul li.RoomEntity {
+    border-left: 10px solid #6f2a15;
+  }
+
+  .results ul li.SystemEntity {
+    border-left: 10px solid #188eca;
+  }
+
+  .results ul li.SiteEntity {
+    border-left: 10px solid #246d6c;
+  }
+
+  .results ul li a {
+    text-decoration: none;
+    color: #333;
+  }
+  .entity .entity-label {
+    font-weight: bold;
+  }
+
+  .selected h2 {
+    font-size: 1em;
+    color: grey;
+    margin-bottom: 10px;
+  }
+
+  #searchEntityBasket {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  #searchEntityBasket .entity-value {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+
+  .selected .btn {
+    margin-top: 10px;
+  }
+}

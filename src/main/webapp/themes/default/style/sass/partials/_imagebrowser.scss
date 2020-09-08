@@ -1,0 +1,43 @@
+.k-window-content {
+    width: 100%;
+
+    .k-imagebrowser {
+
+        .k-tiles {
+            background-color: #EAF0F4;
+
+            .k-state-selected {
+                border-color: #ffffff;
+            }
+        }
+    }
+}
+/*image preview tile*/
+.k-imagebrowser .k-thumb img {
+   height: 100%; }
+
+.k-imagebrowser .k-tile {
+    width: 200px;
+    height: 50px;
+}
+.k-imagebrowser .k-tile .k-filesize {
+    float: left;
+}
+.k-imagebrowser .k-tile strong {
+    float: left;
+    max-width: 100%;
+}
+.k-filebrowser .k-thumb {
+    width: 43px;
+    height: 43px;
+}
+/*image preview on input*/
+.select-image img {
+   width: 40px; }
+
+#cboxWrapper {
+  width: 101% !important;
+}
+#colorbox, #cboxOverlay, #cboxWrapper {
+  z-index: 10020;
+}

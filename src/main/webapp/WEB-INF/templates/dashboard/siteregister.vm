@@ -1,0 +1,110 @@
+<div id="register">
+    <div id="registerTitle"><h1>Site Register</h1></div>
+  <form id="registerSearchForm" action="$AppPath/$PageName/" method="get">
+  <table class="filter">
+    <tr class="filterLabelRow">
+      <th>Site name</th>
+      <th>Postcode</th>
+      <th>Borough</th>
+      <th>Contact name</th>
+      <th>Include inactive sites</th>
+        <th><button id="downloadCSV" class="smallButton" type="button"><span style="white-space: nowrap"><i class="fa fa-download"></i>&nbsp;#I18N('site.view.register.download')</span></button></th>
+    </tr>
+    <tr class="filterLabelRow">
+        <td>#macroInputText("sitenameSearch" $NULL $NULL {"hideExtra":"true", "Width":"200px"})</td>
+        <td>#macroInputText("postcodeSearch" $NULL $NULL {"hideExtra":"true", "Width":"100px"})</td>
+      <td>
+          #set($TheseLocalProperties = {"hideExtra":"true","hideLabel":"true", "Width":"200px"})
+          #set($CurrentValue = $NULL)
+          #if($CurrentUser.borough)
+              #set($tmp = $TheseLocalProperties.put("IsReadOnly", true))
+              #set($CurrentValue = $CurrentUser.borough.id)
+          #end
+          #if($CurrentUser.hasAccess($PRIVILEGES_SITE_REGISTER_MULTI_BOROUGH))
+              #set($tmp = $TheseLocalProperties.put("Placeholder", "All"))
+          #end
+          #macroInputEntitySelect("borough" $NULL $CurrentValue "BoroughEntity" $TheseLocalProperties)
+      </td>
+      <td>#macroInputText("contactSearch" $NULL $NULL {"hideLabel":"true", "Width":"150px"})</td>
+      <td style="text-align: center"><input type="checkbox" id="includeInactive" name="includeInactive" value="yes"></td>
+      <td style="text-align: center"><button type="submit" class="smallButton" >Search</button>&nbsp;<button type="reset" id="resetButton" class="smallButton" >Clear</button></td>
+    </tr>
+  </table>
+    <input type="hidden" id="useDefault" name="useDefault" value="true">
+    <input type="hidden" id="sortField" name="sortField" value="s.name">
+    <input type="hidden" id="sqlSortField" name="sqlSortField" value="s.name">
+  </form>
+
+  <div id="result">
+  </div>
+    <div id="download" style="display: none">
+        <form id="downloadForm" action="$AppPath/dashboard/register/export" method="post" target="_blank">
+            <input type="hidden" id="name" name="name" value="SiteRegister">
+            <input type="hidden" id="ext" name="ext" value="csv">
+            <input type="hidden" id="task" name="task" value="SITE_REGISTER_EXPORT">
+            <input type="hidden" id="where" name="where" value="undefined">
+        </form>
+    </div>
+</div>
+
+<script>
+
+  $(document).ready(function () {
+      $('#registerSearchForm').submit(function (e) {
+          return registerSearchUtils.searchRegister();
+      });
+
+      $("#resetButton").on("click", function(){
+          $("#includeInactive").closest("span").removeClass("checked");
+      });
+      $("#downloadCSV").on("click", function(){
+          $("#where").val($("#whereClause").html());
+          $("#downloadForm").submit();
+       });
+
+      registerSearchUtils.searchRegister();
+
+      $("#useDefault").val("false");
+    });
+
+  var registerSearchUtils = {
+
+    searchRegister: function() {
+      // Run workflow script to get results
+        try {
+            psApp.workflow.execute("$!AppPath", "SITE_REGISTER_SEARCH", $("#registerSearchForm").serialize(), function (response) {
+                if (response.inError)
+                    alert(response.error);
+                else {
+                    $("#result").html(response.information.trim());
+
+                    $(".registerCol").on("click", function () {
+                        var sortElement = $("#sortField");
+                        var sqlSortElement = $("#sqlSortField");
+                        var newSort = $(this).attr("field");
+                        var sqlNewSort = $(this).attr("sqlField");
+                        if (newSort === sortElement.val()) {
+                            sortElement.val(newSort + " desc");
+                            sqlSortElement.val(sqlNewSort + " desc");
+                        }
+                        else {
+                            sortElement.val(newSort);
+                            sqlSortElement.val(sqlNewSort);
+                        }
+
+                        registerSearchUtils.searchRegister();
+                    });
+
+                    $(".siteRegisterRow").on("click", function () {
+                        location.href = "$AppPath/site/view/" + $(this).attr("siteId");
+                    });
+                }
+            });
+        }
+        catch(X) {
+            alert(X);
+        }
+      return false;
+    }
+  }
+</script>

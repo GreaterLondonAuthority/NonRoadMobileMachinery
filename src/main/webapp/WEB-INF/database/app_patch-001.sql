@@ -1,0 +1,1 @@
+INSERT INTO nrmm.settings (name, value) VALUES ('system.setting.app.general.tan_guide_link', '<a href="https://www.london.gov.uk/sites/default/files/nrmm-practical-guide.pdf" title="Link to guide" target="_blank" style="vertical-align:sub"><i class="fa fa-question-circle fa-2x" aria-hidden="true"></i></a>');

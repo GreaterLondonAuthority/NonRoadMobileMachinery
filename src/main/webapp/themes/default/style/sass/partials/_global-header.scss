@@ -1,0 +1,64 @@
+/*
+Global header
+------------------------------*/
+// Main nav styles can be found in _main-nav.scss //
+$globalHeaderHeight: 54px;
+.global-header {
+  background:#f3f3f3;
+  border-bottom:1px solid #d6d7dc;
+  float:left;
+  height:$globalHeaderHeight;
+  position:fixed;
+  width:100%;
+  z-index:3000;
+  margin-top: 15px;
+
+  a {
+    text-decoration:none;
+  }
+  .search {
+    float:left;
+  }
+  .logo {
+    min-width:13.7%;
+    padding:7px 10px;
+  }
+  .search-wrap {
+    float:left;
+    padding:8px 0;
+    width:29%;
+    fieldset {
+      border:0;
+      margin:0;
+      padding:0;
+    }
+    input {
+      @include animate(border-color, .3s);
+      background:url(../imgs/mag-glass.png) 8px 8px no-repeat #fff;
+      border:1px solid #d6d7dc;
+      padding:10px;
+      padding-left:38px;
+      width:100%;
+      &:focus {
+        border-color:$palette_primary_green;
+      }
+    }
+  }
+}
+/* User menu */
+.global-header {
+  .drop-down-content {
+    background:#ddd;
+    border:1px solid #ddd;
+    border-top:0;
+    right:0;
+    top:$globalHeaderHeight;
+    width:50%;
+  }
+}
+.user-menu {
+  li {
+    list-style:none outside;
+    text-align:left;
+  }
+}

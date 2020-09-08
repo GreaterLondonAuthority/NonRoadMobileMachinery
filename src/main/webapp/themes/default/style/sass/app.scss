@@ -1,0 +1,154 @@
+$font-size-base:          14px !default;
+
+@import "../../../../javascript/bootstrap-sass/assets/stylesheets/bootstrap.scss";
+
+$primary-color: #333;
+$grey: #747D83;     // Grey
+$green: #B7CF46;    // Green
+$blue: #37A1CC;     // Blue
+
+$body-background-color: #EAF0F4;
+
+$menu-background-color: #353D42;
+$menu-color: #FFF;
+$menu-link-highlight-color: #27AAE1;
+$menu-link-selected-background-color: #303336;
+$menu-link-selected-border-color: #27AAE1;
+
+$header-navigation-border-color: #27AAE1;
+
+$profile-link-color: #27AAE1;
+$profile-background-color: #1F2228;
+
+$submenu-background-color: #1F2228;
+$submenu-color: #FFF;
+$links-background-color: $brand-primary;
+$links-color: $brand-primary;
+
+$theme-color: $brand-primary;
+
+$CriticalAlarmColor: crimson;
+$MajorAlarmColor: darkorange;
+$WarningAlarmColor: gold;
+$InfoAlarmColor: lightblue;
+$AllAlarmColor: #333;
+
+//$font-size-base
+html, body {
+    height: 100%;
+}
+
+body {
+  color: $primary-color;
+  margin: 0px;
+  width: 100%;
+}
+
+h1, h2, h3, h4 {
+    padding: 0;
+    line-height: inherit;
+}
+
+.body {
+  padding:0;
+}
+
+.body h1 {
+    display: none;
+}
+
+.body-padding {
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.resultRow {
+    margin: 20px 0;
+    border-bottom: 1px solid #ccc;
+    padding: 12px;
+}
+
+.resultRow:hover {
+
+}
+
+.navbar-toggle {
+    float: left;
+    border: none;
+    background-color: #fff;
+    color: lightgrey;
+    margin: 0 10px 0 0;
+    padding: 5px 10px;
+}
+
+.navmenu-default, .navbar-default .navbar-offcanvas {
+    background-color: #1F2228;
+}
+
+.container {
+    max-width: 100%;
+    width: 100%;
+}
+
+@media (min-width: 992px) {
+  body.layout-3,body.layout-4,body.layout-5 {
+
+  }
+  .navmenu {
+    padding-top: 0;
+  }
+  .navbar {
+    display: none !important; /* IE8 fix */
+  }
+}
+
+.alert-info {
+    i {
+        font-size: 2em;
+        float: left;
+        margin-bottom: 8px;
+        margin-right: 15px;
+    }
+}
+
+@import 'partials/mixins.scss';
+@import 'partials/z-index.scss';
+@import 'partials/header.scss';
+@import 'partials/main.scss';
+@import 'partials/sidebar.scss';
+@import 'partials/links.scss';
+@import 'partials/submenu.scss';
+@import 'partials/profile.scss';
+@import 'partials/case.scss';
+@import 'partials/forms.scss';
+@import 'partials/kendo.common.scss';
+@import 'partials/kendoui_button.scss';
+@import 'partials/kendoui_grid.scss';
+@import 'partials/kendoui_panelbar.scss';
+@import 'partials/kendoui_tooltip.scss';
+@import 'partials/dashboard.scss';
+@import 'partials/topbar.scss';
+@import 'partials/menu.scss';
+@import 'partials/imagebrowser.scss';
+@import 'partials/layout-planner.scss';
+@import 'partials/status.scss';
+@import 'partials/coolair-calculator.scss';
+@import 'partials/login.scss';
+@import 'partials/gauges.scss';
+@import 'partials/entity.scss';
+@import 'partials/notifications.scss';
+@import 'partials/simulator.scss';
+@import 'partials/alarm.scss';
+@import 'partials/minified.scss';
+@import 'partials/pill-bar.scss';
+@import 'partials/connectiontest.scss';
+@import 'partials/presentation-mode.scss';
+@import 'partials/modal.scss';
+@import 'partials/optimisation.scss';
+@import 'partials/control-log.scss';
+@import 'partials/history.scss';
+@import 'partials/restpublic.scss';
+@import 'partials/reports.scss';
+@import 'partials/mapping.scss';
+@import 'partials/basket.scss';
+@import 'partials/widget.scss';

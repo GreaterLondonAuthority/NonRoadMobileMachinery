@@ -1,0 +1,18 @@
+/*
+Kendo Slider
+Need to override default Kendo styles. Might get a bit ugly...
+------------------------------*/
+.k-slider {
+  margin-bottom:30px;
+  .k-button,
+  .k-button.k-state-hover {
+    @include fauxButton;
+    height:auto;
+    padding:0 3px;
+    &:hover,
+    &:focus {
+      @include fauxButtonInvert;
+      padding:0 3px;
+    }
+  }
+}

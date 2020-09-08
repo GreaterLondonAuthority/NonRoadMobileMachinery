@@ -1,0 +1,28 @@
+<Context path="" reloadable="false" crossContext="true" useHttpOnly="false">
+    <Manager pathname="" />
+    <!--NRMM Database-->
+   <Resource name="jdbc/app" auth="Container" type="com.pivotal.system.hibernate.utils.AppDataSource"
+       description="NRMM settings datasource"
+       maxActive="1000"
+       maxIdle="100"
+       minIdle="30"
+       initialSize="10"
+       maxWait="10000"
+       username="user"
+       password="****"
+       schema="nrmm"
+       jdbcInterceptors="ConnectionState;StatementFinalizer;ResetAbandonedTimer"
+       driverClassName="org.postgresql.Driver"
+       url="jdbc:postgresql://localhost:5432/nrmm"
+       removeAbandoned="true"
+       removeAbandonedTimeout="600"
+       logAbandoned="false"
+       validationQuery="Select 1"
+       testOnBorrow="true"
+       initSQL="SET search_path TO nrmm,tiger,tiger_path,topology,public;"
+       factory="org.apache.naming.factory.BeanFactory"
+       defaultUsername="user"
+       defaultPassword="****"
+       />
+
+</Context>

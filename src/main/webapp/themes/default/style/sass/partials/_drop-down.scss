@@ -1,0 +1,9 @@
+.drop-down-content {
+	position:absolute;
+	z-index:1000;
+}
+.k-list-container {
+  .k-state-selected {
+    color:$palette_bodyText;
+  }
+}

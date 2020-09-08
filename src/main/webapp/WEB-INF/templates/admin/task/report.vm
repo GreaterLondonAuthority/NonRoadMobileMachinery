@@ -1,0 +1,16 @@
+#parse("includes/initialise.inc")
+
+## Show the list of available output types
+
+#macroInputSelect("outputType" "scheduledtaskentity.outputType" "$ScheduledTaskEntity.outputType" $Report.SupportedExportTypes {"IsRequired":true,"Placeholder":"scheduledtaskentity.choose.output.type","Width":"455px"})
+
+## If we have saved values to display then show them
+
+#if ($ScheduledTaskEntity && !$ScheduledTaskEntity.Settings.Empty)
+    #macroDefinitionEdit("scheduledtaskentity.report.title" $ScheduledTaskEntity.Settings)
+
+## Must be just showing the definition
+
+#elseif (!$Report.ReportParameters.Empty)
+    #macroDefinitionEdit("scheduledtaskentity.report.title" $Report.ReportParameters)
+#end

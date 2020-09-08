@@ -1,0 +1,121 @@
+<div id="register">
+    <div id="registerTitle"><h1>Machinery Register</h1></div>
+  <form id="registerSearchForm" action="$AppPath/$PageName/" method="get">
+  <table class="filter">
+    <tr class="filterLabelRow">
+      <th>Machine type</th>
+      <th>Borough</th>
+      <th>Include inactive machines</th>
+      <th><button id="downloadCSV" class="smallButton" type="button"><span style="white-space: nowrap"><i class="fa fa-download"></i>&nbsp;#I18N('machinery.view.register.download')</span></button></th>
+    </tr>
+    <tr class="filterLabelRow">
+      <td>
+          #macroInputLookupSelect("machinerytype" $NULL $NULL "machinerytype" {"Placeholder":"All","hideLabel":"true", "Width":"300px"})
+      </td>
+      <td>
+          #set($LocalProperties = {"hideExtra":"true","hideLabel":"true", "Width":"300px"})
+          #set($CurrentValue = $NULL)
+          #if($CurrentUser.borough)
+              #set($tmp = $LocalProperties.put("IsReadOnly", true))
+              #set($CurrentValue = $CurrentUser.borough.id)
+          #end
+          #if($CurrentUser.hasAccess($PRIVILEGES_MACHINERY_REGISTER_MULTI_BOROUGH))
+              #set($tmp = $LocalProperties.put("Placeholder", "All"))
+          #end
+          #macroInputEntitySelect("borough" $NULL $CurrentValue "BoroughEntity" $LocalProperties)
+      </td>
+      <td style="text-align: center"><input type="checkbox" id="includeInactive" name="includeInactive" value="yes"></td>
+      <td style="text-align: center"><button type="submit" class="smallButton">Search</button>&nbsp;<button type="reset" class="smallButton" id="resetButton">Clear</button></td>
+    </tr>
+  </table>
+    <input type="hidden" id="useDefault" name="useDefault" value="true">
+    <input type="hidden" id="sortField" name="sortField" value="site.name">
+    <input type="hidden" id="sqlSortField" name="sqlSortField" value="s.name">
+  </form>
+
+  <div id="result">
+  </div>
+    <div id="download" style="display: none">
+        <form id="downloadForm" action="$AppPath/dashboard/register/export" method="post" target="_blank">
+            <input type="hidden" id="name" name="name" value="MachineryRegister">
+            <input type="hidden" id="ext" name="ext" value="csv">
+            <input type="hidden" id="task" name="task" value="SITE_MACHINERY_EXPORT">
+            <input type="hidden" id="where" name="where" value="undefined">
+        </form>
+    </div>
+</div>
+
+<script>
+
+  $(document).ready(function () {
+      $('#registerSearchForm').submit(function (e) {
+          return registerSearchUtils.searchRegister();
+      });
+
+      $("#resetButton").on("click", function(){
+          $("#includeInactive").closest("span").removeClass("checked");
+      });
+
+      $("#downloadCSV").on("click", function(){
+          $("#where").val($("#whereClause").html());
+          $("#downloadForm").submit();
+       });
+
+      registerSearchUtils.searchRegister();
+
+      $("#useDefault").val("false");
+    });
+
+  var registerSearchUtils = {
+
+    searchRegister: function() {
+      // Run workflow script to get results
+        try {
+            psApp.workflow.execute("$!AppPath", "MACHINERY_REGISTER_SEARCH", $("#registerSearchForm").serialize(), function (response) {
+                if (response.inError)
+                    alert(response.error);
+                else {
+                    if (response.information)
+                        $("#result").html(response.information.trim());
+                    else
+                        $("#result").html("No result");
+
+
+                    $(".registerCol").on("click", function () {
+                        var sortElement = $("#sortField");
+                        var sqlSortElement = $("#sqlSortField");
+                        var newSort = $(this).attr("field");
+                        var sqlNewSort = $(this).attr("sqlField");
+                        if (newSort === sortElement.val()) {
+                            sortElement.val(newSort + " desc");
+                            sqlSortElement.val(sqlNewSort + " desc");
+                        }
+                        else {
+                            sortElement.val(newSort);
+                            sqlSortElement.val(sqlNewSort);
+                        }
+
+                        registerSearchUtils.searchRegister();
+                    });
+
+                    $(".machineryRegisterRow").on("click", function () {
+                        var machineryId = $(this).attr("machineryId");
+                        var siteId = $(this).attr("siteId");
+                        if (machineryId && siteId) {
+                            #if($CurrentUser.hasAccess($PRIVILEGES_EDIT_MACHINERY))
+                                location.href = "$AppPath/machinery/edit/" + siteId + "/" + $(this).attr("machineryId");
+                            #else
+                                location.href = "$AppPath/site/view/" + siteId;
+                            #end
+                        }
+                    });
+                }
+            });
+        }
+        catch(X) {
+            alert(X);
+        }
+      return false;
+    }
+  }
+</script>

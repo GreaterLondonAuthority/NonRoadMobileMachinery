@@ -1,0 +1,18 @@
+/*
+Global header
+------------------------*/
+body {
+  border-top:10px solid blue;
+}
+.global-header .search-outer {
+  padding:8px 0;
+}
+/*
+Log in
+------------------------*/
+.login-wrap {
+  border:2px solid #ccc;
+  label {
+    @include visible;
+  }
+}

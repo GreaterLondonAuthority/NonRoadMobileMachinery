@@ -1,0 +1,13 @@
+<h1>#I18N("admin.borough.edit.title")</h1>
+#macroStartForm("boroughentity" "$AppPath/$PageName/$SubPageName/edit")
+   #macroStartTabs()
+      #macroStartTab("admin.borough.edit.title", true)
+        #macroStartFieldset("admin.borough.edit.title")
+            #macroInputHidden("boroughentity.id")
+            #macroInputText("boroughentity.name" $NULL $NULL {"focus":true})
+            #macroInputHidden("clearafterupdate")
+            #macroInputSwitch("boroughentity.disabled")
+        #macroEndFieldset()
+      #macroEndTab()
+   #macroEndTabs()
+#macroEndForm({"saveAndCloseButton":{}})

@@ -1,0 +1,35 @@
+/*
+Coolair calculator
+------------------------------*/
+.coolair-calculator-wrap {
+  .coolair-calculator-form {
+    float:left;
+    width:260px;
+    border: 0 none;
+    background-color: rgba(#fff, 1);
+    padding: 10px;
+    margin-top: 15px;
+    margin-left:15px;
+
+    label, input {
+      display: table;
+    }
+
+    label {
+      margin-top:7px;
+      margin-bottom: 1px;
+    }
+  }
+  .submit-wrap {
+    padding-top:20px;
+    text-align:center;
+  }
+  .chart-wrapper {
+    float:left;
+    margin-top: 15px;
+    margin-left:15px;
+    width:auto;
+  }
+  .chart-area-wrap {
+  }
+}

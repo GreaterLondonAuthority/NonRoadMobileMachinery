@@ -1,0 +1,76 @@
+table.status-table td, table.query-results td,
+table.status-table th, table.query-results th {
+  border: 1px solid white;
+  color: #808080;
+  text-align: left;
+  padding: 3px 8px 3px 5px;
+  font-size: 0.9em;
+}
+
+td table.child-table {
+  border: 1px solid #eee;
+  td,th {
+    font-size: 0.8em;
+    padding: 2px;
+  }
+}
+
+table.query-results {
+  margin: 5px;
+}
+
+table.query-results td, table.query-results th {
+  padding: 3px;
+  text-align: left;
+}
+
+table.query-results td {
+  vertical-align: top;
+}
+
+table.query-results td:first-child {
+  background-color: #eee;
+  color: #c0c0c0;
+}
+
+table.status-table tr:nth-child(odd), table.query-results tr:nth-child(odd) {
+  background-color: #eee;
+}
+
+table.status-table tr:nth-child(even), table.query-results tr:nth-child(even) {
+  background-color: #fff;
+  td {
+    border-color: #f8f8f8;
+  }
+}
+
+table.status-table tr th {
+  background-color: #808080;
+  color: #fff;
+  font-weight: normal;
+}
+
+table.status-table tr th.header {
+  background-color: #ccc;
+  border-top: 2px solid #808080;
+  border-bottom: 1px solid #c0c0c0;
+  text-align: left;
+  padding:8px;
+  font-size: 1.1em;
+}
+
+.status-gauge {
+  margin-bottom: 10px;
+}
+
+.status-gauge label {
+  font-weight: bold;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.status-gauge label span {
+  font-weight: normal;
+  padding-left: 10px;
+}
+

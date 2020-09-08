@@ -1,0 +1,379 @@
+##
+## check security
+##
+#set($wfSettings = {})
+#set($tmp=$wfSettings.put("siteentity", $SiteEntity))
+#set($tmp=$wfSettings.put("ACCESS_TYPE", "VIEW"))
+#set($wfResult = $WorkflowHelper.executeWorkflow("SITE_SECURITY", $wfSettings, false))
+#if($wfResult.getDataItem("ACCESS") != "OK" || !$SiteEntity)
+    <script>
+        location.href="$AppPath/dashboard";
+    </script>
+#else
+
+    #set($LastBreadCrumb = "Site Details - $!Site.name")
+    #parse("external/header.inc")
+
+    <div class="l-content-wrapper">
+        <div class="l-content" role="main">
+            <h1 class="l-content--title">$!Site.name</h1>
+
+            #if ($CurrentUser.hasAccess($Site, $PRIVILEGES_EDIT_SITE_ADDRESS,$PRIVILEGES_EDIT_SITE_END_DATE,$PRIVILEGES_EDIT_SITE_CONTACT,$PRIVILEGES_EDIT_SITE_PLANNING_APP_NUMBER))
+                <div class="SiteEdit"><button class="btn btn-primary smallButton" type="button"  onclick="location.href='$AppPath/site/edit/$Site.id'"><i class="fa fa-check"></i>&nbsp;Edit</button></div>
+            #end
+
+            <div class="field field--name-field-nrmm-borough field--type-taxonomy-term-reference field--label-hidden">
+                <div class="field__items">
+                    <div class="field__item even">$!Site.borough.name, $!Site.postcode, $!Site.zone</div>
+                </div>
+            </div>
+            <div class="field field--label-inline clearfix">
+                <div class="field__label">Planning app. #:&nbsp;</div>
+                <div class="field__item even">$!Site.planningAppNumber</div>
+            </div>
+            <div class="field field--label-inline clearfix">
+                <div class="field__label">Start/End:&nbsp;</div>
+                <div class="field__item even">$Utils.formatDate($!Site.startDate, "dd MMM yyyy") - $Utils.formatDate($!Site.endDate, "dd MMM yyyy")</div>
+            </div>
+            <div class="field field--label-inline clearfix">
+                <div class="field__label">Registered:&nbsp;</div>
+                <div class="field__item">$Utils.formatDate($!Site.timeAdded, "dd MMM yyyy")</div>
+            </div>
+
+            <article about="/what-we-do/planning/planning-applications-and-decisions/planning-application-search/abbey-road" typeof="sioc:Item foaf:Document" role="article"
+                     class="node node--planning-decision node--full node--planning-decision--full no-hero-image">
+
+                <div class="node__content">
+                    <div style="height:300px; width:100%" id="geofield-map-entity-node-49441-field-nrmm-lat-lon" class="geofieldMap">
+                        Map
+                    </div>
+                </div>
+
+            </article>
+            <hr/>
+            <div class="column column-footer">
+            </div>
+
+            <div class="l-content">
+                <h2>Contacts</h2>
+                <ul class="list-unstyled">
+                ## Count site admins
+                #set($HasAccessAdminContacts = $CurrentUser.hasAccess($Site, $PRIVILEGES_EDIT_SITE_ADMIN_MA, $PRIVILEGES_EDIT_SITE_ADMIN_SC, $PRIVILEGES_EDIT_SITE_ADMIN_SA))
+                #if ($HasAccessAdminContacts)
+                    #set($SiteAdminCount = $HibernateUtils.selectSQLEntities("select count(*) from site_users su join role r on su.role_id = r.id where site_id = $Site.id and lower(r.name) = 'site administrator'"))
+                    #if($SiteAdminCount)
+                        #set($SiteAdminCount = $SiteAdminCount[0])
+                    #end
+                #end
+                #macroShowContact("$Site.contactFirstName $Site.contactLastName" $Site.contactPhoneNumber $Site.contactEmail "Direct Site Contact" "")
+                #foreach($SiteContact in $Site.siteUsers)
+                    #set($Contact = $SiteContact.user)
+                    #set($DeleteId = "")
+                    #if ($HasAccessAdminContacts)
+                        #if($SiteAdminCount == 1 && $SiteContact.role.name.toLowerCase() == "site administrator")
+                            #if ($Contact.email == $CurrentUser.email)
+                                #set($DeleteId = "DELETE_LAST_SA_ME")
+                            #else
+                                #set($DeleteId = "DELETE_LAST_SA")
+                            #end
+                        #else
+                            #set($DeleteId = "${Site.id}_${Contact.id}_${SiteContact.role.id}")
+                        #end
+                    #end
+                    #macroShowContact("$Contact.firstname $Contact.lastname" $Contact.phoneNumber $Contact.email $SiteContact.role.name $DeleteId)
+                #end
+                </ul>
+            </div>
+            <hr/>
+            <div class="column column-footer">
+            </div>
+
+            <div class="l-content">
+                <h2>Invitations&nbsp;&nbsp;&nbsp;
+                    #if ($HasAccessAdminContacts)
+                        #macroShowFormButton({"id":"addInviteButton", "cssClass":"smallButton", "icon":"fa-plus", "label":"site.view.invite_a_user", "ariaLabel":"site.view.invite_a_user.description"})
+                    #end
+                </h2>
+                <ul class="list-unstyled">
+                #set($InvitationActions = $HibernateUtils.selectEntities("From ActionEntity a where a.tag = '${Site.id}' and a.type.name = 'SITE_USER_INVITATION' and a.used = false and a.expiry > NOW())"))
+                #foreach($Action in $InvitationActions)
+                    #macroShowInvitation($Action)
+                #end
+                </ul>
+            </div>
+
+            <hr/>
+            <div class="l-content">
+                #if ($CurrentUser.hasAccess($Site, $PRIVILEGES_VIEW_ALL_MACHINERY))
+                    #set($MachineryResult = $HibernateUtils.selectEntities("From MachineryEntity where site.id = $Site.id order by endDate desc"))
+                #else
+                    #set($MachineryResult = $HibernateUtils.selectEntities("From MachineryEntity where site.id = $Site.id and adminUser.id = $CurrentUser.id order by endDate desc"))
+                #end
+
+                <h2>Machinery&nbsp;&nbsp;
+                    #if ($CurrentUser.hasAccess($Site, $PRIVILEGES_REGISTER_MACHINERY))
+                        #macroShowFormButton({"id":"addMachineryButton", "cssClass":"smallButton", "icon":"fa-plus", "label":"site.view.add_machinery", "ariaLabel":"site.view.add_machinery.description"})
+                    #end
+                    #if($MachineryResult && $MachineryResult.size() > 0)
+                        <button class="smallButton" id="downloadCSV" type="button"><span style="white-space: nowrap"><i class="fa fa-download"></i>&nbsp;#I18N('machinery.view.register.download')</span></button>
+                    #end
+                </h2>
+
+                #if($MachineryResult && $MachineryResult.size() > 0)
+                    <ul class="list-unstyled" id="accordion">
+                        #foreach($MachineryItem in $MachineryResult)
+                            #macroShowMachinery($MachineryItem)
+                        #end
+                    </ul>
+                #end
+            </div>
+
+            #macroShowReadOnlyGoogleMap("geofield-map-entity-node-49441-field-nrmm-lat-lon" $!Site.longitude $!Site.latitude)
+
+            <div id="download" style="display: none">
+                <form id="downloadForm" action="$AppPath/dashboard/register/export" method="post" target="_blank">
+                    <input type="hidden" id="name" name="name" value="MachineryRegister">
+                    <input type="hidden" id="ext" name="ext" value="csv">
+                    <input type="hidden" id="task" name="task" value="SITE_MACHINERY_EXPORT">
+                    <input type="hidden" id="where" name="where" value="undefined">
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+             $("#downloadCSV").on("click", function(){
+                 var whereClause = "where s.id = $!Site.id";
+                 #if (!$CurrentUser.hasAccess($Site, $PRIVILEGES_VIEW_ALL_MACHINERY))
+                     whereClause += " and m.admin_user_id = $CurrentUser.id";
+                 #end
+                 $("#where").val(whereClause);
+                 $("#downloadForm").submit();
+             });
+             $("#addMachineryButton").on("click", function(){
+                 siteViewUtils.addMachinery();
+             });
+             $("#addInviteButton").on("click", function(){
+                 siteViewUtils.addInvitation();
+             });
+             $(".nearEndFlag").on("click", function(){
+                 alert("#I18N('site.view.near_end.message')");
+             });
+
+           });
+
+        var siteViewUtils = {
+
+            addMachinery: function() {
+                location.href="$AppPath/machinery/edit/$!Site.id";
+            },
+
+            addInvitation: function() {
+                location.href="$AppPath/site/contact/$!Site.id";
+            },
+
+            deleteContact: function(id) {
+                if (id === "DELETE_LAST_SA_ME") {
+                    alert("#I18N('site.view.last_site_admin.message')");
+                }
+                else if (id === "DELETE_LAST_SA") {
+                    alert("#I18N('site.view.last_site_admin_other.message')");
+                }
+                else if (confirm("Are you sure you want to remove this user from this site?")) {
+                    siteViewUtils.deleteRecord(id, "siteuser")
+                }
+            },
+            deleteInvite: function(id) {
+                if (confirm("Are you sure you want to remove the invitation from this site?")) {
+                    siteViewUtils.deleteRecord(id, "action")
+                }
+            },
+            deleteRecord: function(id, table) {
+                PivotalUtils.getJsonContentAsync("$AppPath/site/delete/" + table + "/" + id, "", function(response) {
+                    if (response.inError)
+                        alert(response.error);
+                    else
+                        location.reload();
+                },true);
+            },
+            offsiteMachine: function(id) {
+                if (confirm("Are you sure you want to mark this piece of machinery as 'offsite'")) {
+                    PivotalUtils.getJsonContentAsync("$AppPath/machinery/offsite/" + id, "", function (response) {
+                        if (response.inError)
+                            alert(response.error);
+                        else {
+                            alert("#I18N("machinery.edit.offsite_ok_message")");
+                            location.reload();
+                        }
+                    }, true);
+                }
+            }
+        };
+    </script>
+
+    #macro(macroShowContact $Name $Number $Email $Role $DeleteId)
+        #if(!$Utils.isBlank($Email))
+            <li class="card contactCard">
+                <h3 class="card-header">
+                    #set($RoleCheck = "")
+                    #if(!$Utils.isBlank($!Role))
+                        #set($RoleCheck = $Role.toLowerCase())
+                    #end
+                    $!Role
+                    #if (!$Utils.isBlank($DeleteId) &&
+                        (($RoleCheck == "machinery administrator" && $CurrentUser.hasAccess($Site, $PRIVILEGES_EDIT_SITE_ADMIN_MA)) ||
+                        ($RoleCheck == "sub-contractor" && $CurrentUser.hasAccess($Site, $PRIVILEGES_EDIT_SITE_ADMIN_SC)) ||
+                        ($RoleCheck == "site administrator" && $CurrentUser.hasAccess($Site, $PRIVILEGES_EDIT_SITE_ADMIN_SA))))
+                        <span class="deleteButton"><button onclick="siteViewUtils.deleteContact('$DeleteId')" aria-label="Delete Contact" class="deleteButtonLink"><i class="fa fa-times"></i></button></span>
+                    #end
+                </h3>
+                <div class="card-body">
+                    <div class="field__item even">$!Name</div>
+                    <div class="field__item even"><a href="mailto:$!Email" target="_blank">$!Email</a></div>
+                </div>
+            </li>
+        #end
+    #end
+
+    #macro(macroShowInvitation $Action)
+
+        #set($ActionSettings = $Action.settingsMap)
+        <li class="card invitationCard">
+            <h3 class="card-header">
+                $!ActionSettings.roleName
+                #set($RoleCheck = "")
+                #if(!$Utils.isBlank($!ActionSettings.roleName))
+                    #set($RoleCheck = $!ActionSettings.roleName.toLowerCase())
+                #end
+                #if (($RoleCheck == "machinery administrator" && $CurrentUser.hasAccess($Site, $PRIVILEGES_EDIT_SITE_ADMIN_MA)) ||
+                    ($RoleCheck == "sub-contractor" && $CurrentUser.hasAccess($Site, $PRIVILEGES_EDIT_SITE_ADMIN_SC)) ||
+                    ($RoleCheck == "site administrator" && $CurrentUser.hasAccess($Site, $PRIVILEGES_EDIT_SITE_ADMIN_SA)))
+                    <span class="deleteButton"><button onclick="siteViewUtils.deleteInvite($!Action.id)" aria-label="Delete Invitation" class="deleteButtonLink"><i class="fa fa-times"></i></button></span>
+                #end
+            </h3>
+            <div class="card-body">
+                $!ActionSettings.firstname $!ActionSettings.lastname
+                <div class="field__item even"><a href="mailto:$ActionSettings.email" target="_blank">$ActionSettings.email</a></div>
+            </div>
+        </li>
+    #end
+
+    #macro(macroShowMachinery $MachineryItem)
+        #if($!MachineryItem.endDate.before($Utils.getTimestamp()))
+            #set($StatusClass = "expired")
+            #set($StatusWord = "Inactive")
+
+        #elseif($!MachineryItem.exemptionStatus == "Pending")
+            #set($StatusClass = "pending")
+            #set($StatusWord = "Pending")
+
+        #elseif($!MachineryItem.exemptionStatus == "Rejected")
+            #set($StatusClass = "rejected")
+            #set($StatusWord = "Non-compliant - Rejected")
+
+        #elseif($!MachineryItem.exemptionStatus == "Accepted" || $!MachineryItem.exemptionStatus == "OK")
+            #set($StatusClass = "accepted")
+            #set($StatusWord = "Compliant - $!MachineryItem.exemptionStatus")
+
+        #elseif($!MachineryItem.exemptionStatus == "Check TAN")
+            #set($StatusClass = "pending")
+            #set($StatusWord = "Non-compliant - Check TAN")
+
+        #else
+            #set($StatusClass = "unknown")
+            #set($StatusWord = "Unknown")
+        #end
+        <li class="card machineryItemCard">
+            <div class="card-header" id="heading_${MachineryItem.id}">
+                <h3 class="mb-0 machineryEditHeader">
+                    <button class="btn btn-link machineryItem $!StatusClass" data-toggle="collapse" data-target="#collapse_${MachineryItem.id}" aria-expanded="false" aria-controls="collapse_${MachineryItem.id}">
+                        $MachineryItem.type.name : $!MachineryItem.machineId
+                        <span class="colourLegend">$!StatusWord</span>
+                        <br>
+                        Dates:&nbsp;
+                        $Utils.formatDate($!MachineryItem.startDate, "dd MMM yyyy") - $Utils.formatDate($!MachineryItem.endDate, "dd MMM yyyy")
+                    </button>
+                </h3>
+                #if ($MachineryItem.endDate.after($Utils.addDate($Utils.getDateTime(), 7, -10)))
+                    #if($CurrentUser.hasAccess($Site, $PRIVILEGES_EDIT_MACHINERY))
+                        <button class="btn btn-link machineryEdit $!StatusClass" onclick="location.href='$AppPath/machinery/edit/$!Site.id/$!MachineryItem.id'">Edit</button>
+                    #end
+                #end
+
+                #if ($MachineryItem.endDate.after($Utils.getDateTime()))
+                    #if ($CurrentUser.hasAccess($PRIVILEGES_OFFSITE_MACHINERY))
+                        <button class="btn btn-link machineryEdit $!StatusClass" aria-label="Offsite machine" onclick="siteViewUtils.offsiteMachine($!MachineryItem.id)">Offsite</button>
+                    #end
+                #end
+                #if ($MachineryItem.endDate.after($Utils.getTimestamp()) && $MachineryItem.endDate.before($Utils.addTimestamp($Utils.getTimestamp(), 7, 5)))
+                    <div class="nearEndFlag"><i class="fa fa-flag fa-2x"></i></div>
+                #end
+            </div>
+
+            <div id="collapse_${MachineryItem.id}" class="collapse" aria-labelledby="heading_${MachineryItem.id}" data-parent="#accordion">
+                <div class="card-body machineryItemDetailCard">
+                    <div class="field__items">
+                        #macroShowField("Exemption Status", $!MachineryItem.exemptionStatus)
+                        #if($MachineryItem.exemptionStatusDate || $MachineryItem.exemptionStatusExpiryDate)
+                            <div class="field__item even">
+                                <div class="field__label">Exemption Dates:&nbsp;</div>
+                                #if($MachineryItem.exemptionStatusDate)
+                                    $Utils.formatDate($!MachineryItem.exemptionStatusDate, "dd MMM yyyy") -
+                                #end
+                                #if($MachineryItem.exemptionStatusExpiryDate)
+                                    $Utils.formatDate($!MachineryItem.exemptionStatusExpiryDate, "dd MMM yyyy")
+                                #end&nbsp;
+                            </div>
+                        #end
+                        #macroShowField("Administrator", $!MachineryItem.adminUser.name)
+                        #macroShowField("Engine EU Stage", $!MachineryItem.euStage.name)
+                        #macroShowField("Engine TAN", $!MachineryItem.typeApprovalNumber)
+                        #macroShowField("Exemption Id", $!MachineryItem.exemptionId)
+                        #macroShowField("Contractor", $!MachineryItem.contractor)
+                        #macroShowField("Supplier", $!MachineryItem.supplier)
+                        #macroShowField("Engine Man.", $!MachineryItem.engineManufacturer)
+                        #macroShowField("Machine Man.", $!MachineryItem.machineryManufacturer)
+                        #macroShowField("Power Rating", $!MachineryItem.powerRating)
+                        #macroShowField("Exemption Reason", $!MachineryItem.exemptionReason.name)
+                        #macroShowField("Exemption Reason (Other)", $!MachineryItem.exemptionReasonText)
+                        #macroShowField("Exemption Status Reason (Other)", $!MachineryItem.exemptionReasonText)
+                        #macroShowField("Exemption Status Code", $!MachineryItem.exemptionStatusCode.name)
+                        #macroShowField("Retrofit Model", $!MachineryItem.retrofitModel.name)
+                        #macroShowField("Retrofit Model (Other)", $!MachineryItem.retrofitModelOther)
+                        #macroShowField("Retrofit Id", $!MachineryItem.retrofitId)
+
+                        #if($CurrentUser.hasAccess($PRIVILEGES_VIEW_MACHINERY_FILES))
+                            #set($MachineryMediaList = $HibernateUtils.selectEntities("From MachineryMediaEntity where machinery = ?", $MachineryItem))
+                            #if($MachineryMediaList && $MachineryMediaList.size() > 0)
+                                <hr>
+                                <div class="field__item even">
+                                    <span class="field__label">Files</span>
+                                </div>
+
+                                <table>
+                                    #foreach($MachineryMediaEntity in $MachineryMediaList)
+                                        <tr><td>
+                                            <a href="$AppPath/media/stream/$MachineryMediaEntity.media.id" target="_blank">$MachineryMediaEntity.media.name</a>
+                                        </td></tr>
+                                    #end
+                                </table>
+                            #end
+                        #end
+                    </div>
+                </div>
+            </div>
+        </li>
+    #end
+
+    #macro(macroShowField $Label $Value)
+        #if(!$Utils.isBlank($Value))
+        <div class="">
+            <div class="field__label">$Label:&nbsp;</div>
+            $!Value &nbsp;
+        </div>
+        #end
+    #end
+
+    #parse("external/footer.inc")
+#end

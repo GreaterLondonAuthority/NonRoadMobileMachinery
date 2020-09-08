@@ -1,0 +1,217 @@
+##
+## check security
+##
+#set($wfSettings = {})
+#set($tmp=$wfSettings.put("siteentity", $siteentity))
+#set($wfResult = $WorkflowHelper.executeWorkflow("SITE_SECURITY", $wfSettings, false))
+#if($wfResult.getDataItem("ACCESS") != "OK" || !$siteentity)
+    <script>
+        location.href="$AppPath/dashboard";
+    </script>
+#else
+    #set($LastBreadCrumb = "Site")
+    #parse("external/header.inc")
+
+    #if(!$Utils.isBlank($NewSiteId))
+        <script>
+        location.href="$AppPath/$PageName/view/$!NewSiteId"
+        </script>
+    #else
+        #macroStartForm("siteSaveForm" "$AppPath/$PageName/$SubPageName" {"noResize":true,"onValidationSuccessful":"siteAdminUtils.validationOk","onValidationFailed":"siteAdminUtils.validationFailed","onSubmit":"siteAdminUtils.checkData"})
+
+        #macroStartFieldset("site.edit.section.detail")
+            #macroInputHidden("siteId" "$!siteentity.id")
+            #macroInputHidden("pinned" "true")
+            #macroInputText("siteentity.name" $NULL $NULL {"Autocomplete":"organization"})
+            #macroInputDate("siteentity.startDate" $NULL $Utils.dateFormat($siteentity.startDate, "yyyy-MM-dd") {"Format":"$DEFAULT_DATE_FORMAT","UsePassedValue":true})
+
+            #if(!$CurrentUser.hasAccess($siteentity, $PRIVILEGES_EDIT_SITE_END_DATE))
+                #set($EndDateReadOnly = "readonly")
+            #end
+            #macroInputDate("siteentity.endDate" $NULL $Utils.dateFormat($siteentity.endDate, "yyyy-MM-dd") {"Format":"$DEFAULT_DATE_FORMAT","UsePassedValue":true,"ExtraInputAtt":"$!EndDateReadOnly"})
+            #if($CurrentUser.hasAccess($siteentity, $PRIVILEGES_EDIT_SITE_PLANNING_APP_NUMBER))
+                #macroInputText("siteentity.planningAppNumber")
+            #else
+                #macroInputText("siteentity.planningAppNumber" $NULL $NULL {"ExtraInputAtt":"readonly"})
+            #end
+        #macroEndFieldset()
+
+        #macroStartFieldset("site.register.section.location" $NULL $NULL $NULL $NULL $NULL "h3")
+            <div id="locationWrapper">
+                <div id="locationFields">
+                    #set($EditSiteAddress = $CurrentUser.hasAccess($siteentity, $PRIVILEGES_EDIT_SITE_ADDRESS))
+                    #if($EditSiteAddress)
+                        #set($ExtraHTML = "<span class='input-group-btn search-btn'><button id='psSearchButton' class='btn btn-default' aria-label='search postcode' type='button' onclick='siteAdminUtils.searchMap()'><i class='fa fa-search'></i></button></span>")
+                        #set($ExtraInputAtt = "")
+                    #else
+                        #set($ExtraHTML = "")
+                        #set($ExtraInputAtt = "readonly")
+                    #end
+
+                    #macroInputText("siteentity.postcode" $NULL $NULL {"Autocomplete":"postal-code","hideOptional":true,"DivStyle":"white-space:nowrap","ExtraHTML":$ExtraHTML,"ExtraInputAtt":"$!ExtraInputAtt","Width":"200px"})
+                    #macroInputHidden("siteentity.longitude")
+                    #macroInputHidden("siteentity.latitude")
+                    #macroInputEntitySelect("siteentity.borough" $NULL $NULL "BoroughEntity" {"InputClass":"greyOut","ShowEmptyItem":"true","IsReadOnly":true,"IsRequired":true,"Width":"250px"})
+                    #macroInputText("siteentity.zone" $NULL $NULL {"InputClass":"greyOut","IsRequired":true,"ExtraInputAtt":"readonly","Width":"250px"})
+                </div>
+                <table><tr><td class="mapCell">
+                    <div id="locationMap">Map</div>
+                </td></tr></table>
+                #macroShowGoogleMap("locationMap")
+            </div>
+
+        #macroEndFieldset()
+
+        #macroStartFieldset("site.register.section.direct_contact" $NULL $NULL $NULL $NULL $NULL "h3")
+            #if(!$CurrentUser.hasAccess($siteentity, $PRIVILEGES_EDIT_SITE_CONTACT))
+                #set($SiteContactReadOnly = "readonly")
+            #end
+
+            #macroInputText("siteentity.contactFirstName" $NULL $NULL {"Autocomplete":"given-name","ExtraInputAtt":"$!SiteContactReadOnly","hideOptional":true})
+            #macroInputText("siteentity.contactLastName" $NULL $NULL {"Autocomplete":"family-name","ExtraInputAtt":"$!SiteContactReadOnly","hideOptional":true})
+            #macroInputEmail("siteentity.contactEmail" $NULL $NULL {"Autocomplete":"email","ExtraInputAtt":"$!SiteContactReadOnly","hideOptional":true})
+            #macroInputText("siteentity.contactPhoneNumber" $NULL $NULL {"Autocomplete":"tel-national","ExtraInputAtt":"data-role=${DQUOTE}PHONE_NUMBER${DQUOTE} $!SiteContactReadOnly"})
+        #macroEndFieldset()
+
+        #macroStartFieldset("site.register.section.confirm" $NULL $NULL $NULL $NULL $NULL "h3")
+            #macroInputSwitch("register_confirm" "site.register.confirm" false {"IsRequired":true,"onChange":"siteAdminUtils.checkConfirmation"})
+        #macroEndFieldset()
+
+        #set($EndFormProperties = {"hideCreateAnother":true,"saveButton":{"label":"site.edit.save_button"},"cancelButton":{"hide":"true"}})
+
+        #set($RightButtons = [])
+        #set($tmp = $RightButtons.add({"id":"gotoView", "label":"default.close","icon":"fa-times","onClick":"siteAdminUtils.gotoSiteView"}))
+        #set($tmp = $EndFormProperties.put("rightButtons",$RightButtons))
+
+        #macroEndForm($EndFormProperties)
+        <script>
+
+            $(document).ready(function () {
+                $("#submit").prop("disabled",true);
+
+                googleMapUtils.onLoad = function() {
+                    #macroAddGoogleMapLayers()
+                    #if($EditSiteAddress)
+                        googleMapUtils.markerCallback = siteAdminUtils.updateLongLatFields;
+                    #else
+                        googleMapUtils.readOnly = true;
+                    #end
+                    #if($siteentity && $siteentity.longitude && $siteentity.latitude)
+                        googleMapUtils.addMarker($siteentity.longitude,$!siteentity.latitude);
+                        googleMapUtils.setCenter($siteentity.longitude,$!siteentity.latitude, googleMapUtils.closeZoom, false);
+                    #end
+                }
+            });
+
+            var siteAdminUtils = {
+
+                #if($SiteEntity.postcode)
+                    skipMapUpdate: true,
+                #else
+                    skipMapUpdate: false,
+                #end
+
+                checkData: function () {
+
+                    // Make sure start date <= end date
+
+                    var returnValue = false;
+                    if (psApp.dateUtils.compareStartEndDates("#siteentity\\.startDate", "#siteentity\\.endDate", "$DEFAULT_DATE_FORMAT")) {
+                        if ($("#siteentity\\.borough").val() === "") {
+                            alert("Please ensure you have identified the borough the site is in.\r\nYou can either use the map or postcode");
+                            $("#siteentity\\.postcode").focus();
+                        }
+                        else {
+                            PivotalUtils.getJsonContentAsync("$AppPath/$PageName/$SubPageName", $("#siteSaveForm").serialize(), function(response) {
+                                if (response.inError)
+                                    alert(response.error);
+                                else {
+                                    PivotalUtils.showNotification("#I18N("site.edit.save_ok_message")");
+                                }
+                                $("#register_confirm").data("kendoMobileSwitch").toggle();
+                                siteAdminUtils.checkConfirmation();
+                            }, true);
+                        }
+                    }
+
+                    return false;
+                },
+
+                validationOk: function () {
+
+                },
+
+                validationFailed: function () {
+                    PivotalUtils.showNotification("#I18N("site.edit.error.validationfailed")", "error");
+                    $(".k-invalid:first").focus();
+                },
+
+                updateLongLatFields: function (location) {
+                    // Call from map
+                    try {
+                        if (!siteAdminUtils.skipMapUpdate) {
+
+                            psApp.postcode.getPostcode(location.lng, location.lat, function(pcResult) {
+                                $("#siteentity\\.latitude").val(location.lat ? location.lat : "");
+                                $("#siteentity\\.longitude").val(location.lng ? location.lng : "");
+                                $("#siteentity\\.postcode").val(pcResult.postcode ? pcResult.postcode : "");
+                                siteAdminUtils.setZoneBorough();
+                            });
+                        }
+                        siteAdminUtils.skipMapUpdate = false;
+                    }
+                    catch(e) {
+                        alert(e);
+                    }
+                },
+
+                searchMap: function() {
+
+                    psApp.postcode.getLocation($("#siteentity\\.postcode").val(), function(pcResult) {
+                        if (pcResult.inError) {
+                            PivotalUtils.showNotification("Postcode not found", "error");
+                        }
+                        else {
+                            if (pcResult.specific) {
+                                // We've had one result back
+                                siteAdminUtils.skipMapUpdate = true;
+                                googleMapUtils.setCenter(pcResult.longitude, pcResult.latitude, googleMapUtils.closeZoom, true);
+                                $("#siteentity\\.latitude").val(pcResult.latitude?pcResult.latitude:"");
+                                $("#siteentity\\.longitude").val(pcResult.longitude?pcResult.longitude:"");
+                                siteAdminUtils.setZoneBorough();
+                            }
+                            else {
+                                googleMapUtils.setCenter(pcResult.longitude, pcResult.latitude, googleMapUtils.midZoom, false);
+                                $("#siteentity\\.latitude").val("");
+                                $("#siteentity\\.longitude").val("");
+                                $("#siteentity\\.borough").val("");
+                                $("#siteentity\\.zone").val("");
+                            }
+                        }
+                    });
+                },
+
+                setZoneBorough: function() {
+                    // Now check workflow to see what we need to do
+                    psApp.workflow.execute("$!AppPath","SITE_REGISTRATION_MAP", $("#siteSaveForm").serialize() + "&PROCESS=GETBOROUGHZONE", function(response) {
+                        psApp.workflow.evalResponse(response);
+                    });
+                },
+
+                gotoSiteView: function() {
+                    location.href="$AppPath/site/view/$!siteentity.id";
+                },
+
+                checkConfirmation: function() {
+
+                    if ($("#register_confirm").data && $("#register_confirm").data("kendoMobileSwitch"))
+                        $("#submit").prop("disabled", !$("#register_confirm").data("kendoMobileSwitch").value());
+
+                    return false;
+                }
+            };
+        </script>
+    #end
+
+    #parse("external/footer.inc")
+#end

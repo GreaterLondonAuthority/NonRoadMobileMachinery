@@ -1,0 +1,19 @@
+<html>
+<script>
+
+    #if($WorkflowResult.InError())
+        //alert("$WorkflowResult.getError()");
+    #end
+
+    #set($Redirect = $WorkflowResult.getData().get("redirect"))
+    #if($Redirect)
+        location.href = "$Redirect";
+    #else
+        location.href = "$AppPath/login";
+    #end
+
+</script>
+<body>
+
+</body>
+</html>

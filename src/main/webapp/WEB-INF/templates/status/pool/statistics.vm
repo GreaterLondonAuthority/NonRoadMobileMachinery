@@ -1,0 +1,180 @@
+#parse("includes/initialise.inc")
+#parse("$PageName/macros.inc")
+
+#macroStartStatusTable("status.pool.stats.title")
+    <thead>
+        <tr>
+            <th width="200px">#I18N("status.pool.stats.pool")</th>
+            <th width="100px">#I18N("status.pool.stats.driver")</th>
+            <th width="50px">#I18N("status.pool.stats.initial_size")</th>
+            <th width="50px">#I18N("status.pool.stats.size")</th>
+            <th width="50px">#I18N("status.pool.stats.active")</th>
+            <th width="50px">#I18N("status.pool.stats.idle")</th>
+            <th width="50px">#I18N("status.pool.stats.max_active")</th>
+            <th width="50px">#I18N("status.pool.stats.max_idle")</th>
+            <th width="50px">#I18N("status.pool.stats.min_idle")</th>
+            <th width="50px">#I18N("status.pool.stats.max_wait")</th>
+            <th width="50px">#I18N("status.pool.stats.opens")</th>
+            <th width="50px">#I18N("status.pool.stats.closes")</th>
+            <th width="50px">#I18N("status.pool.stats.borrowers")</th>
+            <th width="100px">&nbsp;</th>
+        </tr>
+    </thead>
+    <tr>
+        <td>#I18N("status.pool.stats.application")</td>
+        <td nowrap>$!AppConnectionPool.DriverClassName</td>
+        <td>$!AppConnectionPool.InitialSize</td>
+        <td>#set ($Size=$!AppConnectionPool.NumActive + $!AppConnectionPool.NumIdle) $!Size</td>
+        <td>$!AppConnectionPool.NumActive</td>
+        <td>$!AppConnectionPool.NumIdle</td>
+        <td>$!AppConnectionPool.MaxActive</td>
+        <td>$!AppConnectionPool.MaxIdle</td>
+        <td>$!AppConnectionPool.MinIdle</td>
+        <td>$!AppConnectionPool.MaxWait</td>
+        <td>$!AppConnectionProvider.getOpens()</td>
+        <td>$!AppConnectionProvider.getCloses()</td>
+        <td nowrap>
+            <table class="table table-striped child-table">
+                <tr>
+                    <th>#I18N("status.pool.stats.borrowers.id")</th>
+                    <th>#I18N("status.pool.stats.borrowers.name")</th>
+                    <th>#I18N("status.pool.stats.borrowers.count")</th>
+                </tr>
+                #foreach($Borrower in $AppConnectionProvider.getBorrowers().values())
+                    <tr>
+                        <td>$Borrower.Id</td>
+                        <td>$Borrower.Name</td>
+                        <td>$Borrower.Count</td>
+                    </tr>
+                #end
+            </table>
+        </td>
+        <td nowrap>
+            <button class='formButton k-button' actionType='clearConnectionProviderStata' title='#I18N("status.pool.provider.clear.tooltip")'>#I18N("status.pool.provider.clear")</button>
+        </td>
+    </tr>
+
+    #if ($Pools && $Pools.size() > 0)
+
+        ## Now output the rows
+        #foreach($Pool in $Pools)
+            <tr>
+                <td nowrap>$Pool.name</td>
+                <td nowrap>$Pool.source.Driver</td>
+                <td>$Pool.initialSize</td>
+                <td>$Pool.size</td>
+                <td>$Pool.activeConnections</td>
+                <td>$Pool.idleConnections</td>
+                <td>$Pool.maxActive</td>
+                <td>$Pool.maxIdle</td>
+                <td>$Pool.minIdle</td>
+                <td>$Pool.maxWait</td>
+                <td nowrap>
+                    <button class='formButton k-button' actionType='killPool' poolName='$Pool.name' poolCount='$Pool.activeConnections' title='#I18N("status.pool.kill.tooltip")'>#I18N("status.pool.kill")</button>
+                    #if ($Pool.source.UseCache)
+                        <button class='formButton k-button' actionType='clearPool' poolName='$Pool.name' title='#I18N("status.pool.clear_stats.tooltip")'>#I18N("status.pool.clear_stats")</button>
+                    #end
+                </td>
+            </tr>
+        #end
+    #end
+#macroEndStatusTable()
+
+#macroStartStatusTable("status.pool.cache.title")
+    <thead>
+        <tr>
+            <th width="10%">#I18N("status.pool.cache.name")</th>
+            <th width="10%">#I18N("status.pool.cache.objects")</th>
+            <th width="10%">#I18N("status.pool.cache.hits")</th>
+            <th width="10%">#I18N("status.pool.cache.misses")</th>
+            <th width="10%">#I18N("status.pool.cache.deletes")</th>
+            <th width="10%">#I18N("status.pool.cache.puts")</th>
+            <th width="10%">#I18N("status.pool.cache.hit_rate")</th>
+            <th width="10%">#I18N("status.pool.cache.miss_rate")</th>
+            <th width="10%">#I18N("status.pool.cache.put_rate")</th>
+            <th width="10%">#I18N("status.pool.cache.delete_rate")</th>
+            <th width="10%">&nbsp;</th>
+        </tr>
+    </thead>
+    <tr>
+        <td>#I18N("status.pool.cache.velocity.title")</td>
+        <td>$VelocityCache.Size</td>
+        <td>$VelocityCache.Hits</td>
+        <td>$VelocityCache.Misses</td>
+        <td>$VelocityCache.Deletes</td>
+        <td>$VelocityCache.Puts</td>
+        <td>$VelocityCache.HitRate</td>
+        <td>$VelocityCache.MissRate</td>
+        <td>$VelocityCache.PutRate</td>
+        <td>$VelocityCache.DeleteRate</td>
+        <td nowrap>
+            <button class='formButton k-button' actionType='clearVelocityCache' title='#I18N("status.pool.velocity.clear.tooltip")'>#I18N("status.pool.velocity.clear")</button>
+            <button class='formButton k-button' actionType='clearVelocityCacheStats' title='#I18N("status.pool.velocity.clear_stats.tooltip")'>#I18N("status.pool.velocity.clear_stats")</button>
+        </td>
+    </tr>
+    <tr>
+        <td>#I18N("status.pool.cache.general.title")</td>
+        <td>$!CacheStats.Size</td>
+        <td>$!CacheStats.Hits</td>
+        <td>$!CacheStats.Misses</td>
+        <td>$!CacheStats.Deletes</td>
+        <td>$!CacheStats.Puts</td>
+        <td>$!CacheStats.HitRate</td>
+        <td>$!CacheStats.MissRate</td>
+        <td>$!CacheStats.PutRate</td>
+        <td>$!CacheStats.DeleteRate</td>
+        <td nowrap>
+            <button class='formButton k-button' actionType='clearCache' title='#I18N("status.pool.cache.clear.tooltip")'>#I18N("status.pool.cache.clear")</button>
+            <button class='formButton k-button' actionType='clearCacheStats' title='#I18N("status.pool.cache.clear_stats.tooltip")'>#I18N("status.pool.cache.clear_stats")</button>
+        </td>
+    </tr>
+#macroEndStatusTable()
+
+#macroStartStatusTable("status.pool.monitor.title")
+    <thead>
+        <tr>
+            <th width="20%">#I18N("status.pool.monitor.name")</th>
+            <th width="15%">#I18N("status.pool.monitor.last.run")</th>
+            <th width="5%">#I18N("status.pool.monitor.last.run.duration")</th>
+            <th width="15%">#I18N("status.pool.monitor.max.run")</th>
+            <th width="5%">#I18N("status.pool.monitor.max.run.duration")</th>
+            <th width="5%">#I18N("status.pool.monitor.has.watchdog")</th>
+            <th width="5%">#I18N("status.pool.monitor.period")</th>
+            <th width="5%">#I18N("status.pool.monitor.pool.size")</th>
+            <th width="5%">#I18N("status.pool.monitor.scale.factor")</th>
+            <th width="5%">#I18N("status.pool.monitor.consumers")</th>
+            <th width="5%">#I18N("status.pool.monitor.queue.length")</th>
+        </tr>
+    </thead>
+    #foreach($Monitor in $Monitors)
+        <tr>
+            <td>$Monitor.MonitorName</td>
+            #if ("$!Monitor.LastRunDate" == "")
+                <td colspan="4">#I18N("status.pool.monitor.never.run")</td>
+            #else
+                <td>$Utils.dateFormat($Monitor.LastRunDate, "dd MMMM yyyy HH:mm:ss")</td>
+                <td>$Monitor.LastRunDuration</td>
+                <td>$!Utils.dateFormat($Monitor.MaxRunDate, "dd MMMM yyyy HH:mm:ss")</td>
+                <td>$Monitor.MaxRunDuration</td>
+            #end
+            <td>$Monitor.hasWatchdog()</td>
+            <td>
+                #if ($Monitor.Period==0)
+                    #I18N("status.pool.monitor.no.polling")
+                #else
+                    $Monitor.Period
+                #end
+            </td>
+            #if ($Monitor.MaxPoolSize==0)
+                <td colspan="4">#I18N("status.pool.monitor.no.pool")</td>
+            #else
+                <td>$Monitor.MaxPoolSize</td>
+                <td>$Monitor.ScaleFactor</td>
+                <td>$Monitor.NoOfConsumers</td>
+                <td>$Monitor.QueueLength</td>
+            #end
+        </tr>
+    #end
+#macroEndStatusTable()
+
+

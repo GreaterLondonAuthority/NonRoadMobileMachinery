@@ -1,0 +1,3 @@
+<div class="login-wrap">
+	#macroHeading("h1" "logout.user.logout.message")
+</div>

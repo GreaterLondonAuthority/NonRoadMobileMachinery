@@ -1,0 +1,29 @@
+#parse("includes/initialise.inc")
+#parse("$PageName/macros.inc")
+
+
+#if ("$!Error" != "")
+    <div>$Error</div>
+#elseif ($Results.size()==0)
+    <div>No results</div>
+#else
+    <table class="query-results">
+    #foreach ($Row in $Results)
+        #if ($velocityCount==1)
+            <tr>
+                <th>#</th>
+                #foreach ($Col in $Row.keySet())
+                    <th>$Col</th>
+                #end
+            </tr>
+        #end
+        <tr>
+            <td>$velocityCount</td>
+            #foreach ($Col in $Row.values())
+                <td>$!Utils.encodeHTML("$!Col").replaceAll(" ","&nbsp;")</td>
+            #end
+        </tr>
+    #end
+    </table>
+#end
+

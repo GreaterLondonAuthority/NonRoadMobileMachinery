@@ -1,0 +1,64 @@
+#parse("includes/initialise.inc")
+
+<table class="listTable" id="auditTable" style="margin-top:0">
+    ## Output the table header
+    <tr>
+        <th>#</th>
+        <th>#macroShowColumnHeader("log.dateAdded" "Timestamp")</th>
+        <th>#macroShowColumnHeader("log.status" "Status")</th>
+        <th>#macroShowColumnHeader("log.message" "Message")</th>
+        <th>#macroShowColumnHeader("log.duration" "Duration")</th>
+        <th>#macroShowColumnHeader("log.reportName" "Report")</th>
+        <th>#macroShowColumnHeader("log.parameterValues" "Parameters")</th>
+        <th>#macroShowColumnHeader("log.recipients" "Recipients")</th>
+        <th>#macroShowColumnHeader("log.userFullName" "User")</th>
+        <th>#macroShowColumnHeader("log.userLocation" "Client")</th>
+        <th>#macroShowColumnHeader("log.serverId" "Server")</th>
+    </tr>
+
+    ## Now output the rows
+    #foreach($Log in $Logs)
+        #if($velocityCount % 2 == 0)
+            #set($RowClass="rowEven")
+        #else
+            #set($RowClass="rowOdd")
+        #end
+
+        <tr class="$RowClass">
+            #set($Count=$velocityCount + $Start - 1)
+            <td width="12px" class="rowNumber">$Count</td>
+
+            <td nowrap>$utils.dateFormat($Log.dateAdded,"d-MMM-yyyy HH:mm:ss")</td>
+            <td width="20%">$Log.Status</td>
+            <td width="25%">
+                #if ("$!Log.Message"!="")
+                    #if ($Log.Message.length() > 200)
+                        $Log.Message.substring(0,200)....
+                        <a href="javascript:void(0)" #macroMouseOver("Click to see full listing") onclick="showModalDialogue('$AppPath/javascript','Message',getContent('$AppPath/log/message?id=$Log.Id'),false,false,true,600,400)" onmouseout=""><b>more</b></a>
+                    #else
+                        $Log.Message
+                    #end
+                #end
+            </td>
+            <td>
+                #set($Duration=$Log.Duration * 1000)
+                $utils.getDuration($Duration)
+            </td>
+            <td nowrap>$!Log.ReportName</td>
+            <td width="20%">$!Log.ParameterValues</td>
+            <td width="35%">
+                #if ("$!Log.Recipients"!="")
+                    #if ($Log.Recipients.length() > 200)
+                        $utils.encodeHTML($Log.Recipients.substring(0,200).replaceAll(";",";<br>")) ....
+                        <a href="javascript:void(0)" #macroMouseOver("Click to see full listing") onclick="showModalDialogue('$AppPath/javascript','Recipients',getContent('$AppPath/log/recipients?id=$Log.Id'),false,false,true,600,400)" onmouseout=""><b>more</b></a>
+                    #else
+                        $utils.encodeHTML($Log.Recipients).replaceAll(";",";<br>")
+                    #end
+                #end
+            </td>
+            <td>$!Log.UserFullName</td>
+            <td>$!Log.UserLocation</td>
+            <td>$Log.ServerId</td>
+        </tr>
+    #end
+</table>

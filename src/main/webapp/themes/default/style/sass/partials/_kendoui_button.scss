@@ -1,0 +1,25 @@
+.k-button {
+    background-image: none;
+    background-color: #fff;
+}
+
+
+.k-button:hover {
+    background-image: none;
+    background-color: $brand-primary;
+    color: #fff;
+}
+
+/* Kendo Switch */
+.km-switch-handle, .km-switch-background {
+  color: $brand-primary;
+}
+
+.k-multiselect .k-button {
+  border-color: $brand-primary;
+  background-color: $brand-primary;
+}
+
+.k-link:link, .k-link:visited, .k-nav-current.k-state-hover .k-link, .k-pager-wrap .k-link:hover {
+  color: $brand-primary;
+}

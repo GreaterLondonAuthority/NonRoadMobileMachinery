@@ -1,0 +1,15 @@
+#macroStartForm("workflowentity" "$AppPath/$PageName/$SubPageName/edit" {"EncType":"multipart/form-data"})
+
+    #macroStartTabs()
+        #macroStartTab("admin.workflow.edit.titleyy", true)
+            #macroStartFieldset("admin.workflow.edit.title")
+                #macroInputHidden("workflowentity.id")
+                #macroInputText("workflowentity.name")
+                #macroInputText("workflowentity.code")
+                #macroInputTextArea("workflowentity.description")
+
+                #macroInputCodeEditor("workflowentity.script" "$!workflow.name")
+            #macroEndFieldset()
+        #macroEndTab()
+    #macroEndTabs()
+#macroEndForm({"saveAndCloseButton":{}})

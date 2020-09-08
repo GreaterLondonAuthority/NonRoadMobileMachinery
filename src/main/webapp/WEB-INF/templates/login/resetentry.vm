@@ -1,0 +1,116 @@
+#set($LastBreadCrumb = "Enter new password")
+#set($PageTitle = "Enter new password")
+#parse("external/header.inc")
+
+<h2 class="l-content--title">User Account</h2>
+<h2 class="element-invisible">Primary tabs</h2>
+<ul class="tabs tabs--primary list-unstyled links--inline">
+    <li><a href="$!AppPath/login">Log in<span class="element-invisible">(active tab)</span></a></li>
+    <li class="active"><a class="active" href="$!AppPath/login/resetrequest">Request new password</a></li>
+    <li><a href="$!AppPath/login/register">#I18N("loginview.register.text")</a></li>
+</ul>
+<style>
+    #passwordMatch {
+        display: inline-flex;
+        padding-left:10px;
+    }
+
+</style>
+#macroStartForm("entryForm" "$AppPath/$PageName/$SubPageName" {"onValidationFailed":"resetUtils.validationFailed"})
+
+    #macroStartFieldset("login.resetentry.field.title")
+
+    <div class="form-group">
+        #macroInputPassword("input_password" "login.register.password" $NULL {"Autocomplete":"new-password","showRequiredLabel":true,"ExtraInputAtt":"data-role=${DQUOTE}USER_PASSWORD${DQUOTE} ignore=${DQUOTE}true${DQUOTE}"})
+        #macroInputHidden("input_password_encrypt")
+    </div>
+
+    <div class="form-group">
+        #macroInputPassword("input_password_confirm" "login.register.password_confirm" $NULL {"Autocomplete":"new-password","showRequiredLabel":true,"ExtraInputAtt":"ignore=${DQUOTE}true${DQUOTE}","ExtraHTML":"<div id='passwordMatch'></div>"})
+        #macroInputHidden("input_password_confirm_encrypt")
+    </div>
+
+    <div class="form-group">
+        <div id="passwordRules">
+            $!WorkflowHelper.executeWorkflow("PASSWORD_RULES", $NULL, true).information
+        </div>
+    </div>
+
+    <div class="form-group">
+        <input type="submit" id="reset-submit" name="op" value="#I18N("login.resetentry.submit.text")" class="form-submit"/>
+    </div>
+
+    #macroInputHidden("actionguid" "$!actionGuid")
+    #macroEndFieldset()
+</form>
+<script>
+
+    $(document).ready(function () {
+       $('#entryForm').submit(function (e) {
+           return resetUtils.saveform(e);
+       });
+        resetUtils.showPasswordMatch();
+
+        $('#input_password').on("input", function() {
+           resetUtils.showPasswordMatch();
+        });
+        $('#input_password_confirm').on("input", function() {
+           resetUtils.showPasswordMatch();
+        });
+    });
+
+    var resetUtils = {
+
+        validationFailed: function () {
+
+            ## PivotalUtils.showNotification("#I18N("site.edit.error.validationfailed")", "error");
+            $(".k-invalid:first").focus();
+            $('#input_password').val("");
+            $('#input_password_confirm').val("");
+            resetUtils.showPasswordMatch();
+        },
+
+        showPasswordMatch: function() {
+            if ($('#input_password_confirm').val() === "")
+                $("#passwordMatch").html("");
+            else {
+                if (psApp.login.passwordsMatch())
+                    $("#passwordMatch").html("#I18N('global.error.password.match_yes')");
+                else
+                    $("#passwordMatch").html("#I18N('global.error.password.match_no')");
+            }
+        },
+
+        saveform: function(event) {
+
+            if (!psApp.login.passwordsMatch()) {
+                alert("#I18N('global.error.password.missmatch')");
+                $('#input_password').val("");
+                $('#input_password_confirm').val("");
+                $('#input_password').focus();
+            }
+            else {
+
+                try {
+                    // Create array of parameters to send to login URL.
+                    psApp.login.encryptAllPasswords("_encrypt");
+                    var status = PivotalUtils.getJsonContent('$AppPath/login/resetentry', $('#entryForm').serialize(), true);
+                    if (status.inError) {
+                        alert(status.error);
+                    } else {
+                        if (status.completed)
+                            alert("#I18N('login.resetentry.message.success')");
+                        document.location.href = '$AppPath/login';
+                    }
+                }
+                catch (e) {
+                    alert("Error registering new user in: " + e);
+                }
+            }
+            return false;
+        }
+    };
+
+</script>
+
+#parse("external/footer.inc")

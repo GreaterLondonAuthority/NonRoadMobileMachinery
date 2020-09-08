@@ -1,0 +1,62 @@
+#set($LastBreadCrumb = "Request new password")
+#set($PageTitle = "Request new password")
+#parse("external/header.inc")
+
+<h2 class="l-content--title">User account</h2>
+<h2 class="element-invisible">Primary tabs</h2>
+<ul class="tabs tabs--primary list-unstyled links--inline">
+    <li><a href="$!AppPath/login">Log in<span class="element-invisible">(active tab)</span></a></li>
+    <li class="active"><a class="active" href="$!AppPath/login/resetrequest">Request new password</a></li>
+    <li><a href="$!AppPath/login/register">#I18N("loginview.register.text")</a></li>
+</ul>
+
+<form method="post" id="passwordResetForm" action="$AppPath/$PageName/$SubPageName">
+    #macroStartFieldset("login.resetrequest.field.title", $NULL, $NULL, $NULL, $NULL, $NULL, "H3")
+
+    <div class="form-item form-type-textfield form-item-name">
+        <label for="email">Email Address <span class="form-required" title="This field is required.">*</span></label>
+        #macroInputEmail("email" $NULL $NULL {"focus":true,"hideLabel":true,"Autocomplete":"email","Placeholder":"#I18N('loginview.username.placeholder')","ExtraInputAtt":"data-email-msg=${DQUOTE}#I18N('login.register.bad.email.format')${DQUOTE}"})
+    </div>
+
+    <div class="form-item form-type-textfield form-item-name">
+        <input type="submit" id="resetrequest-submit" name="op" value="#I18N("login.resetrequest.submit.text")" class="form-submit"/>
+    </div>
+    #macroEndFieldset()
+</form>
+
+<script>
+
+    $(document).ready(function () {
+       $('#passwordResetForm').submit(function (e) {
+           return resetRequestUtils.saveform(e);
+       });
+    });
+
+    var resetRequestUtils = {
+
+        saveform: function(event) {
+            if ($('#email').val() != "") {
+                try {
+                    // Create array of parameters to send to login URL.
+                    var status = PivotalUtils.getJsonContent('$AppPath/login/resetrequest', $('#passwordResetForm').serialize(), true);
+                    if (status.inError) {
+                        alert(status.error);
+                    } else {
+                        ## alert("#I18N('login.resetrequest.message.email_sent')");
+                        document.location.href = '${AppPath}/login';
+                    }
+                }
+                catch (e) {
+                    alert("Error requesting password reset : " + e);
+                }
+            }
+            else
+                alert("#I18N('login.resetrequest.message.no_email')");
+
+            return false;
+        }
+    };
+
+</script>
+
+#parse("external/footer.inc")

@@ -1,0 +1,90 @@
+.k-grid {
+  border-style: none;
+  font-size: 1.1em;
+
+  .k-grid tbody .k-button, .k-ie8 .k-grid tbody button.k-button {
+    min-width: 30px;
+  }
+
+  tr:hover {
+    background-color: #f1f1f1;
+    color: #333;
+  }
+
+  td {
+    border-style: none;
+    border-bottom: 1px solid white;
+    border-width: 1px 0 0 0!important;
+  }
+
+  .k-grid-content {
+    border-left: 1px solid #c5c5c5;
+  }
+}
+
+.k-alt {
+  background-color: rgba(#fff, 0);
+}
+
+.k-state-selected {
+  background-color: $brand-primary;
+  border-color: $brand-primary;
+  color: #fff;
+}
+
+.k-widget {
+  background-color: rgba(0, 0, 0, 0);
+}
+
+.k-header {
+  background-image: none;
+}
+
+.k-grid-header .k-header {
+  background-color: #fff;
+}
+
+.k-grid-header-wrap {
+  border-color: #fff;
+  border-bottom-color: #c5c5c5;
+}
+
+.k-pager-wrap {
+  background-color: #fff;
+}
+
+.k-grouping-header {
+  background-color: #fff;
+}
+
+.k-grouping-row td, td.k-group-cell {
+  background-color: #fff;
+}
+
+.k-toolbar {
+  background-color: #FFF;
+}
+
+.k-grid tbody .k-button, .k-ie8 .k-grid tbody button.k-button {
+  min-width: 30px;
+}
+
+.k-grid td img {
+  max-height: 32px;
+}
+
+.k-primary:hover {
+    border-color: #c5c5c5;
+}.k-primary {
+    border-color: #c5c5c5;
+    color: #2e2e2e;
+}
+
+input[type="radio"] {
+    margin: 4px 4px 0;
+}
+
+/* Menu items */
+li.k-item[role=menuitem] span.k-link input[type=checkbox] {
+  margin-right:8px;
+}

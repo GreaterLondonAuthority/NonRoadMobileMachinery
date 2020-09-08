@@ -1,0 +1,73 @@
+<Context path="" reloadable="false" crossContext="true" useHttpOnly="false">
+    <Manager pathname="" />
+
+    <!--Pivotal NRMM Database-->
+   <Resource name="jdbc/app" auth="Container" type="com.pivotal.system.hibernate.utils.AppDataSource"
+       description="NRMM settings datasource"
+       maxActive="1000"
+       maxIdle="100"
+       minIdle="30"
+       initialSize="10"
+       maxWait="10000"
+       username="user"
+       password="****"
+       schema="nrmm"
+       jdbcInterceptors="ConnectionState;StatementFinalizer;ResetAbandonedTimer"
+       driverClassName="org.postgresql.Driver"
+       url="jdbc:postgresql://localhost:5432/nrmm"
+       removeAbandoned="true"
+       removeAbandonedTimeout="600"
+       logAbandoned="false"
+       validationQuery="Select 1"
+       testOnBorrow="true"
+       initSQL="SET search_path TO nrmm,tiger,tiger_path,topology,public;"
+       factory="org.apache.naming.factory.BeanFactory"
+       />
+
+    <!--Mapping database-->
+    <Resource name="jdbc/Mapping" auth="Container" type="com.pivotal.system.hibernate.utils.AppDataSource"
+        description="Mapping settings datasource"
+        maxActive="1000"
+        maxIdle="100"
+        minIdle="30"
+        initialSize="10"
+        maxWait="10000"
+        username="user"
+        password="****"
+        schema="nrmm"
+        jdbcInterceptors="ConnectionState;StatementFinalizer;ResetAbandonedTimer"
+        driverClassName="org.postgresql.Driver"
+        url="jdbc:postgresql://localhost:5432/maps"
+        removeAbandoned="true"
+        removeAbandonedTimeout="600"
+        logAbandoned="false"
+        validationQuery="Select 1"
+        testOnBorrow="true"
+        initSQL="SET search_path TO nrmm,tiger,tiger_path,topology,public;"
+        factory="org.apache.naming.factory.BeanFactory"
+        />
+
+    <!--Email Server-->
+     <Resource name="mail/Session" auth="Container"
+               type="javax.mail.Session"
+               mail.smtp.host="smtp.localhost"
+               mail.smtp.auth="true"
+               mail.smtp.user="smtp@example.com"
+               mail.smtp.password="****"
+               mail.smtp.starttls.enable="true"
+               mail.transport.protocol="smtps"
+     />
+
+    <!--Uploaded file location-->
+    <Parameter name="uploadedFileLocation" value="/Users/nrmm/files/uploadfiles" override="false"/>
+
+    <!--Mapping files comma separated-->
+    <Parameter name="mappingFileList" value="https://localhost/files/kml/nrmm_lez.kml" override="false"/>
+
+    <!--Google Mapping Key -->
+    <Parameter name="mappingKey" value="GMAPS_KEY" override="false"/>
+
+    <!--Text editor licence-->
+    <Parameter name="froalaAccessKey" value="WYSIWYG_KEY" override="false"/>
+
+</Context>

@@ -1,0 +1,21 @@
+#parse("/includes/initialise.inc")
+#if ($CurrentUser.hasAccess($PRIVILEGES_HAS_ADMIN_ACCESS))
+    #macroCloseWindowIfOK()
+    #if(!$HideSideMenu)
+        #macroGenerateAdminMenu()
+    #end
+    #if ("$!SubPageName" == "")
+        $Response.sendRedirect("$AppPath/$PageName/$SystemNav[0].SectionLinks[0].Href")
+    #elseif ($ActionPageName=="" || $Utils.doStringsMatch($SubPageName, "settings", "plugins", "license"))
+        #set($FooterProperties ={"HeartbeatExtra":"nologout=true"})
+        #macroPageLayout3("Admin")
+    #else
+        #set($FooterProperties ={"HeartbeatExtra":"nologout=true"})
+        #macroPageLayout1("Admin")
+    #end
+#else
+    <script>
+        document.location.replace("$AppPath/dashboard");
+    </script>
+#end
+

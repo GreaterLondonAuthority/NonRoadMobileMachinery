@@ -1,0 +1,40 @@
+.profile {
+    padding: 5px 15px;
+
+    h2 {
+      color: #fff;
+      margin: 0;
+    }
+
+    a {
+        text-decoration: none;
+        //text-transform: lowercase;
+        color: #fff;
+
+        &:hover {
+            color: rgba(255,255,255,.7);
+        }
+
+    }
+
+    #logout_icon {
+        display: inline;
+    }
+
+    div {
+        margin-top: 11px;
+        margin-bottom: 11px;
+    }
+
+    img {
+        width: 64px;
+        float: left;
+        padding-right: 16px;
+        margin-top: 13px;
+        margin-bottom: 13px;
+    }
+
+    i {
+        color:#fff;
+    }
+}

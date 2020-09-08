@@ -1,0 +1,32 @@
+@mixin box-shadow($top, $left:"", $blur:"", $color:"", $inset:"") {
+    -webkit-box-shadow:$top #{$left} #{$blur} #{$color} #{$inset};
+    -moz-box-shadow:$top #{$left} #{$blur} #{$color} #{$inset};
+    box-shadow:$top #{$left} #{$blur} #{$color} #{$inset};
+}
+
+@mixin animate($property, $speed) {
+  -moz-transition:#{$property} #{$speed} linear;
+  -o-transition:#{$property} #{$speed} linear;
+  -webkit-transition:#{$property} #{$speed} linear;
+  transition:#{$property} #{$speed} linear;
+}
+
+@mixin borderRadius($tl, $tr, $br, $bl) {
+  border-radius:#{$tl $tr $br $bl};
+}
+
+@mixin border-radius($radius) {
+  -webkit-border-radius: $radius;
+  -moz-border-radius: $radius;
+  -ms-border-radius: $radius;
+  border-radius: $radius;
+}
+
+@mixin background-color($color, $duration) {
+    background-color: #{$color};
+    -webkit-transition: background-color #{$duration}ms linear;
+    -moz-transition: background-color #{$duration}ms linear;
+    -o-transition: background-color #{$duration}ms linear;
+    -ms-transition: background-color #{$duration}ms linear;
+    transition: background-color #{$duration}ms linear;
+}

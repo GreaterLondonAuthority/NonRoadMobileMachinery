@@ -1,0 +1,86 @@
+#macroWidgetHead()
+<div id="log-widget-grid"></div>
+<style>
+    .k-grid .k-grid-content{
+        border-left:none;
+    }
+</style>
+<script>
+    var logtableWidget = {
+        dataSource: new kendo.data.DataSource({
+            transport: {
+                read: {
+                    url:"$AppPath/admin/report/log/data?id=$id",
+                    dataType: "json"
+                }
+            },
+
+            schema: {
+                model: {
+                    fields: {
+                        addDate: { type: "String" },
+                        reportName: { type: "string" },
+                        taskName: { type: "string" },
+                        status: { type: "string" },
+                        recipents: { type: "string" },
+                        dutation: { type: "string" }
+                    }
+                }
+            }
+        }),
+
+        makeGrid: function () {
+            $("#log-widget-grid").kendoGrid({
+                dataSource: logtableWidget.dataSource,
+                 ## Fit the table to the frame. -2 to account for the border.
+                height: Widget.getAvailableHeight() - 2,
+                sortable: true,
+                resizable: true,
+                columns: [
+                        {
+                            field: "addDate",
+                            title: "#I18N("widget.report-table.columns.adddate")",
+                            //width: 60
+                        },
+                        {
+                            field: "reportName",
+                            title: "#I18N("widget.report-table.columns.reportname")"
+                        },
+                        {
+                            field: "taskName",
+                            title: "#I18N("widget.report-table.columns.taskname")",
+                            //width: 60
+                        },
+                        {
+                            field: "status",
+                            title: "#I18N("widget.report-table.columns.status")"
+                        },
+                        {
+                            field: "recipents",
+                            title: "#I18N("widget.report-table.columns.recipients")",
+                           // width: 60
+                        },
+                        {
+                            field: "dutation",
+                            title: "#I18N("widget.report-table.columns.duration")"
+                        }
+                ]
+            })
+        }
+    }
+
+    $(document).ready(function () {
+           setInterval(function() {
+               logtableWidget.dataSource.read();
+           }, $RefreshPeriod);
+        logtableWidget.makeGrid();
+       });
+    $(window).resize(function () {
+        ## No way to resize the table once it's made, so destroy it and make it again
+        $("#log-widget-grid").data("kendoGrid").destroy();
+        $("#log-widget-grid").remove();
+        $("body").append('<div id="log-widget-grid"></div>');
+        logtableWidget.makeGrid();
+    });
+</script>
+#parse("includes/page-end.inc")
