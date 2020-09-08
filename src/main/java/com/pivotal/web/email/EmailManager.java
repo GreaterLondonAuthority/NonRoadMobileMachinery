@@ -11,7 +11,8 @@ package com.pivotal.web.email;
 import com.google.common.collect.Lists;
 import com.pivotal.nrmm.service.notification.Notification;
 import com.pivotal.reporting.publishing.Recipient;
-import com.pivotal.system.hibernate.entities.*;
+import com.pivotal.system.hibernate.entities.MediaEntity;
+import com.pivotal.system.hibernate.entities.ReportTextEntity;
 import com.pivotal.system.hibernate.utils.HibernateUtils;
 import com.pivotal.system.monitoring.EmailMonitor;
 import com.pivotal.system.monitoring.Monitor;
@@ -20,8 +21,6 @@ import com.pivotal.utils.Common;
 import com.pivotal.utils.PivotalException;
 import com.pivotal.utils.VelocityUtils;
 import com.pivotal.utils.workflow.WorkflowHelper;
-import com.pivotal.web.Constants;
-import com.pivotal.web.controllers.AbstractController;
 import com.pivotal.web.controllers.utils.JsonResponse;
 import com.pivotal.web.notifications.NotificationManager;
 import com.pivotal.web.servlet.ServletHelper;
@@ -38,10 +37,7 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.naming.InitialContext;
-import javax.servlet.http.HttpServletRequest;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -319,17 +315,6 @@ public class EmailManager extends Monitor {
 
                             logger.debug("Message sent " + destinationTo);
 
-                            if (!Common.isBlank(email.getParentId()) && !Common.isBlank(email.getParentId())) {
-
-                                saveEmailPdf(ServletHelper.getRequest(),
-                                        email.getParentId(),
-                                        email.getParentType(),
-                                        displayToList,
-                                        displayCcList,
-                                        displayBccList,
-                                        emailFrom, email.getSubject(), attachmentDescriptions, email.getSubject(), email.getMessage(), email.isLandscape());
-                            }
-
                             retValue = true;
                         }
                         else {
@@ -552,18 +537,6 @@ public class EmailManager extends Monitor {
                                 // Send the message
 
                                 sender.send(message);
-
-                                if (!Common.isBlank(email.getParentId()) && !Common.isBlank(email.getParentId())) {
-
-                                    saveEmailPdf(ServletHelper.getRequest(),
-                                            email.getParentId(),
-                                            email.getParentType(),
-                                            displayToList,
-                                            displayCcList,
-                                            displayBccList,
-                                            emailFrom, email.getSubject(), attachmentDescriptions, email.getSubject(), email.getMessage(), email.isLandscape());
-                                }
-
                                 retValue = true;
 
                             }
@@ -794,121 +767,6 @@ public class EmailManager extends Monitor {
         return !isBlank(HibernateUtils.getSystemSetting(HibernateUtils.SETTING_DEFAULT_EMAIL_PUBLISHER_ADDRESS, ""));
     }
 
-    /**
-     * Generates a pdf for the email and stores it in a media entity.
-     *
-     * @param request       HTTP request
-     * @param parentId      Parent id
-     * @param parentType      Parent type
-     * @param toList        String array with the destinations of the email
-     * @param ccList        String array with the cc addresses of the email
-     * @param bccList       String array with the bcc addresses of the email
-     * @param fromAddress   Address email is from
-     * @param subject       Email Subject
-     * @param attachments   List of attachement descriptions
-     * @param filename      Name to use as filename
-     * @param content       Content
-     * @param landscape     Report is to be rendered in landscape when saved as pdf
-     *
-     * @return Uncommitted media entity with the generated pdf. Null if something when wrong
-     */
-    public static MediaEntity saveEmailPdf(HttpServletRequest request, Integer parentId, String parentType, List<String> toList, List<String> ccList, List<String> bccList, String fromAddress, String subject, List<String> attachments, String filename, String content, boolean landscape) {
-
-        MediaEntity mediaEntity = null;
-
-        //Store it as PDF when successful
-
-        String filenameToUse = filename;
-        String nameToUse;
-        Map<String, Object> contextVariables = new HashMap<>();
-        contextVariables.put("ToList", toList);
-        contextVariables.put("CCList", ccList);
-        contextVariables.put("BCCList", bccList);
-        contextVariables.put("FromAddress", fromAddress);
-        contextVariables.put("Subject", subject);
-        contextVariables.put("Content", content);
-        contextVariables.put("Filename", filename);
-        contextVariables.put("Attachments", attachments);
-        Object parentEntity = HibernateUtils.getEntity(parentType, parentId);
-        contextVariables.put("Entity", parentEntity);
-        contextVariables.put("entity", parentEntity);
-        boolean okToGo = true;
-
-        File template = null;
-
-        if (isBlank(filenameToUse)) filenameToUse = "Email " + Common.getFormattedTimestamp();
-        template = new File(ServletHelper.getRealPath(Constants.SAVE_EMAIL_TEMPLATE_FILE));
-
-        if (okToGo) {
-            if (isBlank(filenameToUse)) filenameToUse = "unknown";
-            nameToUse = filenameToUse;
-            filenameToUse = filenameToUse.replaceAll("\\W+", "") + ".pdf";
-
-            String reportText = generateReportText(contextVariables, Common.readTextFile(template));
-
-            OutputStream out;
-            String tempFilename = null;
-            try {
-
-                tempFilename = Common.getTemporaryFilename("pdf");
-                File file = new File(tempFilename);
-                out = new FileOutputStream(file);
-
-                int pageWidth=750;
-                if (landscape) pageWidth=1500;
-                AbstractController.getPdfFromText(request, out, reportText, pageWidth, 5, 5, 5, 5, landscape, true, "A4");
-                out.close();
-
-                NoteEntity noteEntity = CaseManager.addNote(parentId, parentType, "Email " + subject + " " + Common.getFormattedTimestamp(), Constants.SAVE_EMAIL_FOLDER, null, null, NoteTypeEntity.NOTE_TYPE_GENERAL);
-
-                if (noteEntity != null) {
-                    mediaEntity = HibernateUtils.getEntity(MediaEntity.class);
-
-                    mediaEntity.setName(nameToUse);
-                    mediaEntity.setFilename(filenameToUse);
-                    mediaEntity.setType(MediaEntity.TYPE_CASE_FILE);
-                    mediaEntity.setExtension("PDF");
-                    mediaEntity.setTimeAddedNow();
-                    mediaEntity.setTimeModifiedNow();
-                    mediaEntity.setFileSize((int) file.length());
-
-                    if (HibernateUtils.save(mediaEntity, false))
-                        CaseManager.addMediaFile(mediaEntity, file);
-
-                    // add the media to the case media relation table
-
-                    NoteMediaEntity noteMediaEntity = HibernateUtils.getEntity(NoteMediaEntity.class);
-
-                    noteMediaEntity.setNote(noteEntity);
-                    noteMediaEntity.setMedia(mediaEntity);
-
-                    HibernateUtils.save(noteMediaEntity);
-
-                    HibernateUtils.commit();
-                }
-                else {
-                    logger.error("Unable to create note for sent email");
-                }
-            }
-            catch (Exception e) {
-
-                logger.debug("Error getting pdf {}", PivotalException.getErrorMessage(e));
-
-                // Just in case let's put the null back in the media entity
-                mediaEntity = null;
-            }
-
-            // Tidy up after ourselves
-
-            if (!isBlank(tempFilename)) {
-                File tmp = new File(tempFilename);
-                if (tmp.exists())
-                    if (!tmp.delete())
-                        logger.error("Unable to delete file {}", tempFilename);
-            }
-        }
-        return mediaEntity;
-    }
     /**
      * Generates the report text
      *

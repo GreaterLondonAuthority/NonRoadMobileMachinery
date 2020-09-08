@@ -9,7 +9,6 @@
 package com.pivotal.reporting.reports.sqldump;
 
 import au.com.bytecode.opencsv.CSVWriter;
-import com.googlecode.compress_j2me.lzc.LZCOutputStream;
 import com.pivotal.utils.Common;
 import com.pivotal.utils.PivotalException;
 
@@ -98,10 +97,8 @@ public class TextOutput extends SQLOutput {
 
         try {
             Writer out;
-            if (Common.doStringsMatch(compression,"gzip"))
+            if (Common.doStringsMatch(compression,"gzip") || Common.doStringsMatch(compression, "compress"))
                 out=new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(filename)), "UTF-8"));
-            else if (Common.doStringsMatch(compression, "compress"))
-                out=new BufferedWriter(new OutputStreamWriter(new LZCOutputStream(new FileOutputStream(filename)), "UTF-8"));
             else
                 out=new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), "UTF-8"));
             if (Common.doStringsMatch(Common.getFilenameExtension(filename),"tsv"))
@@ -161,10 +158,8 @@ public class TextOutput extends SQLOutput {
             // Get a suitable output stream
 
             Writer out;
-            if (Common.doStringsMatch(compression,"gzip"))
+            if (Common.doStringsMatch(compression,"gzip") || Common.doStringsMatch(compression, "compress"))
                 out=new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(filename)), "UTF-8"));
-            else if (Common.doStringsMatch(compression, "compress"))
-                out=new BufferedWriter(new OutputStreamWriter(new LZCOutputStream(new FileOutputStream(filename)), "UTF-8"));
             else
                 out=new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), "UTF-8"));
 

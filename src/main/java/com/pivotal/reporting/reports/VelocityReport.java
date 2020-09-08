@@ -15,25 +15,18 @@ import com.pivotal.reporting.scheduler.Job;
 import com.pivotal.system.hibernate.entities.ReportEntity;
 import com.pivotal.system.hibernate.utils.HibernateUtils;
 import com.pivotal.system.security.CaseManager;
-import com.pivotal.system.security.UserManager;
 import com.pivotal.utils.*;
-import com.pivotal.utils.browser.Browser;
-import com.pivotal.utils.browser.Configuration;
 import com.pivotal.utils.workflow.WorkflowHelper;
 import com.pivotal.web.Constants;
 import com.pivotal.web.controllers.utils.JsonResponse;
 import com.pivotal.web.email.EmailManager;
-import com.pivotal.web.servlet.ServletHelper;
 import org.apache.velocity.Template;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.context.Context;
 import org.slf4j.LoggerFactory;
-import org.zefer.pd4ml.PD4Constants;
-import org.zefer.pd4ml.PD4ML;
 
-import java.awt.*;
-import java.io.*;
-import java.net.URL;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -193,7 +186,7 @@ public class VelocityReport extends Report {
      * @return List of types
      */
     public List<ExportFormat> getSupportedExportTypes() {
-        return Lists.newArrayList(ExportFormat.PDF,ExportFormat.HTML,ExportFormat.TEXT,ExportFormat.XML,ExportFormat.JSON);
+        return Lists.newArrayList(ExportFormat.HTML,ExportFormat.TEXT,ExportFormat.XML,ExportFormat.JSON);
     }
 
     /**
@@ -222,73 +215,6 @@ public class VelocityReport extends Report {
         if (format.equals(ExportFormat.TEXT)) {
             Common.writeTextFile(filename, Common.getCleanHtml(output), compression);
             logger.debug("Outputting to text file {}", filename);
-        }
-
-        // If this is PDF then we need to do some groovy stuff with the
-        // PhantomJS and PD4ML libraries
-
-        else if (format.equals(ExportFormat.PDF)) {
-
-            // Copy the HTML to a temporary file
-
-            File tmpHtml = Common.getTemporaryFile("html");
-            Common.writeTextFile(tmpHtml, output);
-
-            // Run the file through the browser to exercise it using a special
-            // URL that allows us to get the report via our server
-
-            Configuration config = new Configuration();
-            config.setUrl(Constants.getLocalAddress() +  ServletHelper.getServletContext().getContextPath() + "/media/stream/tmp?f=" + Common.encodeURL(tmpHtml.getName()));
-            com.pivotal.utils.browser.ExportFormat exportFormat = new com.pivotal.utils.browser.ExportFormat();
-            exportFormat.setFormat(com.pivotal.utils.browser.ExportFormat.Format.GIF);
-
-            // Add headers to tell NRMM that we are logged in
-
-            if(UserManager.getCurrentUser()!= null) {
-                config.addCustomHeader(Constants.INTERNAL_REQUEST_USER_ID, UserManager.getCurrentUser().getId() + "");
-            }
-            config.addCustomHeader(Constants.INTERNAL_REQUEST_TOKEN, Constants.getLoopbackToken());
-
-            // Run the export
-
-            try {
-                List<File> files = Browser.exportHtml(config, exportFormat);
-                if (Common.isBlank(files))
-                    executionResults.setError("Cannot browse the URL");
-                else {
-
-                    // Setup the PD4ML library
-
-                    PD4ML pd4ml = new PD4ML();
-                    pd4ml.setHtmlWidth(1300);
-                    pd4ml.generateOutlines(true);
-                    if (logger.isDebugEnabled()) {
-                        pd4ml.enableDebugInfo();
-                    }
-                    pd4ml.setPageSize(PD4Constants.A4);
-                    pd4ml.setPageInsetsMM(new Insets(10, 10, 10, 10));
-                    pd4ml.addStyle("BODY {margin: 0}", true);
-
-                    // The first file in the list contains the HTML, the rest are the SVG images
-
-                    String tmpText = Common.readTextFile(files.get(0));
-                    try (OutputStream out = new FileOutputStream(filename)) {
-                        pd4ml.render(new StringReader(tmpText), out, new URL(Constants.getLocalAddress()));
-                        logger.debug("PDF Export Completed successfully");
-                    }
-                    catch (Exception e) {
-                        logger.error("Cannot output from PD4ML - {}", PivotalException.getErrorMessage(e));
-                    }
-                }
-            }
-            catch (Exception e) {
-                logger.error("Cannot export from Browser - {}", PivotalException.getErrorMessage(e));
-            }
-
-            // Clean up the temporary files
-
-            if (tmpHtml.exists())
-                tmpHtml.delete();
         }
 
         // Use default for everything else

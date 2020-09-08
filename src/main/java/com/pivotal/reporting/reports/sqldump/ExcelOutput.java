@@ -8,7 +8,6 @@
  */
 package com.pivotal.reporting.reports.sqldump;
 
-import com.googlecode.compress_j2me.lzc.LZCOutputStream;
 import com.pivotal.utils.Common;
 import com.pivotal.utils.PivotalException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -218,10 +217,8 @@ public class ExcelOutput extends SQLOutput {
         OutputStream workbookStream=null;
         try {
             setAutoColumnWidths();
-            if (Common.doStringsMatch(compression,"gzip"))
+            if (Common.doStringsMatch(compression,"gzip") || Common.doStringsMatch(compression, "compress"))
                 workbookStream=new BufferedOutputStream(new GZIPOutputStream(new FileOutputStream(filename)));
-            else if (Common.doStringsMatch(compression, "compress"))
-                workbookStream = new BufferedOutputStream(new LZCOutputStream(new FileOutputStream(filename)));
             else
                 workbookStream=new BufferedOutputStream(new FileOutputStream(filename));
             workbook.write(workbookStream);

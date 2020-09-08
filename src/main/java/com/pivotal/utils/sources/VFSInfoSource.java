@@ -8,8 +8,10 @@
  */
 package com.pivotal.utils.sources;
 
-import com.pivotal.utils.*;
-import com.googlecode.compress_j2me.lzc.LZCInputStream;
+import com.pivotal.utils.Common;
+import com.pivotal.utils.PgpUtils;
+import com.pivotal.utils.PivotalException;
+import com.pivotal.utils.VFSUtils;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.model.FileHeader;
 import org.apache.commons.vfs2.*;
@@ -320,10 +322,7 @@ public class VFSInfoSource extends InfoSource {
             // We're only supporting gzip and Unix compress
 
             try {
-                if (Common.doStringsMatch(Common.getFilenameExtension(file.getName()), "z")) {
-                    in = new LZCInputStream(new FileInputStream(file));
-                }
-                else if (Common.doStringsMatch(Common.getFilenameExtension(file.getName()), "gz")) {
+                if (Common.doStringsMatch(Common.getFilenameExtension(file.getName()), "gz") || Common.doStringsMatch(Common.getFilenameExtension(file.getName()), "z")) {
                     in = new GZIPInputStream(new FileInputStream(file));
                 }
                 else {

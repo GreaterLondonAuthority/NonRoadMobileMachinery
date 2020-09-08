@@ -67,7 +67,7 @@
 #set ($PriorityList={"3":"Normal", "1":"Highest", "2":"High", "4":"Low", "5":"Lowest"})
 #set ($ImportanceList={"normal":"Normal", "high":"High", "low":"Low"})
 #set ($SensitivityList={"":"Normal", "personal":"Personal", "private":"Private", "company-confidential":"Confidential"})
-#set ($ReportOutputTypes=$utils.getLinkedCaseInsensitiveMap($utils.sortMap({"":"","txt":"Plain Text","html":"HTML","xml":"XML","json":"JSON","pdf":"Adobe PDF","xls":"Excel (97-2007)","xlsx":"Excel (2010)","csv":"Delimited (comma)","tsv":"Delimited (tab)","rtf":"Rich Text Format (rtf)","rpt":"Crystal Report (rpt)"})))
+#set ($ReportOutputTypes=$utils.getLinkedCaseInsensitiveMap($utils.sortMap({"":"","txt":"Plain Text","html":"HTML","xml":"XML","json":"JSON","pdf":"Adobe PDF","xls":"Excel (97-2007)","xlsx":"Excel (2010)","csv":"Delimited (comma)","tsv":"Delimited (tab)","rtf":"Rich Text Format (rtf)"})))
 #set ($ScheduleTypes=$utils.sortMapByKey({"":"","0":"Every X Minutes","1":"Every Day","2":"Every Week","3":"Every Month","4":"Never","5":"Once"}))
 ##
 ##

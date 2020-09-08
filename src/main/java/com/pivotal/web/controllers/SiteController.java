@@ -475,7 +475,7 @@ public class SiteController extends AbstractController implements HandlerExcepti
 
                     // Need to update all machinery assigned to this user
 
-                    HibernateUtils.executeSQL(String.format("update machinery set user_id = %d where user_id = %d", UserManager.getCurrentUser().getId(), ((SiteUsersEntity)entity).getUser().getId()));
+                    HibernateUtils.executeSQL(String.format("update machinery set admin_user_id = %d where admin_user_id = %d", UserManager.getCurrentUser().getId(), ((SiteUsersEntity)entity).getUser().getId()));
                 }
 
                 if (entity != null) {

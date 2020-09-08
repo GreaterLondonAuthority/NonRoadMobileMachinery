@@ -59,16 +59,6 @@ $PageTitle
 #end
 
 #*
-@function	Render page head for printing/pdf  (static UI calls, meta etc)
-            Excludes all the unneeded stuff
-@params		$PageTitle (string) - Use for <title>
-*#
-#macro(macroPrintPageHead $PageTitle)
-    #parse("includes/initialise.inc")
-    #parse("includes/print/page-head.inc")
-#end
-
-#*
 @function	Render mobile page head (static UI calls, meta etc)
 @params		$PageTitle (string) - Use for <title>
 *#

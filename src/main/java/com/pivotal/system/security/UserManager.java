@@ -941,7 +941,7 @@ public class UserManager {
                     }
                 }
                 else {
-                    logger.error("Unable to set last_access as user_status entry does not exist");
+                    logger.debug("User session not found - logging out");
                     returnValue = STATUS_LOGGED_OUT;
                 }
             }

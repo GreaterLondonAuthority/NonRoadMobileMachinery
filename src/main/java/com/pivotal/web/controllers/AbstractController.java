@@ -18,10 +18,6 @@ import com.pivotal.system.security.CaseManager;
 import com.pivotal.system.security.Preferences;
 import com.pivotal.system.security.UserManager;
 import com.pivotal.utils.*;
-import com.pivotal.utils.browser.Browser;
-import com.pivotal.utils.browser.Configuration;
-import com.pivotal.utils.browser.ExportFormat;
-import com.pivotal.utils.browser.ViewPortSize;
 import com.pivotal.web.controllers.utils.Authorise;
 import com.pivotal.web.controllers.utils.JsonResponse;
 import com.pivotal.web.servlet.ServletHelper;
@@ -29,17 +25,11 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.zefer.pd4ml.PD4Constants;
-import org.zefer.pd4ml.PD4ML;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.awt.*;
 import java.io.File;
-import java.io.OutputStream;
-import java.io.StringReader;
 import java.lang.annotation.Annotation;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +39,9 @@ import static com.pivotal.system.hibernate.utils.HibernateUtils.serializeRowJSON
 import static com.pivotal.system.security.CaseManager.safeGet;
 import static com.pivotal.utils.Common.isBlank;
 import static com.pivotal.utils.Common.parseInt;
+
+//import org.zefer.pd4ml.PD4Constants;
+//import org.zefer.pd4ml.PD4ML;
 
 /**
  * Handles requests for storing and managing preferences
@@ -144,317 +137,6 @@ public abstract class AbstractController {
             else user.getPreferences(getNamespace()).clearPage();
         }
         ServletHelper.sendError(HttpServletResponse.SC_OK, "Thankyou");
-    }
-
-    /**
-     * Completely general purpose mechanism that can be called from anywhere to render
-     * a URL as a PDF - It takes care of any browser generated (javascript) imagery
-     * and SVG
-     *
-     * @param request  The request object
-     * @param response The response to send the PDF back to
-     * @param url      URL to use to get content
-     * @param width    Width of the browser to use
-     * @param height   Height of the browser to use
-     * @param topMargin Top margin
-     * @param leftMargin Left margin
-     * @param bottomMargin Bottom margin
-     * @param rightMargin Right margin
-     * @param landscape True if the PDF should be in landscape mode
-     * @param filename a {@link java.lang.String} object.
-     * @param outlines True if page outlines should be generated
-     * @param pageSize Size of page to use e.g. A4
-     * @param attachment Output type to be an attachment?
-     */
-    @RequestMapping(value = {"/pdf", "/*/pdf"}, method = RequestMethod.GET)
-    public static void getPdf(HttpServletRequest request, HttpServletResponse response,
-                              @RequestParam(value = "url", required = false) String url,
-                              @RequestParam(value = "width", required = false, defaultValue = "1300") int width,
-                              @RequestParam(value = "height", required = false, defaultValue = "5000") int height,
-                              @RequestParam(value = "topMargin", required = false, defaultValue = "5") int topMargin,
-                              @RequestParam(value = "leftMargin", required = false, defaultValue = "5") int leftMargin,
-                              @RequestParam(value = "bottomMargin", required = false, defaultValue = "5") int bottomMargin,
-                              @RequestParam(value = "rightMargin", required = false, defaultValue = "5") int rightMargin,
-                              @RequestParam(value = "landscape", required = false, defaultValue = "false") boolean landscape,
-                              @RequestParam(value = "filename", required = false, defaultValue = "nrmm.pdf") String filename,
-                              @RequestParam(value = "outlines", required = false, defaultValue = "false") boolean outlines,
-                              @RequestParam(value = "pagesize", required = false, defaultValue = "A4") String pageSize,
-                              @RequestParam(value = "attachment", required = false, defaultValue = "true") Boolean attachment) {
-
-        // Set the output type to be sent as an attachment
-
-        if (attachment) {
-            response.setContentType(ServletHelper.getServletContext().getMimeType("test.pdf"));
-            response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + '"');
-            response.setHeader("Content-Description", filename);
-        }
-
-        try {
-            getPdf(request, response.getOutputStream(), url,
-                    width, height, topMargin, leftMargin, bottomMargin, rightMargin,
-                    landscape, outlines, pageSize, 5000);
-        }
-        catch (Exception e) {
-            logger.error("Cannot create PDF output - {}", PivotalException.getErrorMessage(e));
-            ServletHelper.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * Completely general purpose mechanism that can be called from anywhere to render
-     * a URL as a PDF - It takes care of any browser generated (javascript) imagery
-     * and SVG
-     *
-     * @param request  The request object
-     * @param out      The stream to send the PDF back to
-     * @param outlines True if page outlines should be generated
-     * @param url      URL to use to get content
-     * @param width    Width of the browser to use
-     * @param height   Height of the browser to use
-     * @param topMargin Top margin
-     * @param leftMargin Left margin
-     * @param bottomMargin Bottom margin
-     * @param rightMargin Right margin
-     * @param landscape True if the PDF should be in landscape mode
-     * @param pageSize Size of page to use e.g. A4
-     * @param settleTimeout Time to allow the page to settle down
-     * @throws java.lang.Exception if there is a problem exporting
-     */
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    public static void getPdf(HttpServletRequest request, OutputStream out, String url,
-                              int width, int height, int topMargin, int leftMargin, int bottomMargin, int rightMargin,
-                              boolean landscape, boolean outlines, String pageSize, int settleTimeout) throws Exception {
-
-        // The URL needs be passed but if it isn't then we assume it is this page
-        // but without the PDF bit
-
-        if (Common.isBlank(url)) {
-            url = request.getRequestURL().toString().replaceFirst("/pdf$", "");
-        }
-        logger.debug("Creating PDF from " + url);
-
-        // Run the URL through the browser
-
-        List<File> files = null;
-        try {
-            logger.debug("Setting up pdf");
-            Configuration config = new Configuration();
-            config.setUrl(url);
-            config.addCookies(request);
-            config.setSettleTimeout(settleTimeout);
-            ExportFormat exportFormat = new ExportFormat();
-            exportFormat.setViewportSize(new ViewPortSize(width, height));
-            logger.debug("Exporting HTML to PDF");
-            files = Browser.exportHtml(config, exportFormat);
-            if (Common.isBlank(files)) {
-                logger.debug("Cannot parse the url {}", url);
-                throw new PivotalException("Cannot parse the URL");
-            }
-
-            // Get a list of all the parameters
-
-            logger.debug("Processing Pdf Export Request");
-            Map<String, Object> fields = ClassUtils.getFields(PD4Constants.class, "(?i)" + pageSize);
-
-            // Setup the PD4ML library
-
-            PD4ML pd4ml = new PD4ML();
-            pd4ml.setHtmlWidth(width); // set frame width of "virtual web browser"
-            pd4ml.generateOutlines(outlines);
-            if (logger.isDebugEnabled() || request.getParameterMap().containsKey("debug")) pd4ml.enableDebugInfo();
-            if (!Common.isBlank(fields)) pd4ml.setPageSize(fields.values().toArray(new Dimension[1])[0]);
-            if (landscape) pd4ml.changePageOrientation(PD4Constants.A4);
-            pd4ml.setPageInsetsMM(new Insets(topMargin, leftMargin, bottomMargin, rightMargin));
-
-            // source HTML document also may have margins, could be suppressed this way
-            // (PD4ML *Pro* feature):
-
-            pd4ml.addStyle("BODY {margin: 0}", true);
-
-            // The first file in the list contains the HTML, the rest are the SVG images
-
-            pd4ml.useServletContext(request.getSession().getServletContext());
-            String tmpText = Common.readTextFile(files.get(0));
-            String base = request.getRequestURL().toString().split(request.getRequestURI(), 2)[0] + '/' + request.getServletPath();
-            pd4ml.render(new StringReader(tmpText), out, new URL(base));
-            logger.debug("PDF Export Completed successfully");
-        }
-        catch(Exception e) {
-            logger.debug("Error creating pdf " + PivotalException.getErrorMessage(e));
-            throw(e);
-        }
-        finally {
-            if (files != null) {
-                for (File file : files) {
-                    file.delete();
-                }
-            }
-        }
-    }
-
-    /**
-     * Completely general purpose mechanism that can be called from anywhere to render
-     * a URL as a PDF - It takes care of any browser generated (javascript) imagery
-     * and SVG
-     *
-     * @param request  The request object
-     * @param out      The stream to send the PDF back to
-     * @param outlines True if page outlines should be generated
-     * @param text     Content to be converted to PDF
-     * @param width    Width of the browser to use
-     * @param topMargin Top margin
-     * @param leftMargin Left margin
-     * @param bottomMargin Bottom margin
-     * @param rightMargin Right margin
-     * @param landscape True if the PDF should be in landscape mode
-     * @param pageSize Size of page to use e.g. A4
-     * @throws java.lang.Exception if there is a problem exporting
-     */
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    public static void getPdfFromText(HttpServletRequest request, OutputStream out, String text,
-                              int width, int topMargin, int leftMargin, int bottomMargin, int rightMargin,
-                              boolean landscape, boolean outlines, String pageSize) throws Exception {
-
-
-        try {
-            // Get a list of all the parameters
-
-            logger.debug("Processing Pdf Export Request");
-            Map<String, Object> fields = ClassUtils.getFields(PD4Constants.class, "(?i)" + pageSize);
-
-            // Setup the PD4ML library
-
-            PD4ML pd4ml = new PD4ML();
-            pd4ml.setHtmlWidth(width); // set frame width of "virtual web browser"
-            pd4ml.generateOutlines(outlines);
-            if (logger.isDebugEnabled() || request.getParameterMap().containsKey("debug")) pd4ml.enableDebugInfo();
-            if (!Common.isBlank(fields)) pd4ml.setPageSize(fields.values().toArray(new Dimension[1])[0]);
-            if (landscape)
-                pd4ml.setPageSize(pd4ml.changePageOrientation(PD4Constants.A4));
-
-            pd4ml.setPageInsetsMM(new Insets(topMargin, leftMargin, bottomMargin, rightMargin));
-
-            // source HTML document also may have margins, could be suppressed this way
-            // (PD4ML *Pro* feature):
-
-            pd4ml.addStyle("BODY {margin: 0}", true);
-
-            // The first file in the list contains the HTML, the rest are the SVG images
-
-            pd4ml.useServletContext(request.getSession().getServletContext());
-            String tmpText = text;
-            String base = request.getRequestURL().toString().split(request.getRequestURI(), 2)[0] + '/' + request.getServletPath();
-            pd4ml.render(new StringReader(tmpText), out, new URL(base));
-            logger.debug("PDF Export Completed successfully");
-        }
-        catch (Exception e) {
-            logger.debug("Error getting pdf file {}", PivotalException.getErrorMessage(e));
-        }
-    }
-
-    /**
-     * Completely general purpose mechanism that can be called from anywhere to render
-     * a URL as a PDF/JPG/GIF/PNG - It takes care of any browser generated (javascript) imagery
-     * and SVG
-     *
-     * @param request  The request object
-     * @param response The response to send the PDF back to
-     * @param url      URL to use to get content
-     * @param filename Name of the file to send
-     * @param format   Format of the images
-     * @param width    Width of the browser to use
-     * @param height   Height of the browser to use
-     */
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    @RequestMapping(value = {"/image", "/*/image"}, method = RequestMethod.GET)
-    public static void getPdfImagesfImages(HttpServletRequest request, HttpServletResponse response,
-                                    @RequestParam(value = "url", required = false) String url,
-                                    @RequestParam(value = "filename", required = false, defaultValue = "nrmm.png") String filename,
-                                    @RequestParam(value = "format", required = false, defaultValue = "png") String format,
-                                    @RequestParam(value = "width", required = false, defaultValue = "400") int width,
-                                    @RequestParam(value = "height", required = false, defaultValue = "1000") int height) {
-
-        // Run the URL through the browser
-
-        List<File> files = null;
-        try {
-            // Send the image to the client
-
-            getPdfImages(request, response.getOutputStream(), url, format, width, height, 3000);
-            response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + '"');
-            response.setContentType(ServletHelper.getServletContext().getMimeType(files.get(0).getName()));
-            Common.pipeInputToOutputStream(files.get(0), response.getOutputStream());
-            logger.debug("Image Export Completed successfully");
-        }
-        catch (Exception e) {
-            logger.error("Problem rendering image - {}", PivotalException.getErrorMessage(e));
-            ServletHelper.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-        finally {
-            if (files != null) {
-                for (File file : files) {
-                    file.delete();
-                }
-            }
-        }
-    }
-
-    /**
-     * Completely general purpose mechanism that can be called from anywhere to render
-     * a URL as a PDF/JPG/GIF/PNG - It takes care of any browser generated (javascript) imagery
-     * and SVG
-     *
-     * @param request  The request object
-     * @param out      Stream to send the images back to
-     * @param url      URL to use to get content
-     * @param format   Format of the images
-     * @param width    Width of the browser to use
-     * @param height   Height of the browser to use
-     * @param settleTimeout Time to allow the page to settle down
-     * @throws java.lang.Exception if there is an error
-     */
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    public static void getPdfImages(HttpServletRequest request, OutputStream out,
-                                    String url, String format, int width, int height, int settleTimeout) throws Exception {
-
-        // The URL needs be passed but if it isn't then we assume it is this page
-        // but without the PDF bit
-
-        if (Common.isBlank(url)) {
-            url = request.getRequestURL().toString().replaceFirst("/image$", "");
-        }
-
-        // Run the URL through the browser
-
-        List<File> files = null;
-        try {
-            Configuration config = new Configuration();
-            config.setUrl(url);
-            config.addCookies(request);
-            config.setSettleTimeout(settleTimeout);
-            ExportFormat exportFormat = new ExportFormat();
-            exportFormat.setFormat(ExportFormat.Format.get(format));
-            exportFormat.setViewportSize(new ViewPortSize(width, height));
-            files = Browser.export(config, exportFormat);
-            if (Common.isBlank(files)) throw new PivotalException("Cannot parse the URL");
-
-            // Send the image to the stream
-
-            Common.pipeInputToOutputStream(files.get(0), out);
-            logger.debug("Image Export Completed successfully");
-        }
-        catch(Exception e) {
-            String message = "Problem running server side browser " + PivotalException.getErrorMessage(e);
-            logger.error(message);
-            throw new PivotalException(message);
-        }
-        finally {
-            if (files != null) {
-                for (File file : files) {
-                    file.delete();
-                }
-            }
-        }
     }
 
     /**

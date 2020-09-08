@@ -9,7 +9,6 @@
 package com.pivotal.utils;
 
 import au.com.bytecode.opencsv.CSVReader;
-import com.googlecode.compress_j2me.lzc.LZCOutputStream;
 import com.thoughtworks.xstream.XStream;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.WordUtils;
@@ -3007,11 +3006,8 @@ public class Common extends HttpUtils {
         try {
             File objFile = new File(sFilename);
             if (objFile.exists()) objFile.delete();
-            if (doStringsMatch(compression, "gzip")) {
+            if (doStringsMatch(compression, "gzip") || doStringsMatch(compression, "compress")) {
                 objOut = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(objFile)), DEFAULT_ENCODING));
-            }
-            else if (doStringsMatch(compression, "compress")) {
-                objOut = new BufferedWriter(new OutputStreamWriter(new LZCOutputStream(new FileOutputStream(objFile)), DEFAULT_ENCODING));
             }
             else {
                 objOut = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(objFile), DEFAULT_ENCODING));

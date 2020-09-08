@@ -2,13 +2,13 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 9.4.0
--- Dumped by pg_dump version 11.5
+-- Dumped from database version 11.5
+-- Dumped by pg_dump version 12.0
 
--- Started on 2019-12-09 20:45:51 GMT
+-- Started on 2020-08-20 10:00:03 BST
 
 --
--- TOC entry 8 (class 2615 OID 661485)
+-- TOC entry 10 (class 2615 OID 45613)
 -- Name: nrmm; Type: SCHEMA; Schema: -; Owner: nrmm
 --
 
@@ -18,7 +18,40 @@
 --ALTER SCHEMA nrmm OWNER TO nrmm;
 
 --
--- TOC entry 247 (class 1255 OID 661486)
+-- TOC entry 1673 (class 1255 OID 88731785)
+-- Name: action_hit(); Type: FUNCTION; Schema: nrmm; Owner: nrmm
+--
+
+CREATE FUNCTION nrmm.action_hit() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$begin
+    new.used := false;
+	new.hit_count := new.hit_count + 1;
+    return new;
+end
+$$;
+
+
+ALTER FUNCTION nrmm.action_hit() OWNER TO nrmm;
+
+--
+-- TOC entry 1680 (class 1255 OID 88716567)
+-- Name: machinery_admin_user_id(); Type: FUNCTION; Schema: nrmm; Owner: nrmm
+--
+
+CREATE FUNCTION nrmm.machinery_admin_user_id() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$begin
+    new.user_id := new.admin_user_id;
+    return new;
+end
+$$;
+
+
+ALTER FUNCTION nrmm.machinery_admin_user_id() OWNER TO nrmm;
+
+--
+-- TOC entry 1677 (class 1255 OID 45614)
 -- Name: set_time_added(); Type: FUNCTION; Schema: nrmm; Owner: nrmm
 --
 
@@ -30,7 +63,7 @@ CREATE FUNCTION nrmm.set_time_added() RETURNS trigger
 ALTER FUNCTION nrmm.set_time_added() OWNER TO nrmm;
 
 --
--- TOC entry 248 (class 1255 OID 661487)
+-- TOC entry 1678 (class 1255 OID 45615)
 -- Name: set_time_modified(); Type: FUNCTION; Schema: nrmm; Owner: nrmm
 --
 
@@ -42,7 +75,7 @@ CREATE FUNCTION nrmm.set_time_modified() RETURNS trigger
 ALTER FUNCTION nrmm.set_time_modified() OWNER TO nrmm;
 
 --
--- TOC entry 249 (class 1255 OID 661488)
+-- TOC entry 1679 (class 1255 OID 45616)
 -- Name: users_username_clean(); Type: FUNCTION; Schema: nrmm; Owner: nrmm
 --
 
@@ -54,7 +87,7 @@ CREATE FUNCTION nrmm.users_username_clean() RETURNS trigger
 ALTER FUNCTION nrmm.users_username_clean() OWNER TO nrmm;
 
 --
--- TOC entry 174 (class 1259 OID 661489)
+-- TOC entry 285 (class 1259 OID 45617)
 -- Name: action_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -70,10 +103,8 @@ ALTER TABLE nrmm.action_id_seq OWNER TO nrmm;
 
 SET default_tablespace = '';
 
-SET default_with_oids = false;
-
 --
--- TOC entry 175 (class 1259 OID 661491)
+-- TOC entry 286 (class 1259 OID 45619)
 -- Name: action; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -85,14 +116,15 @@ CREATE TABLE nrmm.action (
     guid text NOT NULL,
     used boolean,
     user_id integer,
-    tag text
+    tag text,
+    hit_count integer DEFAULT 0 NOT NULL
 );
 
 
 ALTER TABLE nrmm.action OWNER TO nrmm;
 
 --
--- TOC entry 176 (class 1259 OID 661498)
+-- TOC entry 287 (class 1259 OID 45626)
 -- Name: action_type_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -107,7 +139,7 @@ CREATE SEQUENCE nrmm.action_type_id_seq
 ALTER TABLE nrmm.action_type_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 177 (class 1259 OID 661500)
+-- TOC entry 288 (class 1259 OID 45628)
 -- Name: action_type; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -123,7 +155,7 @@ CREATE TABLE nrmm.action_type (
 ALTER TABLE nrmm.action_type OWNER TO nrmm;
 
 --
--- TOC entry 178 (class 1259 OID 661509)
+-- TOC entry 289 (class 1259 OID 45637)
 -- Name: auto_save; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -140,7 +172,7 @@ CREATE TABLE nrmm.auto_save (
 ALTER TABLE nrmm.auto_save OWNER TO nrmm;
 
 --
--- TOC entry 179 (class 1259 OID 661516)
+-- TOC entry 290 (class 1259 OID 45644)
 -- Name: auto_save_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -155,8 +187,8 @@ CREATE SEQUENCE nrmm.auto_save_id_seq
 ALTER TABLE nrmm.auto_save_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2770 (class 0 OID 0)
--- Dependencies: 179
+-- TOC entry 6097 (class 0 OID 0)
+-- Dependencies: 290
 -- Name: auto_save_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -164,7 +196,7 @@ ALTER SEQUENCE nrmm.auto_save_id_seq OWNED BY nrmm.auto_save.id;
 
 
 --
--- TOC entry 225 (class 1259 OID 662065)
+-- TOC entry 291 (class 1259 OID 45646)
 -- Name: borough_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -179,7 +211,7 @@ CREATE SEQUENCE nrmm.borough_id_seq
 ALTER TABLE nrmm.borough_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 226 (class 1259 OID 662067)
+-- TOC entry 292 (class 1259 OID 45648)
 -- Name: borough; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -193,7 +225,7 @@ CREATE TABLE nrmm.borough (
 ALTER TABLE nrmm.borough OWNER TO nrmm;
 
 --
--- TOC entry 180 (class 1259 OID 661518)
+-- TOC entry 293 (class 1259 OID 45656)
 -- Name: media_type; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -209,7 +241,7 @@ CREATE TABLE nrmm.media_type (
 ALTER TABLE nrmm.media_type OWNER TO nrmm;
 
 --
--- TOC entry 181 (class 1259 OID 661527)
+-- TOC entry 294 (class 1259 OID 45665)
 -- Name: case_media_type_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -224,8 +256,8 @@ CREATE SEQUENCE nrmm.case_media_type_id_seq
 ALTER TABLE nrmm.case_media_type_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2771 (class 0 OID 0)
--- Dependencies: 181
+-- TOC entry 6098 (class 0 OID 0)
+-- Dependencies: 294
 -- Name: case_media_type_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -233,7 +265,7 @@ ALTER SEQUENCE nrmm.case_media_type_id_seq OWNED BY nrmm.media_type.id;
 
 
 --
--- TOC entry 182 (class 1259 OID 661529)
+-- TOC entry 295 (class 1259 OID 45667)
 -- Name: change_log; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -252,7 +284,7 @@ CREATE TABLE nrmm.change_log (
 ALTER TABLE nrmm.change_log OWNER TO nrmm;
 
 --
--- TOC entry 183 (class 1259 OID 661537)
+-- TOC entry 296 (class 1259 OID 45675)
 -- Name: change_log_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -267,8 +299,8 @@ CREATE SEQUENCE nrmm.change_log_id_seq
 ALTER TABLE nrmm.change_log_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2772 (class 0 OID 0)
--- Dependencies: 183
+-- TOC entry 6099 (class 0 OID 0)
+-- Dependencies: 296
 -- Name: change_log_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -276,7 +308,7 @@ ALTER SEQUENCE nrmm.change_log_id_seq OWNED BY nrmm.change_log.id;
 
 
 --
--- TOC entry 184 (class 1259 OID 661539)
+-- TOC entry 297 (class 1259 OID 45677)
 -- Name: datasource; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -307,7 +339,7 @@ CREATE TABLE nrmm.datasource (
 ALTER TABLE nrmm.datasource OWNER TO nrmm;
 
 --
--- TOC entry 185 (class 1259 OID 661550)
+-- TOC entry 298 (class 1259 OID 45688)
 -- Name: datasource_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -322,8 +354,8 @@ CREATE SEQUENCE nrmm.datasource_id_seq
 ALTER TABLE nrmm.datasource_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2773 (class 0 OID 0)
--- Dependencies: 185
+-- TOC entry 6100 (class 0 OID 0)
+-- Dependencies: 298
 -- Name: datasource_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -331,7 +363,7 @@ ALTER SEQUENCE nrmm.datasource_id_seq OWNED BY nrmm.datasource.id;
 
 
 --
--- TOC entry 186 (class 1259 OID 661552)
+-- TOC entry 299 (class 1259 OID 45690)
 -- Name: distribution_list; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -373,7 +405,7 @@ CREATE TABLE nrmm.distribution_list (
 ALTER TABLE nrmm.distribution_list OWNER TO nrmm;
 
 --
--- TOC entry 187 (class 1259 OID 661577)
+-- TOC entry 300 (class 1259 OID 45715)
 -- Name: distribution_list_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -388,8 +420,8 @@ CREATE SEQUENCE nrmm.distribution_list_id_seq
 ALTER TABLE nrmm.distribution_list_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2774 (class 0 OID 0)
--- Dependencies: 187
+-- TOC entry 6101 (class 0 OID 0)
+-- Dependencies: 300
 -- Name: distribution_list_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -397,7 +429,40 @@ ALTER SEQUENCE nrmm.distribution_list_id_seq OWNED BY nrmm.distribution_list.id;
 
 
 --
--- TOC entry 188 (class 1259 OID 661579)
+-- TOC entry 345 (class 1259 OID 46207)
+-- Name: email_queue_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
+--
+
+CREATE SEQUENCE nrmm.email_queue_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    MINVALUE 0
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE nrmm.email_queue_id_seq OWNER TO nrmm;
+
+--
+-- TOC entry 346 (class 1259 OID 46209)
+-- Name: email_queue; Type: TABLE; Schema: nrmm; Owner: nrmm
+--
+
+CREATE TABLE nrmm.email_queue (
+    id integer DEFAULT nextval('nrmm.email_queue_id_seq'::regclass) NOT NULL,
+    email_object text,
+    email_to text,
+    email_from text,
+    email_subject text,
+    time_added timestamp without time zone,
+    send_attempts smallint DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE nrmm.email_queue OWNER TO nrmm;
+
+--
+-- TOC entry 301 (class 1259 OID 45717)
 -- Name: folder; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -412,7 +477,7 @@ CREATE TABLE nrmm.folder (
 ALTER TABLE nrmm.folder OWNER TO nrmm;
 
 --
--- TOC entry 189 (class 1259 OID 661584)
+-- TOC entry 302 (class 1259 OID 45722)
 -- Name: folder_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -427,8 +492,8 @@ CREATE SEQUENCE nrmm.folder_id_seq
 ALTER TABLE nrmm.folder_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2775 (class 0 OID 0)
--- Dependencies: 189
+-- TOC entry 6102 (class 0 OID 0)
+-- Dependencies: 302
 -- Name: folder_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -436,7 +501,7 @@ ALTER SEQUENCE nrmm.folder_id_seq OWNED BY nrmm.folder.id;
 
 
 --
--- TOC entry 190 (class 1259 OID 661586)
+-- TOC entry 303 (class 1259 OID 45724)
 -- Name: log; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -461,7 +526,7 @@ CREATE TABLE nrmm.log (
 ALTER TABLE nrmm.log OWNER TO nrmm;
 
 --
--- TOC entry 191 (class 1259 OID 661597)
+-- TOC entry 304 (class 1259 OID 45735)
 -- Name: log_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -476,8 +541,8 @@ CREATE SEQUENCE nrmm.log_id_seq
 ALTER TABLE nrmm.log_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2776 (class 0 OID 0)
--- Dependencies: 191
+-- TOC entry 6103 (class 0 OID 0)
+-- Dependencies: 304
 -- Name: log_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -485,7 +550,7 @@ ALTER SEQUENCE nrmm.log_id_seq OWNED BY nrmm.log.id;
 
 
 --
--- TOC entry 192 (class 1259 OID 661599)
+-- TOC entry 305 (class 1259 OID 45737)
 -- Name: lookups_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -500,7 +565,7 @@ CREATE SEQUENCE nrmm.lookups_id_seq
 ALTER TABLE nrmm.lookups_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 193 (class 1259 OID 661601)
+-- TOC entry 306 (class 1259 OID 45739)
 -- Name: lookups; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -517,7 +582,7 @@ CREATE TABLE nrmm.lookups (
 ALTER TABLE nrmm.lookups OWNER TO nrmm;
 
 --
--- TOC entry 230 (class 1259 OID 662121)
+-- TOC entry 307 (class 1259 OID 45747)
 -- Name: machinery_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -532,7 +597,7 @@ CREATE SEQUENCE nrmm.machinery_id_seq
 ALTER TABLE nrmm.machinery_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 231 (class 1259 OID 662123)
+-- TOC entry 308 (class 1259 OID 45749)
 -- Name: machinery; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -567,14 +632,16 @@ CREATE TABLE nrmm.machinery (
     exemption_status_expiry_date timestamp without time zone,
     exemption_status_reason_id integer,
     exemption_id text,
-    exemption_status_code_id integer
+    exemption_status_code_id integer,
+    fixed text,
+    user_id integer
 );
 
 
 ALTER TABLE nrmm.machinery OWNER TO nrmm;
 
 --
--- TOC entry 233 (class 1259 OID 662151)
+-- TOC entry 309 (class 1259 OID 45756)
 -- Name: machinery_media_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -589,7 +656,7 @@ CREATE SEQUENCE nrmm.machinery_media_id_seq
 ALTER TABLE nrmm.machinery_media_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 234 (class 1259 OID 662153)
+-- TOC entry 310 (class 1259 OID 45758)
 -- Name: machinery_media; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -603,7 +670,7 @@ CREATE TABLE nrmm.machinery_media (
 ALTER TABLE nrmm.machinery_media OWNER TO nrmm;
 
 --
--- TOC entry 194 (class 1259 OID 661609)
+-- TOC entry 311 (class 1259 OID 45762)
 -- Name: media; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -626,7 +693,7 @@ CREATE TABLE nrmm.media (
 ALTER TABLE nrmm.media OWNER TO nrmm;
 
 --
--- TOC entry 195 (class 1259 OID 661619)
+-- TOC entry 312 (class 1259 OID 45772)
 -- Name: media_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -641,8 +708,8 @@ CREATE SEQUENCE nrmm.media_id_seq
 ALTER TABLE nrmm.media_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2777 (class 0 OID 0)
--- Dependencies: 195
+-- TOC entry 6104 (class 0 OID 0)
+-- Dependencies: 312
 -- Name: media_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -650,7 +717,7 @@ ALTER SEQUENCE nrmm.media_id_seq OWNED BY nrmm.media.id;
 
 
 --
--- TOC entry 196 (class 1259 OID 661621)
+-- TOC entry 313 (class 1259 OID 45774)
 -- Name: note; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -676,7 +743,7 @@ CREATE TABLE nrmm.note (
 ALTER TABLE nrmm.note OWNER TO nrmm;
 
 --
--- TOC entry 197 (class 1259 OID 661631)
+-- TOC entry 314 (class 1259 OID 45784)
 -- Name: note_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -691,8 +758,8 @@ CREATE SEQUENCE nrmm.note_id_seq
 ALTER TABLE nrmm.note_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2778 (class 0 OID 0)
--- Dependencies: 197
+-- TOC entry 6105 (class 0 OID 0)
+-- Dependencies: 314
 -- Name: note_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -700,7 +767,7 @@ ALTER SEQUENCE nrmm.note_id_seq OWNED BY nrmm.note.id;
 
 
 --
--- TOC entry 198 (class 1259 OID 661633)
+-- TOC entry 315 (class 1259 OID 45786)
 -- Name: note_media; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -714,7 +781,7 @@ CREATE TABLE nrmm.note_media (
 ALTER TABLE nrmm.note_media OWNER TO nrmm;
 
 --
--- TOC entry 199 (class 1259 OID 661636)
+-- TOC entry 316 (class 1259 OID 45789)
 -- Name: note_media_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -729,8 +796,8 @@ CREATE SEQUENCE nrmm.note_media_id_seq
 ALTER TABLE nrmm.note_media_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2779 (class 0 OID 0)
--- Dependencies: 199
+-- TOC entry 6106 (class 0 OID 0)
+-- Dependencies: 316
 -- Name: note_media_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -738,7 +805,7 @@ ALTER SEQUENCE nrmm.note_media_id_seq OWNED BY nrmm.note_media.id;
 
 
 --
--- TOC entry 200 (class 1259 OID 661638)
+-- TOC entry 317 (class 1259 OID 45791)
 -- Name: note_type; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -755,7 +822,7 @@ CREATE TABLE nrmm.note_type (
 ALTER TABLE nrmm.note_type OWNER TO nrmm;
 
 --
--- TOC entry 201 (class 1259 OID 661647)
+-- TOC entry 318 (class 1259 OID 45800)
 -- Name: note_type_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -770,8 +837,8 @@ CREATE SEQUENCE nrmm.note_type_id_seq
 ALTER TABLE nrmm.note_type_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2780 (class 0 OID 0)
--- Dependencies: 201
+-- TOC entry 6107 (class 0 OID 0)
+-- Dependencies: 318
 -- Name: note_type_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -779,7 +846,7 @@ ALTER SEQUENCE nrmm.note_type_id_seq OWNED BY nrmm.note_type.id;
 
 
 --
--- TOC entry 202 (class 1259 OID 661649)
+-- TOC entry 319 (class 1259 OID 45802)
 -- Name: patch; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -793,7 +860,7 @@ CREATE TABLE nrmm.patch (
 ALTER TABLE nrmm.patch OWNER TO nrmm;
 
 --
--- TOC entry 203 (class 1259 OID 661656)
+-- TOC entry 320 (class 1259 OID 45809)
 -- Name: report; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -812,7 +879,7 @@ CREATE TABLE nrmm.report (
 ALTER TABLE nrmm.report OWNER TO nrmm;
 
 --
--- TOC entry 204 (class 1259 OID 661666)
+-- TOC entry 321 (class 1259 OID 45819)
 -- Name: report_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -827,8 +894,8 @@ CREATE SEQUENCE nrmm.report_id_seq
 ALTER TABLE nrmm.report_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2781 (class 0 OID 0)
--- Dependencies: 204
+-- TOC entry 6108 (class 0 OID 0)
+-- Dependencies: 321
 -- Name: report_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -836,7 +903,7 @@ ALTER SEQUENCE nrmm.report_id_seq OWNED BY nrmm.report.id;
 
 
 --
--- TOC entry 205 (class 1259 OID 661668)
+-- TOC entry 322 (class 1259 OID 45821)
 -- Name: report_text; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -854,7 +921,7 @@ CREATE TABLE nrmm.report_text (
 ALTER TABLE nrmm.report_text OWNER TO nrmm;
 
 --
--- TOC entry 206 (class 1259 OID 661677)
+-- TOC entry 323 (class 1259 OID 45830)
 -- Name: report_text_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -869,8 +936,8 @@ CREATE SEQUENCE nrmm.report_text_id_seq
 ALTER TABLE nrmm.report_text_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2782 (class 0 OID 0)
--- Dependencies: 206
+-- TOC entry 6109 (class 0 OID 0)
+-- Dependencies: 323
 -- Name: report_text_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -878,7 +945,7 @@ ALTER SEQUENCE nrmm.report_text_id_seq OWNED BY nrmm.report_text.id;
 
 
 --
--- TOC entry 207 (class 1259 OID 661679)
+-- TOC entry 324 (class 1259 OID 45832)
 -- Name: report_text_type; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -894,7 +961,7 @@ CREATE TABLE nrmm.report_text_type (
 ALTER TABLE nrmm.report_text_type OWNER TO nrmm;
 
 --
--- TOC entry 208 (class 1259 OID 661684)
+-- TOC entry 325 (class 1259 OID 45837)
 -- Name: report_text_type_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -909,8 +976,8 @@ CREATE SEQUENCE nrmm.report_text_type_id_seq
 ALTER TABLE nrmm.report_text_type_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2783 (class 0 OID 0)
--- Dependencies: 208
+-- TOC entry 6110 (class 0 OID 0)
+-- Dependencies: 325
 -- Name: report_text_type_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -918,7 +985,7 @@ ALTER SEQUENCE nrmm.report_text_type_id_seq OWNED BY nrmm.report_text_type.id;
 
 
 --
--- TOC entry 209 (class 1259 OID 661686)
+-- TOC entry 326 (class 1259 OID 45839)
 -- Name: role; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -937,7 +1004,7 @@ CREATE TABLE nrmm.role (
 ALTER TABLE nrmm.role OWNER TO nrmm;
 
 --
--- TOC entry 210 (class 1259 OID 661696)
+-- TOC entry 327 (class 1259 OID 45849)
 -- Name: role_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -952,8 +1019,8 @@ CREATE SEQUENCE nrmm.role_id_seq
 ALTER TABLE nrmm.role_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2784 (class 0 OID 0)
--- Dependencies: 210
+-- TOC entry 6111 (class 0 OID 0)
+-- Dependencies: 327
 -- Name: role_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -961,7 +1028,7 @@ ALTER SEQUENCE nrmm.role_id_seq OWNED BY nrmm.role.id;
 
 
 --
--- TOC entry 211 (class 1259 OID 661698)
+-- TOC entry 328 (class 1259 OID 45851)
 -- Name: role_type; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -977,7 +1044,7 @@ CREATE TABLE nrmm.role_type (
 ALTER TABLE nrmm.role_type OWNER TO nrmm;
 
 --
--- TOC entry 212 (class 1259 OID 661707)
+-- TOC entry 329 (class 1259 OID 45860)
 -- Name: role_type_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -992,8 +1059,8 @@ CREATE SEQUENCE nrmm.role_type_id_seq
 ALTER TABLE nrmm.role_type_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2785 (class 0 OID 0)
--- Dependencies: 212
+-- TOC entry 6112 (class 0 OID 0)
+-- Dependencies: 329
 -- Name: role_type_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -1001,7 +1068,7 @@ ALTER SEQUENCE nrmm.role_type_id_seq OWNED BY nrmm.role_type.id;
 
 
 --
--- TOC entry 213 (class 1259 OID 661709)
+-- TOC entry 330 (class 1259 OID 45862)
 -- Name: scheduled_task; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1045,7 +1112,7 @@ CREATE TABLE nrmm.scheduled_task (
 ALTER TABLE nrmm.scheduled_task OWNER TO nrmm;
 
 --
--- TOC entry 214 (class 1259 OID 661732)
+-- TOC entry 331 (class 1259 OID 45885)
 -- Name: scheduled_task_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1060,8 +1127,8 @@ CREATE SEQUENCE nrmm.scheduled_task_id_seq
 ALTER TABLE nrmm.scheduled_task_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2786 (class 0 OID 0)
--- Dependencies: 214
+-- TOC entry 6113 (class 0 OID 0)
+-- Dependencies: 331
 -- Name: scheduled_task_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -1069,7 +1136,7 @@ ALTER SEQUENCE nrmm.scheduled_task_id_seq OWNED BY nrmm.scheduled_task.id;
 
 
 --
--- TOC entry 215 (class 1259 OID 661734)
+-- TOC entry 332 (class 1259 OID 45887)
 -- Name: settings; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1085,7 +1152,7 @@ CREATE TABLE nrmm.settings (
 ALTER TABLE nrmm.settings OWNER TO nrmm;
 
 --
--- TOC entry 228 (class 1259 OID 662110)
+-- TOC entry 333 (class 1259 OID 45894)
 -- Name: site_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1100,7 +1167,7 @@ CREATE SEQUENCE nrmm.site_id_seq
 ALTER TABLE nrmm.site_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 229 (class 1259 OID 662112)
+-- TOC entry 334 (class 1259 OID 45896)
 -- Name: site; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1133,7 +1200,7 @@ CREATE TABLE nrmm.site (
 ALTER TABLE nrmm.site OWNER TO nrmm;
 
 --
--- TOC entry 227 (class 1259 OID 662083)
+-- TOC entry 335 (class 1259 OID 45903)
 -- Name: site_users; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1147,7 +1214,38 @@ CREATE TABLE nrmm.site_users (
 ALTER TABLE nrmm.site_users OWNER TO nrmm;
 
 --
--- TOC entry 216 (class 1259 OID 661741)
+-- TOC entry 347 (class 1259 OID 83789809)
+-- Name: stats_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
+--
+
+CREATE SEQUENCE nrmm.stats_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE nrmm.stats_id_seq OWNER TO nrmm;
+
+--
+-- TOC entry 348 (class 1259 OID 83789811)
+-- Name: stats; Type: TABLE; Schema: nrmm; Owner: nrmm
+--
+
+CREATE TABLE nrmm.stats (
+    id integer DEFAULT nextval('nrmm.stats_id_seq'::regclass) NOT NULL,
+    time_added timestamp without time zone DEFAULT now() NOT NULL,
+    type character varying(100) NOT NULL,
+    name character varying(100) NOT NULL,
+    value text
+);
+
+
+ALTER TABLE nrmm.stats OWNER TO nrmm;
+
+--
+-- TOC entry 336 (class 1259 OID 45906)
 -- Name: user_log; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1175,7 +1273,7 @@ CREATE TABLE nrmm.user_log (
 ALTER TABLE nrmm.user_log OWNER TO nrmm;
 
 --
--- TOC entry 217 (class 1259 OID 661761)
+-- TOC entry 337 (class 1259 OID 45926)
 -- Name: user_log_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1190,8 +1288,8 @@ CREATE SEQUENCE nrmm.user_log_id_seq
 ALTER TABLE nrmm.user_log_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2787 (class 0 OID 0)
--- Dependencies: 217
+-- TOC entry 6114 (class 0 OID 0)
+-- Dependencies: 337
 -- Name: user_log_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -1199,7 +1297,7 @@ ALTER SEQUENCE nrmm.user_log_id_seq OWNED BY nrmm.user_log.id;
 
 
 --
--- TOC entry 218 (class 1259 OID 661763)
+-- TOC entry 338 (class 1259 OID 45928)
 -- Name: user_role; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1213,7 +1311,7 @@ CREATE TABLE nrmm.user_role (
 ALTER TABLE nrmm.user_role OWNER TO nrmm;
 
 --
--- TOC entry 219 (class 1259 OID 661766)
+-- TOC entry 339 (class 1259 OID 45931)
 -- Name: user_role_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1228,8 +1326,8 @@ CREATE SEQUENCE nrmm.user_role_id_seq
 ALTER TABLE nrmm.user_role_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2788 (class 0 OID 0)
--- Dependencies: 219
+-- TOC entry 6115 (class 0 OID 0)
+-- Dependencies: 339
 -- Name: user_role_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -1237,7 +1335,7 @@ ALTER SEQUENCE nrmm.user_role_id_seq OWNED BY nrmm.user_role.id;
 
 
 --
--- TOC entry 220 (class 1259 OID 661768)
+-- TOC entry 340 (class 1259 OID 45933)
 -- Name: user_status; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1267,7 +1365,7 @@ CREATE TABLE nrmm.user_status (
 ALTER TABLE nrmm.user_status OWNER TO nrmm;
 
 --
--- TOC entry 221 (class 1259 OID 661789)
+-- TOC entry 341 (class 1259 OID 45954)
 -- Name: users; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1299,8 +1397,8 @@ CREATE TABLE nrmm.users (
 ALTER TABLE nrmm.users OWNER TO nrmm;
 
 --
--- TOC entry 2789 (class 0 OID 0)
--- Dependencies: 221
+-- TOC entry 6116 (class 0 OID 0)
+-- Dependencies: 341
 -- Name: COLUMN users.valid_from; Type: COMMENT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1309,8 +1407,8 @@ Used to stop users logging in too soon';
 
 
 --
--- TOC entry 2790 (class 0 OID 0)
--- Dependencies: 221
+-- TOC entry 6117 (class 0 OID 0)
+-- Dependencies: 341
 -- Name: COLUMN users.login_fail_count; Type: COMMENT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1318,7 +1416,7 @@ COMMENT ON COLUMN nrmm.users.login_fail_count IS 'Number of times the user has f
 
 
 --
--- TOC entry 222 (class 1259 OID 661805)
+-- TOC entry 342 (class 1259 OID 45970)
 -- Name: users_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1333,8 +1431,8 @@ CREATE SEQUENCE nrmm.users_id_seq
 ALTER TABLE nrmm.users_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 2791 (class 0 OID 0)
--- Dependencies: 222
+-- TOC entry 6118 (class 0 OID 0)
+-- Dependencies: 342
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: nrmm; Owner: nrmm
 --
 
@@ -1342,7 +1440,7 @@ ALTER SEQUENCE nrmm.users_id_seq OWNED BY nrmm.users.id;
 
 
 --
--- TOC entry 223 (class 1259 OID 661807)
+-- TOC entry 343 (class 1259 OID 45972)
 -- Name: workflow_id_seq; Type: SEQUENCE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1357,7 +1455,7 @@ CREATE SEQUENCE nrmm.workflow_id_seq
 ALTER TABLE nrmm.workflow_id_seq OWNER TO nrmm;
 
 --
--- TOC entry 224 (class 1259 OID 661809)
+-- TOC entry 344 (class 1259 OID 45974)
 -- Name: workflow; Type: TABLE; Schema: nrmm; Owner: nrmm
 --
 
@@ -1374,7 +1472,7 @@ CREATE TABLE nrmm.workflow (
 ALTER TABLE nrmm.workflow OWNER TO nrmm;
 
 --
--- TOC entry 2364 (class 2604 OID 661818)
+-- TOC entry 5649 (class 2604 OID 45983)
 -- Name: auto_save id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1382,7 +1480,7 @@ ALTER TABLE ONLY nrmm.auto_save ALTER COLUMN id SET DEFAULT nextval('nrmm.auto_s
 
 
 --
--- TOC entry 2371 (class 2604 OID 661819)
+-- TOC entry 5657 (class 2604 OID 45984)
 -- Name: change_log id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1390,7 +1488,7 @@ ALTER TABLE ONLY nrmm.change_log ALTER COLUMN id SET DEFAULT nextval('nrmm.chang
 
 
 --
--- TOC entry 2377 (class 2604 OID 661820)
+-- TOC entry 5660 (class 2604 OID 45985)
 -- Name: datasource id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1398,7 +1496,7 @@ ALTER TABLE ONLY nrmm.datasource ALTER COLUMN id SET DEFAULT nextval('nrmm.datas
 
 
 --
--- TOC entry 2397 (class 2604 OID 661821)
+-- TOC entry 5685 (class 2604 OID 45986)
 -- Name: distribution_list id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1406,7 +1504,7 @@ ALTER TABLE ONLY nrmm.distribution_list ALTER COLUMN id SET DEFAULT nextval('nrm
 
 
 --
--- TOC entry 2400 (class 2604 OID 661822)
+-- TOC entry 5686 (class 2604 OID 45987)
 -- Name: folder id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1414,7 +1512,7 @@ ALTER TABLE ONLY nrmm.folder ALTER COLUMN id SET DEFAULT nextval('nrmm.folder_id
 
 
 --
--- TOC entry 2406 (class 2604 OID 661823)
+-- TOC entry 5689 (class 2604 OID 45988)
 -- Name: log id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1422,7 +1520,7 @@ ALTER TABLE ONLY nrmm.log ALTER COLUMN id SET DEFAULT nextval('nrmm.log_id_seq':
 
 
 --
--- TOC entry 2413 (class 2604 OID 661824)
+-- TOC entry 5699 (class 2604 OID 45989)
 -- Name: media id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1430,7 +1528,7 @@ ALTER TABLE ONLY nrmm.media ALTER COLUMN id SET DEFAULT nextval('nrmm.media_id_s
 
 
 --
--- TOC entry 2368 (class 2604 OID 661825)
+-- TOC entry 5653 (class 2604 OID 45990)
 -- Name: media_type id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1438,7 +1536,7 @@ ALTER TABLE ONLY nrmm.media_type ALTER COLUMN id SET DEFAULT nextval('nrmm.case_
 
 
 --
--- TOC entry 2418 (class 2604 OID 661826)
+-- TOC entry 5704 (class 2604 OID 45991)
 -- Name: note id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1446,7 +1544,7 @@ ALTER TABLE ONLY nrmm.note ALTER COLUMN id SET DEFAULT nextval('nrmm.note_id_seq
 
 
 --
--- TOC entry 2419 (class 2604 OID 661827)
+-- TOC entry 5709 (class 2604 OID 45992)
 -- Name: note_media id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1454,7 +1552,7 @@ ALTER TABLE ONLY nrmm.note_media ALTER COLUMN id SET DEFAULT nextval('nrmm.note_
 
 
 --
--- TOC entry 2423 (class 2604 OID 661828)
+-- TOC entry 5710 (class 2604 OID 45993)
 -- Name: note_type id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1462,7 +1560,7 @@ ALTER TABLE ONLY nrmm.note_type ALTER COLUMN id SET DEFAULT nextval('nrmm.note_t
 
 
 --
--- TOC entry 2429 (class 2604 OID 661829)
+-- TOC entry 5715 (class 2604 OID 45994)
 -- Name: report id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1470,7 +1568,7 @@ ALTER TABLE ONLY nrmm.report ALTER COLUMN id SET DEFAULT nextval('nrmm.report_id
 
 
 --
--- TOC entry 2433 (class 2604 OID 661830)
+-- TOC entry 5720 (class 2604 OID 45995)
 -- Name: report_text id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1478,7 +1576,7 @@ ALTER TABLE ONLY nrmm.report_text ALTER COLUMN id SET DEFAULT nextval('nrmm.repo
 
 
 --
--- TOC entry 2436 (class 2604 OID 661831)
+-- TOC entry 5724 (class 2604 OID 45996)
 -- Name: report_text_type id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1486,7 +1584,7 @@ ALTER TABLE ONLY nrmm.report_text_type ALTER COLUMN id SET DEFAULT nextval('nrmm
 
 
 --
--- TOC entry 2441 (class 2604 OID 661832)
+-- TOC entry 5727 (class 2604 OID 45997)
 -- Name: role id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1494,7 +1592,7 @@ ALTER TABLE ONLY nrmm.role ALTER COLUMN id SET DEFAULT nextval('nrmm.role_id_seq
 
 
 --
--- TOC entry 2445 (class 2604 OID 661833)
+-- TOC entry 5732 (class 2604 OID 45998)
 -- Name: role_type id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1502,7 +1600,7 @@ ALTER TABLE ONLY nrmm.role_type ALTER COLUMN id SET DEFAULT nextval('nrmm.role_t
 
 
 --
--- TOC entry 2463 (class 2604 OID 661834)
+-- TOC entry 5753 (class 2604 OID 45999)
 -- Name: scheduled_task id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1510,7 +1608,7 @@ ALTER TABLE ONLY nrmm.scheduled_task ALTER COLUMN id SET DEFAULT nextval('nrmm.s
 
 
 --
--- TOC entry 2479 (class 2604 OID 661835)
+-- TOC entry 5770 (class 2604 OID 46000)
 -- Name: user_log id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1518,7 +1616,7 @@ ALTER TABLE ONLY nrmm.user_log ALTER COLUMN id SET DEFAULT nextval('nrmm.user_lo
 
 
 --
--- TOC entry 2480 (class 2604 OID 661836)
+-- TOC entry 5771 (class 2604 OID 46001)
 -- Name: user_role id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1526,7 +1624,7 @@ ALTER TABLE ONLY nrmm.user_role ALTER COLUMN id SET DEFAULT nextval('nrmm.user_r
 
 
 --
--- TOC entry 2506 (class 2604 OID 661837)
+-- TOC entry 5797 (class 2604 OID 46002)
 -- Name: users id; Type: DEFAULT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1534,7 +1632,7 @@ ALTER TABLE ONLY nrmm.users ALTER COLUMN id SET DEFAULT nextval('nrmm.users_id_s
 
 
 --
--- TOC entry 2516 (class 2606 OID 661839)
+-- TOC entry 5806 (class 2606 OID 46004)
 -- Name: action action_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1543,7 +1641,7 @@ ALTER TABLE ONLY nrmm.action
 
 
 --
--- TOC entry 2518 (class 2606 OID 661841)
+-- TOC entry 5808 (class 2606 OID 46006)
 -- Name: action_type action_type_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1552,7 +1650,7 @@ ALTER TABLE ONLY nrmm.action_type
 
 
 --
--- TOC entry 2520 (class 2606 OID 661843)
+-- TOC entry 5810 (class 2606 OID 46008)
 -- Name: auto_save auto_save_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1561,7 +1659,7 @@ ALTER TABLE ONLY nrmm.auto_save
 
 
 --
--- TOC entry 2621 (class 2606 OID 662076)
+-- TOC entry 5814 (class 2606 OID 46010)
 -- Name: borough borough_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1570,7 +1668,7 @@ ALTER TABLE ONLY nrmm.borough
 
 
 --
--- TOC entry 2524 (class 2606 OID 661845)
+-- TOC entry 5817 (class 2606 OID 46012)
 -- Name: media_type case_media_type_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1579,7 +1677,7 @@ ALTER TABLE ONLY nrmm.media_type
 
 
 --
--- TOC entry 2527 (class 2606 OID 661847)
+-- TOC entry 5820 (class 2606 OID 46014)
 -- Name: change_log change_log_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1588,7 +1686,7 @@ ALTER TABLE ONLY nrmm.change_log
 
 
 --
--- TOC entry 2532 (class 2606 OID 661849)
+-- TOC entry 5825 (class 2606 OID 46016)
 -- Name: datasource datasource_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1597,7 +1695,7 @@ ALTER TABLE ONLY nrmm.datasource
 
 
 --
--- TOC entry 2536 (class 2606 OID 661851)
+-- TOC entry 5829 (class 2606 OID 46018)
 -- Name: distribution_list distribution_list_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1606,7 +1704,16 @@ ALTER TABLE ONLY nrmm.distribution_list
 
 
 --
--- TOC entry 2541 (class 2606 OID 661853)
+-- TOC entry 5931 (class 2606 OID 46218)
+-- Name: email_queue email_queue_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
+--
+
+ALTER TABLE ONLY nrmm.email_queue
+    ADD CONSTRAINT email_queue_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5834 (class 2606 OID 46020)
 -- Name: folder folder_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1615,7 +1722,7 @@ ALTER TABLE ONLY nrmm.folder
 
 
 --
--- TOC entry 2549 (class 2606 OID 661855)
+-- TOC entry 5842 (class 2606 OID 46022)
 -- Name: log log_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1624,7 +1731,7 @@ ALTER TABLE ONLY nrmm.log
 
 
 --
--- TOC entry 2552 (class 2606 OID 661857)
+-- TOC entry 5845 (class 2606 OID 46024)
 -- Name: lookups lookups_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1633,7 +1740,7 @@ ALTER TABLE ONLY nrmm.lookups
 
 
 --
--- TOC entry 2628 (class 2606 OID 662131)
+-- TOC entry 5848 (class 2606 OID 46026)
 -- Name: machinery machinery_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1642,7 +1749,7 @@ ALTER TABLE ONLY nrmm.machinery
 
 
 --
--- TOC entry 2631 (class 2606 OID 662158)
+-- TOC entry 5853 (class 2606 OID 46028)
 -- Name: machinery_media machinerymedia_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1651,7 +1758,7 @@ ALTER TABLE ONLY nrmm.machinery_media
 
 
 --
--- TOC entry 2560 (class 2606 OID 661859)
+-- TOC entry 5861 (class 2606 OID 46030)
 -- Name: media media_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1660,7 +1767,7 @@ ALTER TABLE ONLY nrmm.media
 
 
 --
--- TOC entry 2568 (class 2606 OID 661861)
+-- TOC entry 5869 (class 2606 OID 46032)
 -- Name: note_media note_media_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1669,7 +1776,7 @@ ALTER TABLE ONLY nrmm.note_media
 
 
 --
--- TOC entry 2564 (class 2606 OID 661863)
+-- TOC entry 5865 (class 2606 OID 46034)
 -- Name: note note_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1678,7 +1785,7 @@ ALTER TABLE ONLY nrmm.note
 
 
 --
--- TOC entry 2570 (class 2606 OID 661865)
+-- TOC entry 5871 (class 2606 OID 46036)
 -- Name: note_type note_type_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1687,7 +1794,7 @@ ALTER TABLE ONLY nrmm.note_type
 
 
 --
--- TOC entry 2572 (class 2606 OID 661867)
+-- TOC entry 5873 (class 2606 OID 46038)
 -- Name: patch patch_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1696,7 +1803,7 @@ ALTER TABLE ONLY nrmm.patch
 
 
 --
--- TOC entry 2574 (class 2606 OID 661869)
+-- TOC entry 5875 (class 2606 OID 46040)
 -- Name: report report_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1705,7 +1812,7 @@ ALTER TABLE ONLY nrmm.report
 
 
 --
--- TOC entry 2578 (class 2606 OID 661871)
+-- TOC entry 5879 (class 2606 OID 46042)
 -- Name: report_text report_text_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1714,7 +1821,7 @@ ALTER TABLE ONLY nrmm.report_text
 
 
 --
--- TOC entry 2581 (class 2606 OID 661873)
+-- TOC entry 5882 (class 2606 OID 46044)
 -- Name: report_text_type report_text_type_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1723,7 +1830,7 @@ ALTER TABLE ONLY nrmm.report_text_type
 
 
 --
--- TOC entry 2585 (class 2606 OID 661875)
+-- TOC entry 5886 (class 2606 OID 46046)
 -- Name: role role_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1732,7 +1839,7 @@ ALTER TABLE ONLY nrmm.role
 
 
 --
--- TOC entry 2589 (class 2606 OID 661877)
+-- TOC entry 5890 (class 2606 OID 46048)
 -- Name: role_type role_type_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1741,7 +1848,7 @@ ALTER TABLE ONLY nrmm.role_type
 
 
 --
--- TOC entry 2600 (class 2606 OID 661879)
+-- TOC entry 5901 (class 2606 OID 46050)
 -- Name: scheduled_task scheduled_task_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1750,7 +1857,7 @@ ALTER TABLE ONLY nrmm.scheduled_task
 
 
 --
--- TOC entry 2603 (class 2606 OID 661881)
+-- TOC entry 5904 (class 2606 OID 46052)
 -- Name: settings settings_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1759,7 +1866,7 @@ ALTER TABLE ONLY nrmm.settings
 
 
 --
--- TOC entry 2626 (class 2606 OID 662120)
+-- TOC entry 5909 (class 2606 OID 46054)
 -- Name: site site_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1768,7 +1875,7 @@ ALTER TABLE ONLY nrmm.site
 
 
 --
--- TOC entry 2624 (class 2606 OID 662087)
+-- TOC entry 5913 (class 2606 OID 46056)
 -- Name: site_users site_users_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1777,7 +1884,16 @@ ALTER TABLE ONLY nrmm.site_users
 
 
 --
--- TOC entry 2605 (class 2606 OID 661883)
+-- TOC entry 5936 (class 2606 OID 83789820)
+-- Name: stats stats_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
+--
+
+ALTER TABLE ONLY nrmm.stats
+    ADD CONSTRAINT stats_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 5915 (class 2606 OID 46058)
 -- Name: user_log user_log_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1786,7 +1902,7 @@ ALTER TABLE ONLY nrmm.user_log
 
 
 --
--- TOC entry 2609 (class 2606 OID 661885)
+-- TOC entry 5919 (class 2606 OID 46060)
 -- Name: user_role user_role_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1795,7 +1911,7 @@ ALTER TABLE ONLY nrmm.user_role
 
 
 --
--- TOC entry 2611 (class 2606 OID 661887)
+-- TOC entry 5921 (class 2606 OID 46062)
 -- Name: user_status user_status_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1804,7 +1920,7 @@ ALTER TABLE ONLY nrmm.user_status
 
 
 --
--- TOC entry 2616 (class 2606 OID 661889)
+-- TOC entry 5926 (class 2606 OID 46064)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1813,7 +1929,7 @@ ALTER TABLE ONLY nrmm.users
 
 
 --
--- TOC entry 2619 (class 2606 OID 661891)
+-- TOC entry 5929 (class 2606 OID 46066)
 -- Name: workflow workflow_pkey; Type: CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -1822,7 +1938,7 @@ ALTER TABLE ONLY nrmm.workflow
 
 
 --
--- TOC entry 2528 (class 1259 OID 661892)
+-- TOC entry 5821 (class 1259 OID 46067)
 -- Name: change_log_row_affected; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1830,7 +1946,7 @@ CREATE INDEX change_log_row_affected ON nrmm.change_log USING btree (row_affecte
 
 
 --
--- TOC entry 2529 (class 1259 OID 661893)
+-- TOC entry 5822 (class 1259 OID 46068)
 -- Name: change_log_time_added; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1838,7 +1954,7 @@ CREATE INDEX change_log_time_added ON nrmm.change_log USING btree (time_added);
 
 
 --
--- TOC entry 2533 (class 1259 OID 661894)
+-- TOC entry 5826 (class 1259 OID 46069)
 -- Name: fk_cache_trigger_report_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1846,7 +1962,7 @@ CREATE INDEX fk_cache_trigger_report_id ON nrmm.datasource USING btree (cache_tr
 
 
 --
--- TOC entry 2537 (class 1259 OID 661895)
+-- TOC entry 5830 (class 1259 OID 46070)
 -- Name: fk_distribution_list_datasource; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1854,7 +1970,7 @@ CREATE INDEX fk_distribution_list_datasource ON nrmm.distribution_list USING btr
 
 
 --
--- TOC entry 2539 (class 1259 OID 661896)
+-- TOC entry 5832 (class 1259 OID 46071)
 -- Name: fk_folder_parent_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1862,7 +1978,7 @@ CREATE INDEX fk_folder_parent_id ON nrmm.folder USING btree (parent);
 
 
 --
--- TOC entry 2543 (class 1259 OID 661897)
+-- TOC entry 5836 (class 1259 OID 46072)
 -- Name: fk_log_task_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1870,7 +1986,7 @@ CREATE INDEX fk_log_task_id ON nrmm.log USING btree (task_id);
 
 
 --
--- TOC entry 2629 (class 1259 OID 662159)
+-- TOC entry 5851 (class 1259 OID 46073)
 -- Name: fk_machinery_media_media_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1878,7 +1994,7 @@ CREATE INDEX fk_machinery_media_media_id ON nrmm.machinery_media USING btree (me
 
 
 --
--- TOC entry 2565 (class 1259 OID 661898)
+-- TOC entry 5866 (class 1259 OID 46074)
 -- Name: fk_note_media_media_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1886,7 +2002,7 @@ CREATE INDEX fk_note_media_media_id ON nrmm.note_media USING btree (media_id);
 
 
 --
--- TOC entry 2566 (class 1259 OID 661899)
+-- TOC entry 5867 (class 1259 OID 46075)
 -- Name: fk_note_media_note_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1894,7 +2010,7 @@ CREATE INDEX fk_note_media_note_id ON nrmm.note_media USING btree (note_id);
 
 
 --
--- TOC entry 2575 (class 1259 OID 661902)
+-- TOC entry 5876 (class 1259 OID 46076)
 -- Name: fk_report_text_type_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1902,7 +2018,7 @@ CREATE INDEX fk_report_text_type_id ON nrmm.report_text USING btree (type_id);
 
 
 --
--- TOC entry 2582 (class 1259 OID 661903)
+-- TOC entry 5883 (class 1259 OID 46077)
 -- Name: fk_role_role_type_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1910,7 +2026,7 @@ CREATE INDEX fk_role_role_type_id ON nrmm.role USING btree (type_id);
 
 
 --
--- TOC entry 2590 (class 1259 OID 661904)
+-- TOC entry 5891 (class 1259 OID 46078)
 -- Name: fk_task_datasource_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1918,7 +2034,7 @@ CREATE INDEX fk_task_datasource_id ON nrmm.scheduled_task USING btree (datasourc
 
 
 --
--- TOC entry 2591 (class 1259 OID 661905)
+-- TOC entry 5892 (class 1259 OID 46079)
 -- Name: fk_task_datasource_id1; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1926,7 +2042,7 @@ CREATE INDEX fk_task_datasource_id1 ON nrmm.scheduled_task USING btree (datasour
 
 
 --
--- TOC entry 2592 (class 1259 OID 661906)
+-- TOC entry 5893 (class 1259 OID 46080)
 -- Name: fk_task_datasource_id2; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1934,7 +2050,7 @@ CREATE INDEX fk_task_datasource_id2 ON nrmm.scheduled_task USING btree (datasour
 
 
 --
--- TOC entry 2593 (class 1259 OID 661907)
+-- TOC entry 5894 (class 1259 OID 46081)
 -- Name: fk_task_datasource_id3; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1942,7 +2058,7 @@ CREATE INDEX fk_task_datasource_id3 ON nrmm.scheduled_task USING btree (datasour
 
 
 --
--- TOC entry 2594 (class 1259 OID 661908)
+-- TOC entry 5895 (class 1259 OID 46082)
 -- Name: fk_task_datasource_id4; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1950,7 +2066,7 @@ CREATE INDEX fk_task_datasource_id4 ON nrmm.scheduled_task USING btree (datasour
 
 
 --
--- TOC entry 2595 (class 1259 OID 661909)
+-- TOC entry 5896 (class 1259 OID 46083)
 -- Name: fk_task_distribution_list_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1958,7 +2074,7 @@ CREATE INDEX fk_task_distribution_list_id ON nrmm.scheduled_task USING btree (di
 
 
 --
--- TOC entry 2596 (class 1259 OID 661910)
+-- TOC entry 5897 (class 1259 OID 46084)
 -- Name: fk_task_error_distribution_list_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1966,7 +2082,7 @@ CREATE INDEX fk_task_error_distribution_list_id ON nrmm.scheduled_task USING btr
 
 
 --
--- TOC entry 2597 (class 1259 OID 661911)
+-- TOC entry 5898 (class 1259 OID 46085)
 -- Name: fk_task_notify_distribution_list_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1974,7 +2090,7 @@ CREATE INDEX fk_task_notify_distribution_list_id ON nrmm.scheduled_task USING bt
 
 
 --
--- TOC entry 2598 (class 1259 OID 661912)
+-- TOC entry 5899 (class 1259 OID 46086)
 -- Name: fk_task_report_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1982,7 +2098,7 @@ CREATE INDEX fk_task_report_id ON nrmm.scheduled_task USING btree (report_id);
 
 
 --
--- TOC entry 2606 (class 1259 OID 661913)
+-- TOC entry 5916 (class 1259 OID 46087)
 -- Name: fk_user_role_role_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1990,7 +2106,7 @@ CREATE INDEX fk_user_role_role_id ON nrmm.user_role USING btree (role_id);
 
 
 --
--- TOC entry 2607 (class 1259 OID 661914)
+-- TOC entry 5917 (class 1259 OID 46088)
 -- Name: fk_user_role_users_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -1998,7 +2114,7 @@ CREATE INDEX fk_user_role_users_id ON nrmm.user_role USING btree (users_id);
 
 
 --
--- TOC entry 2521 (class 1259 OID 661915)
+-- TOC entry 5811 (class 1259 OID 46089)
 -- Name: idx_auto_save_reference_type; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2006,7 +2122,7 @@ CREATE INDEX idx_auto_save_reference_type ON nrmm.auto_save USING btree (referen
 
 
 --
--- TOC entry 2522 (class 1259 OID 661916)
+-- TOC entry 5812 (class 1259 OID 46090)
 -- Name: idx_auto_save_users_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2014,7 +2130,7 @@ CREATE INDEX idx_auto_save_users_id ON nrmm.auto_save USING btree (users_id);
 
 
 --
--- TOC entry 2622 (class 1259 OID 662077)
+-- TOC entry 5815 (class 1259 OID 46091)
 -- Name: idx_borough_unique_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2022,7 +2138,7 @@ CREATE UNIQUE INDEX idx_borough_unique_name ON nrmm.borough USING btree (lower(n
 
 
 --
--- TOC entry 2525 (class 1259 OID 661917)
+-- TOC entry 5818 (class 1259 OID 46092)
 -- Name: idx_case_media_type_unique_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2030,7 +2146,7 @@ CREATE UNIQUE INDEX idx_case_media_type_unique_name ON nrmm.media_type USING btr
 
 
 --
--- TOC entry 2530 (class 1259 OID 661918)
+-- TOC entry 5823 (class 1259 OID 46093)
 -- Name: idx_change_log_table_affected; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2038,7 +2154,7 @@ CREATE INDEX idx_change_log_table_affected ON nrmm.change_log USING btree (table
 
 
 --
--- TOC entry 2534 (class 1259 OID 661919)
+-- TOC entry 5827 (class 1259 OID 46094)
 -- Name: idx_datasource_unique_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2046,7 +2162,7 @@ CREATE UNIQUE INDEX idx_datasource_unique_name ON nrmm.datasource USING btree (l
 
 
 --
--- TOC entry 2538 (class 1259 OID 661920)
+-- TOC entry 5831 (class 1259 OID 46095)
 -- Name: idx_distribution_list_unique_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2054,7 +2170,7 @@ CREATE UNIQUE INDEX idx_distribution_list_unique_name ON nrmm.distribution_list 
 
 
 --
--- TOC entry 2561 (class 1259 OID 661921)
+-- TOC entry 5862 (class 1259 OID 46096)
 -- Name: idx_fk_note_user_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2062,7 +2178,7 @@ CREATE INDEX idx_fk_note_user_id ON nrmm.note USING btree (user_id);
 
 
 --
--- TOC entry 2544 (class 1259 OID 661922)
+-- TOC entry 5837 (class 1259 OID 46097)
 -- Name: idx_log_date_server_report; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2070,7 +2186,7 @@ CREATE INDEX idx_log_date_server_report ON nrmm.log USING btree (date_added, ser
 
 
 --
--- TOC entry 2545 (class 1259 OID 661923)
+-- TOC entry 5838 (class 1259 OID 46098)
 -- Name: idx_log_report_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2078,7 +2194,7 @@ CREATE INDEX idx_log_report_name ON nrmm.log USING btree (report_name);
 
 
 --
--- TOC entry 2546 (class 1259 OID 661924)
+-- TOC entry 5839 (class 1259 OID 46099)
 -- Name: idx_log_status_report_date; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2086,7 +2202,7 @@ CREATE INDEX idx_log_status_report_date ON nrmm.log USING btree (status, report_
 
 
 --
--- TOC entry 2547 (class 1259 OID 661925)
+-- TOC entry 5840 (class 1259 OID 46100)
 -- Name: idx_log_task_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2094,7 +2210,7 @@ CREATE INDEX idx_log_task_name ON nrmm.log USING btree (task_name);
 
 
 --
--- TOC entry 2553 (class 1259 OID 661926)
+-- TOC entry 5854 (class 1259 OID 46101)
 -- Name: idx_media_description; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2102,7 +2218,7 @@ CREATE INDEX idx_media_description ON nrmm.media USING btree (description);
 
 
 --
--- TOC entry 2554 (class 1259 OID 661927)
+-- TOC entry 5855 (class 1259 OID 46102)
 -- Name: idx_media_extension; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2110,7 +2226,7 @@ CREATE INDEX idx_media_extension ON nrmm.media USING btree (extension);
 
 
 --
--- TOC entry 2555 (class 1259 OID 661928)
+-- TOC entry 5856 (class 1259 OID 46103)
 -- Name: idx_media_filename; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2118,7 +2234,7 @@ CREATE INDEX idx_media_filename ON nrmm.media USING btree (filename);
 
 
 --
--- TOC entry 2556 (class 1259 OID 661929)
+-- TOC entry 5857 (class 1259 OID 46104)
 -- Name: idx_media_folder; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2126,7 +2242,7 @@ CREATE INDEX idx_media_folder ON nrmm.media USING btree (folder);
 
 
 --
--- TOC entry 2557 (class 1259 OID 661930)
+-- TOC entry 5858 (class 1259 OID 46105)
 -- Name: idx_media_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2134,7 +2250,7 @@ CREATE INDEX idx_media_name ON nrmm.media USING btree (name);
 
 
 --
--- TOC entry 2558 (class 1259 OID 661931)
+-- TOC entry 5859 (class 1259 OID 46106)
 -- Name: idx_media_type; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2142,7 +2258,7 @@ CREATE INDEX idx_media_type ON nrmm.media USING btree (type);
 
 
 --
--- TOC entry 2562 (class 1259 OID 661932)
+-- TOC entry 5863 (class 1259 OID 46107)
 -- Name: idx_note_reference_id_reference_type; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2150,7 +2266,7 @@ CREATE INDEX idx_note_reference_id_reference_type ON nrmm.note USING btree (refe
 
 
 --
--- TOC entry 2579 (class 1259 OID 661933)
+-- TOC entry 5880 (class 1259 OID 46108)
 -- Name: idx_report_text_type_unique_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2158,7 +2274,7 @@ CREATE UNIQUE INDEX idx_report_text_type_unique_name ON nrmm.report_text_type US
 
 
 --
--- TOC entry 2576 (class 1259 OID 661934)
+-- TOC entry 5877 (class 1259 OID 46109)
 -- Name: idx_report_text_unique_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2166,7 +2282,7 @@ CREATE UNIQUE INDEX idx_report_text_unique_name ON nrmm.report_text USING btree 
 
 
 --
--- TOC entry 2583 (class 1259 OID 661935)
+-- TOC entry 5884 (class 1259 OID 46110)
 -- Name: idx_role_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2174,7 +2290,7 @@ CREATE UNIQUE INDEX idx_role_name ON nrmm.role USING btree (lower((name)::text))
 
 
 --
--- TOC entry 2586 (class 1259 OID 661936)
+-- TOC entry 5887 (class 1259 OID 46111)
 -- Name: idx_role_type_id; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2182,7 +2298,7 @@ CREATE UNIQUE INDEX idx_role_type_id ON nrmm.role_type USING btree (id);
 
 
 --
--- TOC entry 2587 (class 1259 OID 661937)
+-- TOC entry 5888 (class 1259 OID 46112)
 -- Name: idx_role_type_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2190,7 +2306,7 @@ CREATE INDEX idx_role_type_name ON nrmm.role_type USING btree (name);
 
 
 --
--- TOC entry 2601 (class 1259 OID 661938)
+-- TOC entry 5902 (class 1259 OID 46113)
 -- Name: idx_settings_unique_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2198,7 +2314,31 @@ CREATE UNIQUE INDEX idx_settings_unique_name ON nrmm.settings USING btree (lower
 
 
 --
--- TOC entry 2542 (class 1259 OID 661939)
+-- TOC entry 5932 (class 1259 OID 83789821)
+-- Name: idx_stats_name; Type: INDEX; Schema: nrmm; Owner: nrmm
+--
+
+CREATE INDEX idx_stats_name ON nrmm.stats USING btree (name);
+
+
+--
+-- TOC entry 5933 (class 1259 OID 83789822)
+-- Name: idx_stats_time_added; Type: INDEX; Schema: nrmm; Owner: nrmm
+--
+
+CREATE INDEX idx_stats_time_added ON nrmm.stats USING btree (time_added);
+
+
+--
+-- TOC entry 5934 (class 1259 OID 83789823)
+-- Name: idx_stats_type; Type: INDEX; Schema: nrmm; Owner: nrmm
+--
+
+CREATE INDEX idx_stats_type ON nrmm.stats USING btree (type);
+
+
+--
+-- TOC entry 5835 (class 1259 OID 46114)
 -- Name: idx_unique_folder_within_parent; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2206,7 +2346,7 @@ CREATE UNIQUE INDEX idx_unique_folder_within_parent ON nrmm.folder USING btree (
 
 
 --
--- TOC entry 2550 (class 1259 OID 662346)
+-- TOC entry 5843 (class 1259 OID 46115)
 -- Name: idx_unique_lu_nametype; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2214,7 +2354,7 @@ CREATE UNIQUE INDEX idx_unique_lu_nametype ON nrmm.lookups USING btree (name, ty
 
 
 --
--- TOC entry 2617 (class 1259 OID 662268)
+-- TOC entry 5927 (class 1259 OID 46116)
 -- Name: idx_unique_workflow_code; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2222,7 +2362,7 @@ CREATE UNIQUE INDEX idx_unique_workflow_code ON nrmm.workflow USING btree (code)
 
 
 --
--- TOC entry 2612 (class 1259 OID 662347)
+-- TOC entry 5922 (class 1259 OID 46117)
 -- Name: idx_users_email_unique; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2230,7 +2370,7 @@ CREATE UNIQUE INDEX idx_users_email_unique ON nrmm.users USING btree (email);
 
 
 --
--- TOC entry 2613 (class 1259 OID 661941)
+-- TOC entry 5923 (class 1259 OID 46118)
 -- Name: idx_users_name; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2238,7 +2378,7 @@ CREATE INDEX idx_users_name ON nrmm.users USING btree (firstname);
 
 
 --
--- TOC entry 2614 (class 1259 OID 661942)
+-- TOC entry 5924 (class 1259 OID 46119)
 -- Name: idx_users_receive_emails; Type: INDEX; Schema: nrmm; Owner: nrmm
 --
 
@@ -2246,7 +2386,96 @@ CREATE INDEX idx_users_receive_emails ON nrmm.users USING btree (receive_emails)
 
 
 --
--- TOC entry 2648 (class 2620 OID 661943)
+-- TOC entry 5846 (class 1259 OID 46220)
+-- Name: machinery_end_date_idx; Type: INDEX; Schema: nrmm; Owner: nrmm
+--
+
+CREATE INDEX machinery_end_date_idx ON nrmm.machinery USING btree (end_date);
+
+
+--
+-- TOC entry 5849 (class 1259 OID 46221)
+-- Name: machinery_site_id; Type: INDEX; Schema: nrmm; Owner: nrmm
+--
+
+CREATE INDEX machinery_site_id ON nrmm.machinery USING btree (site_id);
+
+
+--
+-- TOC entry 5850 (class 1259 OID 46222)
+-- Name: machinery_start_date_idx; Type: INDEX; Schema: nrmm; Owner: nrmm
+--
+
+CREATE INDEX machinery_start_date_idx ON nrmm.machinery USING btree (start_date);
+
+
+--
+-- TOC entry 5905 (class 1259 OID 46223)
+-- Name: site_borough_idx; Type: INDEX; Schema: nrmm; Owner: nrmm
+--
+
+CREATE INDEX site_borough_idx ON nrmm.site USING btree (borough_id);
+
+
+--
+-- TOC entry 5906 (class 1259 OID 46224)
+-- Name: site_end_date_idx; Type: INDEX; Schema: nrmm; Owner: nrmm
+--
+
+CREATE INDEX site_end_date_idx ON nrmm.site USING btree (end_date);
+
+
+--
+-- TOC entry 5907 (class 1259 OID 46225)
+-- Name: site_name_idx; Type: INDEX; Schema: nrmm; Owner: nrmm
+--
+
+CREATE INDEX site_name_idx ON nrmm.site USING btree (name);
+
+
+--
+-- TOC entry 5910 (class 1259 OID 46226)
+-- Name: site_postcode_idx; Type: INDEX; Schema: nrmm; Owner: nrmm
+--
+
+CREATE INDEX site_postcode_idx ON nrmm.site USING btree (postcode);
+
+
+--
+-- TOC entry 5911 (class 1259 OID 46227)
+-- Name: site_start_date_idx; Type: INDEX; Schema: nrmm; Owner: nrmm
+--
+
+CREATE INDEX site_start_date_idx ON nrmm.site USING btree (start_date);
+
+
+--
+-- TOC entry 5937 (class 1259 OID 83789824)
+-- Name: stats_time_added; Type: INDEX; Schema: nrmm; Owner: nrmm
+--
+
+CREATE INDEX stats_time_added ON nrmm.stats USING btree (time_added);
+
+
+--
+-- TOC entry 5956 (class 2620 OID 88716568)
+-- Name: machinery admin_user_id; Type: TRIGGER; Schema: nrmm; Owner: nrmm
+--
+
+CREATE TRIGGER admin_user_id BEFORE INSERT OR DELETE OR UPDATE ON nrmm.machinery FOR EACH ROW EXECUTE PROCEDURE nrmm.machinery_admin_user_id();
+
+
+--
+-- TOC entry 6119 (class 0 OID 0)
+-- Dependencies: 5956
+-- Name: TRIGGER admin_user_id ON machinery; Type: COMMENT; Schema: nrmm; Owner: nrmm
+--
+
+COMMENT ON TRIGGER admin_user_id ON nrmm.machinery IS 'Keeps admin_user_id and use_id the same';
+
+
+--
+-- TOC entry 5955 (class 2620 OID 46120)
 -- Name: change_log change_log_time_added_insert_timestamp; Type: TRIGGER; Schema: nrmm; Owner: nrmm
 --
 
@@ -2254,7 +2483,32 @@ CREATE TRIGGER change_log_time_added_insert_timestamp BEFORE INSERT ON nrmm.chan
 
 
 --
--- TOC entry 2649 (class 2620 OID 661944)
+-- TOC entry 5963 (class 2620 OID 46219)
+-- Name: email_queue email_queue_time_added_insert_timestamp; Type: TRIGGER; Schema: nrmm; Owner: nrmm
+--
+
+CREATE TRIGGER email_queue_time_added_insert_timestamp BEFORE INSERT ON nrmm.email_queue FOR EACH ROW EXECUTE PROCEDURE nrmm.set_time_added();
+
+
+--
+-- TOC entry 5954 (class 2620 OID 88731790)
+-- Name: action hit_count; Type: TRIGGER; Schema: nrmm; Owner: nrmm
+--
+
+CREATE TRIGGER hit_count BEFORE UPDATE OF used, hit_count ON nrmm.action FOR EACH ROW WHEN (((new.hit_count < 3) AND (old.used = false))) EXECUTE PROCEDURE nrmm.action_hit();
+
+
+--
+-- TOC entry 6120 (class 0 OID 0)
+-- Dependencies: 5954
+-- Name: TRIGGER hit_count ON action; Type: COMMENT; Schema: nrmm; Owner: nrmm
+--
+
+COMMENT ON TRIGGER hit_count ON nrmm.action IS 'Process action hit';
+
+
+--
+-- TOC entry 5957 (class 2620 OID 46121)
 -- Name: media media_time_added_insert_timestamp; Type: TRIGGER; Schema: nrmm; Owner: nrmm
 --
 
@@ -2262,7 +2516,7 @@ CREATE TRIGGER media_time_added_insert_timestamp BEFORE INSERT ON nrmm.media FOR
 
 
 --
--- TOC entry 2650 (class 2620 OID 661945)
+-- TOC entry 5958 (class 2620 OID 46122)
 -- Name: media media_time_modified_update_timestamp; Type: TRIGGER; Schema: nrmm; Owner: nrmm
 --
 
@@ -2270,7 +2524,7 @@ CREATE TRIGGER media_time_modified_update_timestamp BEFORE UPDATE ON nrmm.media 
 
 
 --
--- TOC entry 2651 (class 2620 OID 661946)
+-- TOC entry 5959 (class 2620 OID 46123)
 -- Name: note note_time_added_insert_timestamp; Type: TRIGGER; Schema: nrmm; Owner: nrmm
 --
 
@@ -2278,7 +2532,7 @@ CREATE TRIGGER note_time_added_insert_timestamp BEFORE INSERT ON nrmm.note FOR E
 
 
 --
--- TOC entry 2652 (class 2620 OID 661947)
+-- TOC entry 5960 (class 2620 OID 46124)
 -- Name: patch patch_time_added_insert_timestamp; Type: TRIGGER; Schema: nrmm; Owner: nrmm
 --
 
@@ -2286,7 +2540,7 @@ CREATE TRIGGER patch_time_added_insert_timestamp BEFORE INSERT ON nrmm.patch FOR
 
 
 --
--- TOC entry 2653 (class 2620 OID 661948)
+-- TOC entry 5961 (class 2620 OID 46125)
 -- Name: report report_last_modified_update_timestamp; Type: TRIGGER; Schema: nrmm; Owner: nrmm
 --
 
@@ -2294,7 +2548,7 @@ CREATE TRIGGER report_last_modified_update_timestamp BEFORE UPDATE ON nrmm.repor
 
 
 --
--- TOC entry 2654 (class 2620 OID 661949)
+-- TOC entry 5962 (class 2620 OID 46126)
 -- Name: user_log user_log_access_time_update_timestamp; Type: TRIGGER; Schema: nrmm; Owner: nrmm
 --
 
@@ -2302,7 +2556,7 @@ CREATE TRIGGER user_log_access_time_update_timestamp BEFORE UPDATE ON nrmm.user_
 
 
 --
--- TOC entry 2632 (class 2606 OID 661950)
+-- TOC entry 5938 (class 2606 OID 46127)
 -- Name: datasource fk_datasource_report; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2311,7 +2565,7 @@ ALTER TABLE ONLY nrmm.datasource
 
 
 --
--- TOC entry 2633 (class 2606 OID 661955)
+-- TOC entry 5939 (class 2606 OID 46132)
 -- Name: distribution_list fk_distribution_list_datasource; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2320,7 +2574,7 @@ ALTER TABLE ONLY nrmm.distribution_list
 
 
 --
--- TOC entry 2634 (class 2606 OID 661965)
+-- TOC entry 5940 (class 2606 OID 46137)
 -- Name: note fk_note_user_id; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2329,7 +2583,7 @@ ALTER TABLE ONLY nrmm.note
 
 
 --
--- TOC entry 2635 (class 2606 OID 661975)
+-- TOC entry 5941 (class 2606 OID 46142)
 -- Name: report_text fk_report_text_type; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2338,7 +2592,7 @@ ALTER TABLE ONLY nrmm.report_text
 
 
 --
--- TOC entry 2636 (class 2606 OID 661980)
+-- TOC entry 5942 (class 2606 OID 46147)
 -- Name: role fk_role_role_type; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2347,7 +2601,7 @@ ALTER TABLE ONLY nrmm.role
 
 
 --
--- TOC entry 2637 (class 2606 OID 661985)
+-- TOC entry 5943 (class 2606 OID 46152)
 -- Name: scheduled_task fk_scheduled_task; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2356,7 +2610,7 @@ ALTER TABLE ONLY nrmm.scheduled_task
 
 
 --
--- TOC entry 2638 (class 2606 OID 661990)
+-- TOC entry 5944 (class 2606 OID 46157)
 -- Name: scheduled_task fk_scheduled_task_datasource; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2365,7 +2619,7 @@ ALTER TABLE ONLY nrmm.scheduled_task
 
 
 --
--- TOC entry 2639 (class 2606 OID 661995)
+-- TOC entry 5945 (class 2606 OID 46162)
 -- Name: scheduled_task fk_scheduled_task_datasource1; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2374,7 +2628,7 @@ ALTER TABLE ONLY nrmm.scheduled_task
 
 
 --
--- TOC entry 2640 (class 2606 OID 662000)
+-- TOC entry 5946 (class 2606 OID 46167)
 -- Name: scheduled_task fk_scheduled_task_datasource2; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2383,7 +2637,7 @@ ALTER TABLE ONLY nrmm.scheduled_task
 
 
 --
--- TOC entry 2641 (class 2606 OID 662005)
+-- TOC entry 5947 (class 2606 OID 46172)
 -- Name: scheduled_task fk_scheduled_task_datasource3; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2392,7 +2646,7 @@ ALTER TABLE ONLY nrmm.scheduled_task
 
 
 --
--- TOC entry 2642 (class 2606 OID 662010)
+-- TOC entry 5948 (class 2606 OID 46177)
 -- Name: scheduled_task fk_scheduled_task_datasource4; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2401,7 +2655,7 @@ ALTER TABLE ONLY nrmm.scheduled_task
 
 
 --
--- TOC entry 2643 (class 2606 OID 662015)
+-- TOC entry 5949 (class 2606 OID 46182)
 -- Name: scheduled_task fk_scheduled_task_error_distribution_list; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2410,7 +2664,7 @@ ALTER TABLE ONLY nrmm.scheduled_task
 
 
 --
--- TOC entry 2644 (class 2606 OID 662020)
+-- TOC entry 5950 (class 2606 OID 46187)
 -- Name: scheduled_task fk_scheduled_task_notify_distribution_list; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2419,7 +2673,7 @@ ALTER TABLE ONLY nrmm.scheduled_task
 
 
 --
--- TOC entry 2645 (class 2606 OID 662025)
+-- TOC entry 5951 (class 2606 OID 46192)
 -- Name: scheduled_task fk_scheduled_task_report; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2428,7 +2682,7 @@ ALTER TABLE ONLY nrmm.scheduled_task
 
 
 --
--- TOC entry 2646 (class 2606 OID 662030)
+-- TOC entry 5952 (class 2606 OID 46197)
 -- Name: user_role fk_user_role_role; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2437,7 +2691,7 @@ ALTER TABLE ONLY nrmm.user_role
 
 
 --
--- TOC entry 2647 (class 2606 OID 662035)
+-- TOC entry 5953 (class 2606 OID 46202)
 -- Name: user_role fk_user_role_users; Type: FK CONSTRAINT; Schema: nrmm; Owner: nrmm
 --
 
@@ -2445,64 +2699,7 @@ ALTER TABLE ONLY nrmm.user_role
     ADD CONSTRAINT fk_user_role_users FOREIGN KEY (users_id) REFERENCES nrmm.users(id) DEFERRABLE;
 
 
--- SEQUENCE: nrmm.email_queue_id_seq
-
-CREATE SEQUENCE nrmm.email_queue_id_seq
-    INCREMENT 1
-    START 1
-    MINVALUE 1
-    MAXVALUE 9223372036854775807
-    CACHE 1;
-
-ALTER SEQUENCE nrmm.email_queue_id_seq
-    OWNER TO nrmm;
-
--- Table: nrmm.email_queue
-
-CREATE TABLE nrmm.email_queue
-(
-    id integer NOT NULL DEFAULT nextval('nrmm.email_queue_id_seq'::regclass),
-    email_object text COLLATE pg_catalog."default",
-    email_to text COLLATE pg_catalog."default",
-    email_from text COLLATE pg_catalog."default",
-    email_subject text COLLATE pg_catalog."default",
-    time_added timestamp without time zone,
-    send_attempts smallint NOT NULL DEFAULT 0,
-    CONSTRAINT email_queue_pkey PRIMARY KEY (id)
-)
-WITH (
-    OIDS = FALSE
-)
-TABLESPACE pg_default;
-
-ALTER TABLE nrmm.email_queue
-    OWNER to nrmm;
-
--- Trigger: email_queue_time_added_insert_timestamp
-CREATE TRIGGER email_queue_time_added_insert_timestamp BEFORE INSERT ON nrmm.email_queue FOR EACH ROW EXECUTE PROCEDURE nrmm.set_time_added();
-
-CREATE INDEX machinery_end_date_idx ON nrmm.machinery USING btree (end_date ASC NULLS LAST) TABLESPACE pg_default;
-CREATE INDEX machinery_site_id ON nrmm.machinery USING btree (site_id ASC NULLS LAST) TABLESPACE pg_default;
-CREATE INDEX machinery_start_date_idx ON nrmm.machinery USING btree (start_date ASC NULLS LAST) TABLESPACE pg_default;
-CREATE INDEX site_borough_idx ON nrmm.site USING btree (borough_id ASC NULLS LAST) TABLESPACE pg_default;
-CREATE INDEX site_end_date_idx ON nrmm.site USING btree (end_date ASC NULLS LAST) TABLESPACE pg_default;
-CREATE INDEX site_name_idx ON nrmm.site USING btree (name COLLATE pg_catalog."default" ASC NULLS LAST) TABLESPACE pg_default;
-CREATE INDEX site_postcode_idx ON nrmm.site USING btree (postcode COLLATE pg_catalog."default" ASC NULLS LAST) TABLESPACE pg_default;
-CREATE INDEX site_start_date_idx ON nrmm.site USING btree (start_date ASC NULLS LAST) TABLESPACE pg_default;
-
-
---
--- TOC entry 2769 (class 0 OID 0)
--- Dependencies: 8
--- Name: SCHEMA nrmm; Type: ACL; Schema: -; Owner: nrmm
---
-
---REVOKE ALL ON SCHEMA nrmm FROM PUBLIC;
---REVOKE ALL ON SCHEMA nrmm FROM nrmm;
---GRANT ALL ON SCHEMA nrmm TO nrmm;
-
-
--- Completed on 2019-12-09 20:45:51 GMT
+-- Completed on 2020-08-20 10:00:08 BST
 
 --
 -- PostgreSQL database dump complete

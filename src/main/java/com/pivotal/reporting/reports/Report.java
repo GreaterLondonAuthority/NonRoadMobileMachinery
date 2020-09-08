@@ -109,10 +109,9 @@ public abstract class Report {
 
     /** List of possible output formats **/
     public enum ExportFormat {
-        PDF,EXCEL97,EXCEL2010,WORD,XML,JSON,RPT,PRINTER,TSV,CSV,HTML,TEXT;
+        EXCEL97,EXCEL2010,WORD,XML,JSON,RPT,PRINTER,TSV,CSV,HTML,TEXT;
 
         // The following methods are to allow Velocity to access these enumerations
-        public static ExportFormat getPDF() {return PDF;}
         public static ExportFormat getEXCEL97() {return EXCEL97;}
         public static ExportFormat getEXCEL2010() {return EXCEL2010;}
         public static ExportFormat getWORD() {return WORD;}
@@ -147,10 +146,8 @@ public abstract class Report {
                 return CSV;
             else if (Common.doStringsMatch(HTML.toString(), type))
                 return HTML;
-            else if (Common.doStringsMatch(TEXT.toString(), type))
-                return TEXT;
             else
-                return PDF;
+                return TEXT;
         }
 
         // Get the export format description
